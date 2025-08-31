@@ -11,7 +11,7 @@ Users submit complaints (road damage, Wi-Fi issues, noise). The system learns to
 | Jainil Shailesh Jagtap               | 202301032   
 | Shamit Gandhi                        | 202301041    
 | Mehta Dhruvil Vimalkumar (Leader)    | 202301061    
-| Bhatt Parth Bhaskarbha               | 202301022   
+| Bhatt Parth Bhaskarbhai              | 202301022   
 | Om Kantilal Santoki                  | 202301019   
 | Neev Vegada                          | 202301031    
 | Tirth Koradiya                       | 202301018   
