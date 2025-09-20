@@ -26,7 +26,6 @@ class Citizen(ParentUser):
         null=True,
         blank=True
     )
-
 class Department(models.Model):
     name = models.CharField(max_length=200, unique=True)
 
