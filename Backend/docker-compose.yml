@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    command: python /code/manage.py runserver 0.0.0.0:7000
+    volumes:
+      - .:/code
+    ports:
+      - 7000:7000
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+volumes:
+  postgres_data:
