@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Welcome to CPCMS</h1>
+  {% if user.is_authenticated %}
+  <p>Welcome back, {{ user.username }}!</p>
+  <form method="post" action="{% url 'users:logout' %}">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+  </form>
+  {% else %}
+  <p>Please <a href="{% url 'users:login' %}">log in</a> or sign up:</p>
+  <ul>
+    <li><a href="{% url 'users:signup_citizen' %}">Sign up as Citizen</a></li>
+    <li><a href="{% url 'users:signup_authority' %}">Sign up as Government Authority</a></li>
+    <li><a href="{% url 'users:signup_fieldworker' %}">Sign up as Field Worker</a></li>
+  </ul>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Login</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+      <label for="id_username_or_email">Username or Email</label>
+      {{ form.username_or_email }}
+      {{ form.username_or_email.errors }}
+    </div>
+    <div>
+      <label for="id_password">Password</label>
+      {{ form.password }}
+      {{ form.password.errors }}
+    </div>
+    <button type="submit">Login</button>
+  </form>
+{% endblock %}

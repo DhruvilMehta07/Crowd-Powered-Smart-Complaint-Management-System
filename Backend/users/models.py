@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+from django.db import IntegrityError
 
 
 class ParentUser(AbstractUser):
@@ -30,27 +31,22 @@ class Department(models.Model):
     name = models.CharField(max_length=200, unique=True)
 
     class Meta:
+        
         constraints = [
-            models.UniqueConstraint(
-                name="unique_department_name_ci",
-                fields=["name"],
-                violation_error_message="Department with this name already exists.",
-                condition=None,
-                deferrable=None,
-                include=None,
-                opclasses=["varchar_pattern_ops"],
-            )
+            models.UniqueConstraint(models.functions.Lower('name'), name='unique_department_name_ci')
         ]
 
     def save(self, *args, **kwargs):
-        self.name = self.name.strip().lower()  # Store as lowercase for uniqueness
-        super().save(*args, **kwargs)
+       
+        if self.name:
+            self.name = self.name.strip().lower()
+        try:
+            super().save(*args, **kwargs)
+        except IntegrityError:
+            raise IntegrityError("Department with this name already exists (case-insensitive).")
 
     def __str__(self):
-        return self.name.capitalize()
-    
-    def __str__(self):
-        return self.name
+        return self.name.capitalize() if self.name else ''
 
 class Government_Authority(ParentUser):
     authority_name=models.CharField(max_length=200)
