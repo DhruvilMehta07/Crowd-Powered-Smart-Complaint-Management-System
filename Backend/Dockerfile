@@ -22,6 +22,7 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* \
 # Install pipenv and dependencies
 COPY Pipfile Pipfile.lock /code/
 RUN pip install pipenv && pipenv install --system && pip install pillow
-
+RUN pip install Django djangorestframework
+RUN pip install Django django-cors-headers
 # Copy project files
 COPY . /code/
