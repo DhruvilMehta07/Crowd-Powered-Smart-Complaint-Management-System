@@ -1,0 +1,125 @@
+/* Navbar (Tabs Container) Styling */
+.navbar {
+  display: flex;
+  flex-grow: 1;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #a0aec0;
+  border-radius: 8px;
+  margin: 0 5px;
+  transition: all 0.3s ease;
+}
+
+/* Active Tab Styling */
+.nav-btn.active {
+  background-color: #ffffff;
+  color: #2d3748; /* Dark text for active tab */
+}
+
+/* Styling for the form area inside Login.jsx */
+.form-content-area {
+  padding: 2rem 4rem 3rem 4rem;
+}
+
+/* Login/SignUp Toggle Styling */
+.form-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-bottom: 2.5rem;
+}
+
+.form-toggle h2 {
+  cursor: pointer;
+  color: #a0aec0; /* Inactive toggle color */
+  padding-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 1.2rem;
+  position: relative;
+}
+
+.form-toggle h2.active {
+  color: #2d3748; /* Active toggle color */
+  border-bottom: 3px solid #2d3748;
+}
+
+/* Input Field Styling */
+.input-group {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 10px 5px;
+  font-size: 1rem;
+  color: #2d3748;
+  border: none;
+  border-bottom: 1px solid #cbd5e0; /* Underline style */
+  background-color: transparent;
+  outline: none; /* Remove focus outline */
+  transition: border-color 0.3s ease;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+  border-bottom: 2px solid #4a5568; /* Darker underline on focus */
+}
+
+.password-toggle {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #a0aec0;
+}
+
+/* Button Styling */
+.login-btn {
+  width: 100%;
+  padding: 0.9rem;
+  background-color: #4a5568; /* Dark grey button */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #2d3748;
+}
+
+.forgot-password {
+  display: none; /* As per the image, this is not visible */
+}
+
+/* "Or" Divider */
+.divider {
+  margin: 2rem 0;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+/* Google Sign-in Icon */
+.google-login {
+  cursor: pointer;
+}
+
+.google-login img {
+  width: 32px;
+  height: 32px;
+}
+
