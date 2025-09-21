@@ -4,7 +4,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <form>
+    <form className='form-input'>
       <div className="input-group">
         <input type="email" placeholder="Enter your email" required />
       </div>

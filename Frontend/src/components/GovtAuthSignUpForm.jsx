@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 const GovtAuthSignUpForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showReenterPassword, setShowReenterPassword] = useState(false);
@@ -32,13 +33,16 @@ const GovtAuthSignUpForm = () => {
                 <input type="tel" placeholder="Enter Mobile Number" required />
             </div>
             <div className="input-group">
-                <select required>
-                    <option value="" disabled selected>Department</option>
-                    <option value="water">Water Supply</option>
-                    <option value="electricity">Electricity</option>
-                    <option value="roads">Roads and Transport</option>
-                </select>
-            </div>
+    <select required>
+        <option value="" disabled selected>
+            Department
+        </option>
+        <option value="water">Water Supply</option>
+        <option value="electricity">Electricity</option>
+        <option value="roads">Roads and Transport</option>
+    </select>
+</div>
+
             <button type="submit" className="login-btn">
                 SignUp
             </button>

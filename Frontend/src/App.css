@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f0f2f5;
+  background-color: #ffffff;
   font-family: sans-serif;
 }
 
@@ -36,3 +36,6 @@
   margin-right: 20px;
 }
 
+.form-input{
+  padding: 20px;
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 const CitizenSignUpForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showReenterPassword, setShowReenterPassword] = useState(false);

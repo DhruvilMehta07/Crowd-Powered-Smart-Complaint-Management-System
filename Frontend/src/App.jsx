@@ -11,10 +11,7 @@ function App() {
   return (
     // The className is now handled by App.css
     <div className="auth-wrapper">
-      <div className="auth-header">
-         <div className="close-icon">×</div>
          <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
       <Login activeTab={activeTab} />
     </div>
   );
