@@ -58,6 +58,7 @@ class Government_Authority(ParentUser):
         blank=True
     )
     assigned_department=models.ForeignKey(Department,blank=True,null=True,on_delete=models.CASCADE)
+    verified=models.BooleanField(default=False)
 
 class Field_Worker(ParentUser):
     worker_name=models.CharField(max_length=200)
@@ -70,4 +71,5 @@ class Field_Worker(ParentUser):
     )
     assigned_area=models.CharField(max_length=200)
     assigned_department=models.ForeignKey(Department,blank=True,null=True,on_delete=models.CASCADE)
+    verified=models.BooleanField(default=False)
  
