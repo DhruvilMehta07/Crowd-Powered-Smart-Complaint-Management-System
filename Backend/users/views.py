@@ -2,14 +2,15 @@ from django.urls import reverse_lazy
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView,LogoutView
 from django.views.generic.edit import CreateView
+from rest_framework import generics
 
-from .models import Citizen, Government_Authority, Field_Worker
+from .models import Citizen, Government_Authority, Field_Worker,Department
 from .forms import CitizenForm, GovernmentAuthorityForm, FieldWorkerForm, LoginForm
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Citizen
-from .serializers import CitizenSerializer, GovernmentAuthoritySerializer,FieldWorkerSerializer,UserLoginSerializer
+from .serializers import CitizenSerializer, GovernmentAuthoritySerializer,FieldWorkerSerializer,UserLoginSerializer,DepartmentSerializer
 from rest_framework import status
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
@@ -83,7 +84,9 @@ class UserLoginAPIView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+class DepartmentListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
 
 # This was previous class based view implementation for signup and login using Django forms and views.
 """
