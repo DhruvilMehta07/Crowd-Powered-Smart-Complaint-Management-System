@@ -1,6 +1,6 @@
 import React from 'react'
 
-const tabs = ["Citizen", "Government Authority", "Maintenance Crew", "Administrator"]
+const tabs = ["Citizen", "Government Authority", "Field Worker", "Administrator"]
 
 function Navbar({ activeTab, setActiveTab }) {
   return (

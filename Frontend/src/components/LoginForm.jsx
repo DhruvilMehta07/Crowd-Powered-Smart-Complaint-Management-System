@@ -19,21 +19,21 @@ const LoginForm = () => {
     e.preventDefault();
     setError('');
     setMessage('');
-    try {
+     try {
       const res = await axios.post("http://localhost:7000/users/login/", {
         username: formData.username,
         password: formData.password,
       });
-      setMessage(res.data.message || "Login successful!");
-      // Optionally, redirect or update app state here
+
+      if (res.data.message) {
+            setMessage(`Login successful`);
+        }
     } catch (err) {
-      console.log(err.response?.data); // Add this line
+      console.log(err.response?.data);
       setError(
-        err.response?.data?.error ||
-        (typeof err.response?.data === 'object'
-          ? JSON.stringify(err.response.data)
-          : "Login failed")
+        err.response.data.error
       );
+      setMessage(""); // clear previous messages
     }
   };
 
@@ -68,9 +68,7 @@ const LoginForm = () => {
       <button type="submit" className="login-btn">
         Login
       </button>
-      <a href="#" className="forgot-password">
-        Forgot Password?
-      </a>
+      
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
     </form>

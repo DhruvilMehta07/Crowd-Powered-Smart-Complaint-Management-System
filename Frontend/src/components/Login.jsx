@@ -6,7 +6,7 @@ import googleLogo from '../assets/google-logo.svg';
 import LoginForm from './LoginForm';
 import CitizenSignUpForm from './CitizenSignUpForm';
 import GovtAuthSignUpForm from './GovtAuthSignUpForm';
-import MaintenanceCrewSignUpForm from './MaintenanceCrewSignUpForm';
+import FieldWorkerSignUpForm from './FieldWorkerSignUpForm';
 import AdminSignUpForm from './AdminSignUpForm';
 
 // The component now accepts `activeTab` as a prop from App.jsx
@@ -20,8 +20,8 @@ const Login = ({ activeTab }) => {
         return <CitizenSignUpForm />;
       case 'Government Authority':
         return <GovtAuthSignUpForm />;
-      case 'Maintenance Crew':
-        return <MaintenanceCrewSignUpForm />;
+      case 'Field Worker':
+        return <FieldWorkerSignUpForm />;
       case 'Administrator':
         return <AdminSignUpForm />;
       default:

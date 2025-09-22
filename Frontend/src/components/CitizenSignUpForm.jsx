@@ -98,8 +98,10 @@ const CitizenSignUpForm = () => {
           required
         />
       </div>
-      {message && <div style={{ color: 'green' }}>{message}</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+
+      {message && <div className="success-message">{message}</div>}
+      {error && <div className="error-message">{error}</div>}
+      
       <button type="submit" className="login-btn">
         SignUp
       </button>
