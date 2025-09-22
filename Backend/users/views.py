@@ -2,19 +2,25 @@ from django.urls import reverse_lazy
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView,LogoutView
 from django.views.generic.edit import CreateView
-from rest_framework import generics
 
-from .models import Citizen, Government_Authority, Field_Worker,Department
-from .forms import CitizenForm, GovernmentAuthorityForm, FieldWorkerForm, LoginForm
+from .models import Citizen, Government_Authority, Field_Worker,ParentUser
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Citizen
-from .serializers import CitizenSerializer, GovernmentAuthoritySerializer,FieldWorkerSerializer,UserLoginSerializer,DepartmentSerializer
+from .serializers import CitizenSerializer, GovernmentAuthoritySerializer,FieldWorkerSerializer,UserLoginSerializer
 from rest_framework import status
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
+from rest_framework import generics
+from .models import Department
+from .serializers import DepartmentSerializer
 
+
+
+class DepartmentListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
 
 
 class CitizenSignupAPIView(APIView):
@@ -73,21 +79,22 @@ class UserLoginAPIView(APIView):
             username = serializer.validated_data.get('username')
             password = serializer.validated_data.get('password')
             user = authenticate(request, username=username, password=password)
-            if user is not None:
-                if(hasattr(user, 'verified') and user.verified==False):
-                    return Response({"error": "User not verified yet."}, status=status.HTTP_401_UNAUTHORIZED)
+            u1 = Government_Authority.objects.filter(username=username).first()
+            u2 = Field_Worker.objects.filter(username=username).first()
+
+            if user is None:
+                return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+            if u1 is not None or u2 is not None:
+                if (u1 is not None and u1.verified == False) or (u2 is not None and u2.verified == False):
+                    return Response({"error": "You have not been verified yet."}, status=status.HTTP_401_UNAUTHORIZED)
                 else:
                     login(request, user)
                     return Response({"message": "Login successful."}, status=status.HTTP_200_OK)
             else:
-                return Response({"error": "Invalid username or password."}, status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class DepartmentListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Department.objects.all()
-    serializer_class = DepartmentSerializer
-
+                login(request, user)
+                return Response({"message": "Login successful."}, status=status.HTTP_200_OK)
+            
+            
 # This was previous class based view implementation for signup and login using Django forms and views.
 """
 class CitizenSignupView(CreateView):

@@ -11,7 +11,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
 class CitizenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Citizen
-        fields = '_all_'
+        fields = '__all__'
 
     # Encrypting Password
     def create(self, validated_data):
@@ -37,7 +37,7 @@ class GovernmentAuthoritySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Government_Authority
-        fields = '_all_'
+        fields = '__all__'
 
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
@@ -48,9 +48,17 @@ class GovernmentAuthoritySerializer(serializers.ModelSerializer):
 
 
 class FieldWorkerSerializer(serializers.ModelSerializer):
+    # serialize department as ID + name
+    assigned_department = DepartmentSerializer(read_only=True)
+    assigned_department_id = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        source="assigned_department",
+        write_only=True
+    )
+    
     class Meta:
         model = Field_Worker
-        fields = '_all_'
+        fields = '__all__'
 
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
@@ -63,3 +71,4 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
+

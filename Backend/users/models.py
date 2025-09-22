@@ -49,7 +49,6 @@ class Department(models.Model):
         return self.name.capitalize() if self.name else ''
 
 class Government_Authority(ParentUser):
-    authority_name=models.CharField(max_length=200)
     phone_number = models.CharField(
         validators=[phone_validator],
         max_length=10,
@@ -61,7 +60,6 @@ class Government_Authority(ParentUser):
     verified=models.BooleanField(default=False)
 
 class Field_Worker(ParentUser):
-    worker_name=models.CharField(max_length=200)
     phone_number = models.CharField(
         validators=[phone_validator],
         max_length=10,
@@ -69,7 +67,8 @@ class Field_Worker(ParentUser):
         null=True,
         blank=True
     )
-    assigned_area=models.CharField(max_length=200)
+    # we are going to implement wards in later sprints
+    # assigned_area=models.CharField(max_length=200)
     assigned_department=models.ForeignKey(Department,blank=True,null=True,on_delete=models.CASCADE)
     verified=models.BooleanField(default=False)
  
