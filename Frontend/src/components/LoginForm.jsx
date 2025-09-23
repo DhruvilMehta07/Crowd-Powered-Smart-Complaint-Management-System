@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 
 const LoginForm = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
@@ -25,13 +27,25 @@ const LoginForm = () => {
         password: formData.password,
       });
 
-      if (res.data.message) {
+  if (res.data.message) {
             setMessage(`Login successful`);
-        }
+            // store token if backend returns one (common keys: token, access, key)
+            const token = res.data.token ?? res.data.access ?? res.data.key ?? res.data?.data?.token;
+            if (token) {
+              try {
+                localStorage.setItem('token', token);
+              } catch (e) {
+                console.warn('Could not store token in localStorage', e);
+              }
+            }
+            // mark authenticated for UI (Django may use session cookie)
+            try { localStorage.setItem('isAuthenticated', 'true'); } catch (e) { /* ignore */ }
+            navigate('/home');
+    }
     } catch (err) {
       console.log(err.response?.data);
       setError(
-        err.response.data.error
+        err.response?.data?.error || 'Login failed'
       );
       setMessage(""); // clear previous messages
     }
