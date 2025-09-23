@@ -9,14 +9,26 @@ Each group member initially prepared their own individual work covering **Stakeh
 ## Final Documentation Includes  
 - Concept Poster  
 - Design Chart Paper  
-- Stakeholders and End Users  
+- Stakeholders and End Users – *Parth*  
 - Elicitation Techniques  
+  - **Citizen:** Shamit, Dhruvil, Parth, Rasha  
+  - **Government Authorities:** Jainil  
+  - **Field Worker:** Karan, Neev, Tirth  
+  - **System Admin:** Om  
+  - **Tech Support:** Samarth  
 - Functional Requirements (FR)  
-- Non-Functional Requirements (NFR)  
+  - **Citizen:** Shamit, Dhruvil, Parth, Rasha  
+  - **Government Authorities:** Jainil  
+  - **Field Worker:** Karan, Neev, Tirth  
+- Non-Functional Requirements (NFR) – *Neev, Om*  
 - User Stories  
-- EPICs  
-- Identified Conflicts  
-- Proof of Concept (POC) for Sprint 1  
+  - **Citizen:** Shamit, Dhruvil, Parth, Rasha  
+  - **Government Authorities:** Jainil  
+  - **Field Worker:** Karan, Neev, Tirth  
+  - **System Admin:** Om  
+- EPICs – *Shamit*  
+- Identified Conflicts – *Shamit, Dhruvil*  
+- Proof of Concept (POC) for Sprint 1 – *Jainil*  
 
 ---
 
