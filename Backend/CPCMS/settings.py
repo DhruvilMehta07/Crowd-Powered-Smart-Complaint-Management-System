@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,6 +77,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'CPCMS.wsgi.application'
 
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'ekkatran@gmail.com'
+EMAIL_HOST_PASSWORD = os.getenv('.env')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'ekkatran@gmail.com'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

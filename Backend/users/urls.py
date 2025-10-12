@@ -6,7 +6,8 @@ from .views import (
     GovernmentAuthoritySignupAPIView,
     FieldWorkerSignupAPIView,
     UserLoginAPIView,
-    DepartmentListCreateAPIView
+    DepartmentListCreateAPIView,
+    VerifyOTPAPIView
 )
 
 
@@ -18,5 +19,6 @@ urlpatterns = [
     path('signup/citizens/', CitizenSignupAPIView.as_view(), name='signup-citizen'),
     path('signup/authorities/', GovernmentAuthoritySignupAPIView.as_view(), name='signup-authority'),
     path('signup/fieldworker/', FieldWorkerSignupAPIView.as_view(), name='signup-fieldworker'),
+    path('verify-otp/', VerifyOTPAPIView.as_view(), name='verify-otp'),
     path('login/',UserLoginAPIView.as_view(),name='login'),
 ]
