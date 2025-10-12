@@ -2,14 +2,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.authtoken.models import Token
 from rest_framework import generics
+from rest_framework import permissions
 
+from django.contrib.auth import logout
 from django.contrib.auth import authenticate, login
 from django.db import IntegrityError
 
-from .models import Citizen, Government_Authority, Field_Worker,Department
-from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer,DepartmentSerializer
+from .models import Citizen, Government_Authority, Field_Worker, Department
+from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer
 from .EmailService import EmailService
 
 # Store OTPs temporarily in memory
@@ -18,7 +19,6 @@ otp_storage = {}
 class DepartmentListCreateAPIView(generics.ListCreateAPIView):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
-
 
 class CitizenSignupAPIView(APIView):
     def post(self, request):
@@ -123,12 +123,11 @@ class VerifyOTPAPIView(APIView):
                     user = serializer.save()
                     del otp_storage[email] 
                     
-                    token, created = Token.objects.get_or_create(user=user)
+                    # Login user using session (no token)
                     login(request, user)
                     
                     return Response({
                         "message": "Registration successful!",
-                        "token": token.key,
                         "user_id": user.id,
                         "username": user.username
                     }, status=status.HTTP_201_CREATED)
@@ -181,20 +180,40 @@ class UserLoginAPIView(APIView):
             if user is None:
                 return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
             
+            # Check admin verification for authorities and field workers
             u1 = Government_Authority.objects.filter(username=username).first()
             u2 = Field_Worker.objects.filter(username=username).first()
 
             if (u1 is not None and not u1.verified) or (u2 is not None and not u2.verified):
                 return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
             
+            # Login user using session (no token)
             login(request, user)
-            token, created = Token.objects.get_or_create(user=user)
             
             return Response({
                 "message": "Login successful.",
-                "token": token.key,
                 "user_id": user.id,
                 "username": user.username
             }, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserLogoutAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        logout(request)
+        return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
+
+class CheckAuthAPIView(APIView):
+    def get(self, request):
+        if request.user.is_authenticated:
+            return Response({
+                "authenticated": True,
+                "user_id": request.user.id,
+                "username": request.user.username
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "authenticated": False
+            }, status=status.HTTP_200_OK)

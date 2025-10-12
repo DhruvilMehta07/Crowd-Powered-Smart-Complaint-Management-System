@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// Configure axios for CSRF
+axios.defaults.xsrfCookieName = 'csrftoken';
+axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+axios.defaults.withCredentials = true;
+
 const FieldWorkerSignUpForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showReenterPassword, setShowReenterPassword] = useState(false);

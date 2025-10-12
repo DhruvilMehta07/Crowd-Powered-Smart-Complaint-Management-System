@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+// Configure axios for CSRF
+axios.defaults.xsrfCookieName = 'csrftoken';
+axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+axios.defaults.withCredentials = true;
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -21,33 +25,28 @@ const LoginForm = () => {
     e.preventDefault();
     setError('');
     setMessage('');
-     try {
+
+    try {
       const res = await axios.post("http://localhost:7000/users/login/", {
         username: formData.username,
         password: formData.password,
       });
 
-  if (res.data.message) {
-            setMessage(`Login successful`);
-            // store token if backend returns one (common keys: token, access, key)
-            const token = res.data.token ?? res.data.access ?? res.data.key ?? res.data?.data?.token;
-            if (token) {
-              try {
-                localStorage.setItem('token', token);
-              } catch (e) {
-                console.warn('Could not store token in localStorage', e);
-              }
-            }
-            // mark authenticated for UI (Django may use session cookie)
-            try { localStorage.setItem('isAuthenticated', 'true'); } catch (e) { /* ignore */ }
-            navigate('/home');
-    }
+      if (res.data.message) {
+        setMessage(`Login successful`);
+        
+        // Store user info in localStorage (no token needed for session auth)
+        localStorage.setItem('user_id', res.data.user_id);
+        localStorage.setItem('username', res.data.username);
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        navigate('/home');
+      }
     } catch (err) {
       console.log(err.response?.data);
       setError(
         err.response?.data?.error || 'Login failed'
       );
-      setMessage(""); // clear previous messages
     }
   };
 

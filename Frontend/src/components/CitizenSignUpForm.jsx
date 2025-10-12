@@ -1,112 +1,182 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import AuthApp from './App'
+import HomeApp from '../src_home/App'
+import './index.css'
 
-const CitizenSignUpForm = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showReenterPassword, setShowReenterPassword] = useState(false);
+export default function SignupForm() {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    reenterPassword: '',
-    phone_number: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    mobile: "",
+    otp: "",
   });
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
 
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Update input values
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    setError('');
-    if (formData.password !== formData.reenterPassword) {
-      setError("Passwords do not match");
+  // Simulated Send OTP API
+  const handleSendOtp = async () => {
+    if (!formData.mobile) {
+      toast.error("Please enter your mobile number first");
       return;
     }
+    setLoading(true);
     try {
-      const res = await axios.post("http://localhost:7000/users/signup/citizens/", {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        phone_number: formData.phone_number,
-      });
-      setMessage(res.data.message || "Signup successful!");
-      setFormData({ username: '', email: '', password: '', reenterPassword: '', phone_number: '' });
+      // Replace with your actual API call
+      await new Promise((res) => setTimeout(res, 1000));
+      setOtpSent(true);
+      toast.success("OTP sent to your number");
     } catch (err) {
-    console.log(err.response?.data); // Add this line
-    setError(
-      err.response?.data?.error ||
-      (typeof err.response?.data === 'object' ? JSON.stringify(err.response.data) : "Signup failed")
-  );
-}
+      toast.error("Failed to send OTP");
+    }
+    setLoading(false);
+  };
+
+  // Simulated Verify OTP API
+  const handleVerifyOtp = async () => {
+    if (!formData.otp) {
+      toast.error("Please enter OTP");
+      return;
+    }
+    setLoading(true);
+    try {
+      // Replace with actual verification API call
+      await new Promise((res) => setTimeout(res, 1000));
+
+      if (formData.otp === "1234") {
+        setOtpVerified(true);
+        toast.success("OTP Verified ✅");
+      } else {
+        setOtpVerified(false);
+        toast.error("Invalid OTP ❌");
+      }
+    } catch (err) {
+      toast.error("OTP verification failed");
+    }
+    setLoading(false);
+  };
+
+  // Final Signup API
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    if (!otpVerified) {
+      toast.error("Please verify OTP before signing up");
+      return;
+    }
+    // Add password validation checks as needed
+    setLoading(true);
+    try {
+      // Replace with actual signup API call
+      await new Promise((res) => setTimeout(res, 1000));
+      toast.success("Signup successful 🎉");
+    } catch (err) {
+      toast.error("Signup failed");
+    }
+    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="input-group">
+    <form
+      onSubmit={handleSignup}
+      className="flex flex-col gap-4 p-6 w-full max-w-md mx-auto"
+    >
+      <input
+        type="text"
+        name="name"
+        placeholder="Enter your Name"
+        value={formData.name}
+        onChange={handleChange}
+        className="border-b outline-none p-2"
+      />
+
+      <input
+        type="email"
+        name="email"
+        placeholder="Enter your email"
+        value={formData.email}
+        onChange={handleChange}
+        className="border-b outline-none p-2"
+      />
+
+      <input
+        type="password"
+        name="password"
+        placeholder="Enter Password"
+        value={formData.password}
+        onChange={handleChange}
+        className="border-b outline-none p-2"
+      />
+
+      <input
+        type="password"
+        name="confirmPassword"
+        placeholder="Re-enter Password"
+        value={formData.confirmPassword}
+        onChange={handleChange}
+        className="border-b outline-none p-2"
+      />
+
+      <div className="flex gap-2 items-center">
         <input
           type="text"
-          name="username"
-          placeholder="Enter your Name"
-          value={formData.username}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      <div className="input-group">
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter your email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      <div className="input-group">
-        <input
-          type={showPassword ? 'text' : 'password'}
-          name="password"
-          placeholder="Enter Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-        <span className="password-toggle" onClick={() => setShowPassword(!showPassword)}>👁️</span>
-      </div>
-      <div className="input-group">
-        <input
-          type={showReenterPassword ? 'text' : 'password'}
-          name="reenterPassword"
-          placeholder="Re-enter Password"
-          value={formData.reenterPassword}
-          onChange={handleChange}
-          required
-        />
-        <span className="password-toggle" onClick={() => setShowReenterPassword(!showReenterPassword)}>👁️</span>
-      </div>
-      <div className="input-group">
-        <input
-          type="tel"
-          name="phone_number"
+          name="mobile"
           placeholder="Enter Mobile Number"
-          value={formData.phone_number}
+          value={formData.mobile}
           onChange={handleChange}
-          required
+          className="border-b outline-none p-2 flex-1"
         />
+        <button
+          type="button"
+          onClick={handleSendOtp}
+          disabled={loading}
+          className="bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-50"
+        >
+          {otpSent ? "Resend OTP" : "Send OTP"}
+        </button>
       </div>
 
-      {message && <div className="success-message">{message}</div>}
-      {error && <div className="error-message">{error}</div>}
-      
-      <button type="submit" className="login-btn">
-        SignUp
+      {otpSent && (
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            name="otp"
+            placeholder="Enter OTP"
+            value={formData.otp}
+            onChange={handleChange}
+            className={`border-b outline-none p-2 flex-1 ${
+              otpVerified ? "border-green-500" : ""
+            }`}
+          />
+          <button
+            type="button"
+            onClick={handleVerifyOtp}
+            disabled={loading}
+            className="bg-green-500 text-white px-3 py-1 rounded disabled:opacity-50"
+          >
+            Verify OTP
+          </button>
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="bg-black text-white py-2 rounded disabled:opacity-50 mt-2"
+      >
+        Sign Up
       </button>
     </form>
   );
-};
-
-export default CitizenSignUpForm;
+}
