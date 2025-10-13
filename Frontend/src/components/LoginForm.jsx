@@ -44,7 +44,7 @@ const Login = ({ activeTab }) => {
       });
 
       if (res.data.message) {
-        setMessage(`Login successful`);
+        setMessage('Login successful');
         
         // Store user info in localStorage (no token needed for session auth)
         localStorage.setItem('user_id', res.data.user_id);
@@ -96,7 +96,7 @@ const Login = ({ activeTab }) => {
           disabled={loading}
           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50 bg-transparent border-none cursor-pointer"
         >
-          {showPassword ? '🙈' : '👁️'}
+          {showPassword ? '🙈' : '👁'}
         </button>
       </div>
       

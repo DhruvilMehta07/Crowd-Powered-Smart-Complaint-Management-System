@@ -1,5 +1,7 @@
 import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../pages/SideBar.jsx';
+
 // --- SVG Icon Components ---
 // Using inline SVGs to keep everything in one file and avoid external dependencies.
 
@@ -66,7 +68,6 @@ const ShareIcon = ({ className = 'w-5 h-5' }) => (
     </svg>
 );
 
-
 // --- Main Page Components ---
 
 const Header = ({ onLoginClick }) => (
@@ -91,7 +92,6 @@ const Header = ({ onLoginClick }) => (
         </div>
     </header>
 );
-
 
 const ComplaintCard = ({ complaint }) => (
     <div className="bg-slate-50/70 p-6 rounded-lg border border-slate-200 shadow-sm">
@@ -132,23 +132,20 @@ const ComplaintCard = ({ complaint }) => (
     </div>
 );
 
-
-
-
-
 // --- The Main App Component ---
 
 const Homepage = () => {
-    const onLoginContainerClick = useCallback(() => {
-        // Add your navigation or modal logic here
-        console.log("Login/SignUp button clicked!");
-    }, []);
+    const navigate = useNavigate();
+
+    const onLoginClick = useCallback(() => {
+        navigate('/auth');
+    }, [navigate]);
 
     const complaints = [
         {
             author: 'Anonymous User',
             date: '15/09/2025',
-            content: 'Every day on my way to the office, I come across deep potholes that make the journey stressful and unsafe. It’s not just damaging to vehicles, but it also puts people at real risk. I sincerely hope this issue can be fixed soon.',
+            content: 'Every day on my way to the office, I come across deep potholes that make the journey stressful and unsafe. It\'s not just damaging to vehicles, but it also puts people at real risk. I sincerely hope this issue can be fixed soon.',
             assignedTo: 'Road Department, Ward No. 3',
             upvotes: '4k',
         },
@@ -169,14 +166,9 @@ const Homepage = () => {
     ];
 
     return (
-        // Add this to your index.html <head> for the fonts:
-        // <link rel="preconnect" href="https://fonts.googleapis.com">
-        // <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        // <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Istok+Web:wght@700&display=swap" rel="stylesheet">
         <div className="bg-gray-50 font-inter min-h-screen">
-            <Header onLoginClick={onLoginContainerClick} />
+            <Header onLoginClick={onLoginClick} />
             <div className="flex max-w-screen-2xl mx-auto">
-                
                 <main className="flex-1 p-4 sm:p-6 md:p-8">
                     <div className="space-y-6">
                         {complaints.map((complaint, index) => (
@@ -184,7 +176,6 @@ const Homepage = () => {
                         ))}
                     </div>
                 </main>
-                
             </div>
         </div>
     );
