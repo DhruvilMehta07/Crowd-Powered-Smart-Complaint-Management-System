@@ -143,13 +143,15 @@ const CitizenSignUpForm = () => {
   // Success Screen
   if (step === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-          <span className="text-2xl">✅</span>
+      <div className="auth-wrapper">
+        <div className="flex flex-col items-center justify-center p-4 text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl">✅</span>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Registration Successful!</h3>
+          <p className="text-gray-600 mb-4">{message}</p>
+          <p className="text-blue-600">Redirecting to home page...</p>
         </div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">Registration Successful!</h3>
-        <p className="text-gray-600 mb-4">{message}</p>
-        <p className="text-blue-600">Redirecting to home page...</p>
       </div>
     );
   }
@@ -157,175 +159,179 @@ const CitizenSignUpForm = () => {
   // OTP Verification Form
   if (step === 'verify') {
     return (
-      <div className="p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2 text-center">Verify Your Email</h3>
-        <p className="text-gray-600 mb-6 text-center">
-          We sent a verification code to <strong>{formData.email}</strong>
-        </p>
-        
-        <form onSubmit={handleVerifyOtp}>
-          <div className="mb-4">
-            <input
-              type="text"
-              placeholder="Enter 6-digit OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              maxLength={6}
-              required
-              disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            />
-          </div>
+      <div className="auth-wrapper">
+        <div className="p-4">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2 text-center">Verify Your Email</h3>
+          <p className="text-gray-600 mb-6 text-center">
+            We sent a verification code to <strong>{formData.email}</strong>
+          </p>
           
-          {message && (
-            <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">
-              {message}
+          <form onSubmit={handleVerifyOtp} className="auth-form">
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Enter 6-digit OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                required
+                disabled={loading}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
             </div>
-          )}
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
-          
-          <button 
-            type="submit" 
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            disabled={loading || otp.length !== 6}
-          >
-            {loading ? 'Verifying...' : 'Verify OTP'}
-          </button>
-          
-          <div className="mt-4 flex justify-between">
-            <button 
-              type="button" 
-              className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              onClick={handleResendOtp}
-              disabled={loading}
-            >
-              {loading ? 'Sending...' : 'Resend OTP'}
-            </button>
+            
+            {message && (
+              <div className="success-message">
+                {message}
+              </div>
+            )}
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
             
             <button 
-              type="button" 
-              className="text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              onClick={handleBackToSignup}
-              disabled={loading}
+              type="submit" 
+              className="login-btn w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              disabled={loading || otp.length !== 6}
             >
-              Back to Signup
+              {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
-          </div>
-        </form>
+            
+            <div className="mt-4 flex justify-between">
+              <button 
+                type="button" 
+                className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={handleResendOtp}
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Resend OTP'}
+              </button>
+              
+              <button 
+                type="button" 
+                className="text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={handleBackToSignup}
+                disabled={loading}
+              >
+                Back to Signup
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     );
   }
 
   // Original Signup Form (Step 1 - Send OTP)
   return (
-    <form onSubmit={handleSendOtp} className="p-6">
-      <div className="mb-4 relative">
-        <input
-          type="text"
-          name="username"
-          placeholder="Enter your Name"
-          value={formData.username}
-          onChange={handleChange}
-          required
-          disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
-        />
-      </div>
-      
-      <div className="mb-4">
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter your email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
-        />
-      </div>
-      
-      <div className="mb-4 relative">
-        <input
-          type={showPassword ? 'text' : 'password'}
-          name="password"
-          placeholder="Enter Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          disabled={loading}
-          minLength={6}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          disabled={loading}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
-        >
-          {showPassword ? '🙈' : '👁️'}
-        </button>
-      </div>
-      
-      <div className="mb-4 relative">
-        <input
-          type={showReenterPassword ? 'text' : 'password'}
-          name="reenterPassword"
-          placeholder="Re-enter Password"
-          value={formData.reenterPassword}
-          onChange={handleChange}
-          required
-          disabled={loading}
-          minLength={6}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
-        />
-        <button
-          type="button"
-          onClick={() => setShowReenterPassword(!showReenterPassword)}
-          disabled={loading}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
-        >
-          {showReenterPassword ? '🙈' : '👁️'}
-        </button>
-      </div>
-      
-      <div className="mb-6">
-        <input
-          type="tel"
-          name="phone_number"
-          placeholder="Enter Mobile Number"
-          value={formData.phone_number}
-          onChange={handleChange}
-          required
-          disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
-        />
-      </div>
+    <div className="auth-wrapper">
+      <form onSubmit={handleSendOtp} className="auth-form">
+        <div className="mb-4 relative">
+          <input
+            type="text"
+            name="username"
+            placeholder="Enter your Name"
+            value={formData.username}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          />
+        </div>
+        
+        <div className="mb-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Enter your email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+          />
+        </div>
+        
+        <div className="mb-4 relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            placeholder="Enter Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            minLength={6}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            disabled={loading}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50 bg-transparent border-none cursor-pointer"
+          >
+            {showPassword ? '🙈' : '👁️'}
+          </button>
+        </div>
+        
+        <div className="mb-4 relative">
+          <input
+            type={showReenterPassword ? 'text' : 'password'}
+            name="reenterPassword"
+            placeholder="Re-enter Password"
+            value={formData.reenterPassword}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            minLength={6}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowReenterPassword(!showReenterPassword)}
+            disabled={loading}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50 bg-transparent border-none cursor-pointer"
+          >
+            {showReenterPassword ? '🙈' : '👁️'}
+          </button>
+        </div>
+        
+        <div className="mb-6">
+          <input
+            type="tel"
+            name="phone_number"
+            placeholder="Enter Mobile Number"
+            value={formData.phone_number}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+          />
+        </div>
 
-      {message && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-      
-      <button 
-        type="submit" 
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-        disabled={loading}
-      >
-        {loading ? 'Sending OTP...' : 'Send OTP to Email'}
-      </button>
-    </form>
+        {message && (
+          <div className="success-message">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+        
+        <button 
+          type="submit" 
+          className="login-btn w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          disabled={loading}
+        >
+          {loading ? 'Sending OTP...' : 'Send OTP to Email'}
+        </button>
+      </form>
+    </div>
   );
 };
 
-export default CitizenSignUpForm;
+export default CitizenSignUpForm; 

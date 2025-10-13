@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route } from "react-router-dom";
 import Navbar from './components/Navbar';
-import Login from './components/Login';
+import Login from './components/LoginForm'; // Import the main Login component with tabs
 import Sidebar from './pages/SideBar';
 import Home from './components/Home';
 import Notifications from './pages/Notifications';
@@ -17,15 +17,11 @@ function App() {
   const AuthLayout = () => (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl overflow-hidden">
-        {/* Dark Header */}
-        <div className="bg-gray-800 flex items-center px-6 py-4 text-gray-300">
-          <h1 className="text-xl font-semibold">Complaint Management System</h1>
-        </div>
         
         {/* Navigation Tabs */}
         <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
         
-        {/* Login/Signup Content */}
+        {/* Login/Signup Content with Tabs */}
         <Login activeTab={activeTab} />
       </div>
     </div>
@@ -48,8 +44,8 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<AuthLayout />} />
-      <Route path="/home/*" element={<HomeLayout />} />
+      <Route path="/auth" element={<AuthLayout />} />
+      <Route path="/" element={<HomeLayout />} />
     </Routes>
   );
 }
