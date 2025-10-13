@@ -1,17 +1,13 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import AuthApp from './App'
-import HomeApp from '../src_home/App'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
+import App from './App.jsx'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <Router>
-      <Routes>
-        <Route path="/" element={<AuthApp />} />
-        <Route path="/home/*" element={<HomeApp />} />
-      </Routes>
-    </Router>
-  </React.StrictMode>
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>
 )

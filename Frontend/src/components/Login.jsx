@@ -9,11 +9,9 @@ import GovtAuthSignUpForm from './GovtAuthSignUpForm';
 import FieldWorkerSignUpForm from './FieldWorkerSignUpForm';
 import AdminSignUpForm from './AdminSignUpForm';
 
-// The component now accepts `activeTab` as a prop from App.jsx
 const Login = ({ activeTab }) => {
   const [activeForm, setActiveForm] = useState('SignUp');
 
-  // This function decides which SignUp form to render based on the prop
   const renderSignUpForm = () => {
     switch (activeTab) {
       case 'Citizen':
@@ -30,31 +28,51 @@ const Login = ({ activeTab }) => {
   };
 
   return (
-    // We remove the main "login-container" div and the header-tabs section
-    // because the styling and structure are now handled by App.jsx and Navbar.jsx
-    <div className="form-content-area">
-      <div className="form-toggle">
-        <h2
-          className={activeForm === 'Login' ? 'active' : ''}
+    <div className="w-full max-w-md mx-auto">
+      {/* Form Toggle */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          className={`flex-1 py-4 font-semibold text-center border-b-2 transition-colors ${
+            activeForm === 'Login' 
+              ? 'border-blue-600 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
           onClick={() => setActiveForm('Login')}
         >
           Login
-        </h2>
-        <h2
-          className={activeForm === 'SignUp' ? 'active' : ''}
+        </button>
+        <button
+          className={`flex-1 py-4 font-semibold text-center border-b-2 transition-colors ${
+            activeForm === 'SignUp' 
+              ? 'border-blue-600 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
           onClick={() => setActiveForm('SignUp')}
         >
           SignUp
-        </h2>
+        </button>
       </div>
 
-      {/* Render the correct form based on state */}
+      {/* Render the correct form */}
       {activeForm === 'Login' ? <LoginForm /> : renderSignUpForm()}
 
-      <div className="divider">Or</div>
+      {/* Divider */}
+      <div className="px-6">
+        <div className="relative flex items-center py-6">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="flex-shrink mx-4 text-gray-500">Or</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
 
-      <div className="google-login">
-        <img src={googleLogo} alt="Google sign-in" />
+        {/* Google Login */}
+        <div className="flex justify-center items-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors mb-6">
+          <img
+            src={googleLogo}
+            alt="Google sign-in"
+            className="w-5 h-5 mr-3"
+          />
+          <span className="text-gray-700 font-medium">Continue with Google</span>
+        </div>
       </div>
     </div>
   );

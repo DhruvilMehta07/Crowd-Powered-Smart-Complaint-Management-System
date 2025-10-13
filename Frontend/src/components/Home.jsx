@@ -1,6 +1,6 @@
 import React from "react";
-import ComplaintCard from "../components/ComplaintsCard";
-import TrendingComplaints from "../components/Trending";
+import ComplaintCard from "./ComplaintsCard";
+import TrendingComplaints from "../pages/Trending";
 
 export default function Home() {
   const sample = [
