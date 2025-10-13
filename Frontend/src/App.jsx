@@ -8,7 +8,7 @@ import Notifications from './pages/Notifications';
 import PastComplaints from './pages/PastComplaints';
 import Help from './pages/Help';
 import RaiseComplaint from './pages/RaiseComplaint';
-import Trending from './pages/Trending';
+import TrendingComplaints from './pages/TrendingComplaints';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Citizen');
@@ -41,8 +41,9 @@ function App() {
         <Route path="past-complaints" element={<PastComplaints />} />
         <Route path="help" element={<Help />} />
         <Route path="raise-complaint" element={<RaiseComplaint />} />
-        <Route path="trending" element={<Trending />} />
+        
       </Routes>
+      <TrendingComplaints />
     </div>
   );
 
@@ -50,6 +51,7 @@ function App() {
     <Routes>
       <Route path="/" element={<AuthLayout />} />
       <Route path="/home/*" element={<HomeLayout />} />
+      
     </Routes>
   );
 }

@@ -18,45 +18,57 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-white shadow p-4 flex flex-col">
+  <aside className="w-80 p-4 hidden md:block">
+    <div className="sticky top-24 flex flex-col h-[calc(100vh-6rem)]">
+      {/* Raise Complaint Button */}
       <Link
         to="raise-complaint"
-        className="bg-slate-700 text-white py-2 px-4 rounded font-semibold mb-6 flex items-center justify-center gap-2"
+        className="w-full bg-slate-700 text-white font-bold py-4 rounded-xl mb-6 hover:bg-slate-800 transition-colors duration-300 flex items-center justify-center gap-2"
       >
         + Raise Complaint
       </Link>
 
-      <nav className="space-y-4">
-        <Link to="." className="flex items-center gap-2 text-slate-700 font-medium">
-          🏠 Home
-        </Link>
-        <Link to="notifications" className="flex items-center gap-2 text-slate-700">
-          🔔 Notification
-        </Link>
-        <Link to="past-complaints" className="flex items-center gap-2 text-slate-700">
-          📥 Past Complaints
-        </Link>
-        <Link to="help" className="flex items-center gap-2 text-slate-700">
-          ❓ Help
-        </Link>
+      {/* Navigation */}
+      <nav className="flex-1">
+        <ul className="space-y-1">
+          <li>
+            <Link
+              to="."
+              className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+            >
+              🏠 Home
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="notifications"
+              className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+            >
+              🔔 Notifications
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="past-complaints"
+              className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+            >
+              📥 Past Complaints
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="help"
+              className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+            >
+              ❓ Help
+            </Link>
+          </li>
+        </ul>
       </nav>
 
-      <div className="mt-auto">
-        {!isAuth ? (
-          <div className="space-y-2">
-            <Link to="/" className="block text-blue-600 hover:underline">
-              Login / Signup
-            </Link>
-          </div>
-        ) : (
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-500 text-white py-2 rounded mt-4"
-          >
-            Logout
-          </button>
-        )}
-      </div>
+      
+      
     </div>
-  );
+  </aside>
+);
 }
