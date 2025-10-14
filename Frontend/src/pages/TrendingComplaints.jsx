@@ -13,9 +13,9 @@ export default function TrendingComplaints({ showViewMore = true }) {
 
   return (
 
-    <aside className="w-1/4 p-4 hidden lg:block">
+    <aside className="w-1/6 p-2 hidden lg:block">
             
-            <div className="sticky top-24 space-y-6">
+            <div className="sticky top-20 space-y-4">
                 <div className="bg-white p-5 rounded-lg border border-gray-200">
                     <h3 className="font-bold text-xl mb-4 text-slate-800">Trending Complaints</h3>
                     <div className="space-y-4">

@@ -3,7 +3,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from users.models import ParentUser
+from users.models import ParentUser, Department
 
 def validate_image_size(image):
     file_size = image.file.size
@@ -12,10 +12,11 @@ def validate_image_size(image):
     
 class Complaint(models.Model):
     content = models.TextField()
-    posted_by = models.ForeignKey(ParentUser,null=True, blank=True,on_delete=models.CASCADE)
+    posted_by = models.ForeignKey(ParentUser,null=True, blank=True,on_delete=models.SET_NULL)
     posted_at = models.DateTimeField(default=timezone.now)
     upvotes = models.ManyToManyField(ParentUser,through='Upvote',related_name='upvoted_complaints'
-                                     ,blank=True)
+            ,blank=True)
+    assigned_to = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL)
     images_count = models.PositiveIntegerField(default=0)
     upvotes_count = models.PositiveIntegerField(default=0)
 

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import api from '../utils/axiosConfig';
 
-// Configure axios for CSRF
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
-axios.defaults.withCredentials = true;
+
 
 const CitizenSignUpForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -45,7 +43,7 @@ const CitizenSignUpForm = () => {
     setLoading(true);
     
     try {
-      const res = await axios.post("http://localhost:7000/users/signup/citizens/", {
+      const res = await api.post("/users/signup/citizens/", {
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -80,7 +78,7 @@ const CitizenSignUpForm = () => {
     setLoading(true);
     
     try {
-      const res = await axios.post("http://localhost:7000/users/verify-otp/", {
+      const res = await api.post("/users/verify-otp/", {
         email: formData.email,
         otp: otp
       });
@@ -96,7 +94,7 @@ const CitizenSignUpForm = () => {
         
         // Redirect after a delay
         setTimeout(() => {
-          window.location.href = '/home';
+          window.location.href = '/';
         }, 3000);
       }
       
@@ -118,7 +116,7 @@ const CitizenSignUpForm = () => {
     setLoading(true);
     
     try {
-      const res = await axios.post("http://localhost:7000/users/signup/citizens/", {
+      const res = await api.post("/users/signup/citizens/", {
         username: formData.username,
         email: formData.email,
         password: formData.password,

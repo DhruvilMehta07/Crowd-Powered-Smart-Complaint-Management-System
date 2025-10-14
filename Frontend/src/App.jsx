@@ -7,7 +7,7 @@ import Home from './components/Home';
 import Notifications from './pages/Notifications';
 import PastComplaints from './pages/PastComplaints';
 import Help from './pages/Help';
-import RaiseComplaint from './pages/RaiseComplaint';
+import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
 
@@ -29,17 +29,21 @@ function App() {
   );
 
   // Home Layout Component
+
   const HomeLayout = () => (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <Routes>
-        <Route index element={<Home />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="past-complaints" element={<PastComplaints />} />
-        <Route path="help" element={<Help />} />
-        <Route path="raise-complaint" element={<RaiseComplaint />} />
-        <Route path="trending" element={<Trending />} />
-      </Routes>
+      {/* Main content area - takes remaining space */}
+      <div className="flex-1 flex flex-col">
+        <Routes>
+          <Route index element={<Home />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="past-complaints" element={<PastComplaints />} />
+          <Route path="help" element={<Help />} />
+          <Route path="raise-complaint" element={<RaiseComplaintModal />} />
+          <Route path="trending" element={<Trending />} />
+        </Routes>
+      </div>
       <TrendingComplaints/>
     </div>
   );
