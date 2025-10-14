@@ -8,6 +8,7 @@ services:
       - 7000:7000
     depends_on:
       - db
+      - redis
     env_file:
       - .env
   db:
@@ -16,6 +17,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
 
 volumes:
   postgres_data:
+  redis_data:

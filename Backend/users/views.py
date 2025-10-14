@@ -9,12 +9,38 @@ from django.contrib.auth import logout
 from django.contrib.auth import authenticate, login
 from django.db import IntegrityError
 
+from django.core.cache import caches
+from rest_framework_simplejwt.backends import TokenBackend
+from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf import settings
+
 from .models import Citizen, Government_Authority, Field_Worker, Department
 from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer
 from .EmailService import EmailService
 
+# Securing CSRF attacks on cookies
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+
+
 # Store OTPs temporarily in memory
 otp_storage = {}
+
+# Setting up redis cache
+redis_cache = caches['default']
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class GetCSRFToken(APIView):
+    """
+    Simple GET endpoint to set the csrftoken cookie for the frontend.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({"detail": "CSRF cookie set."})
+   
 
 class DepartmentListCreateAPIView(generics.ListCreateAPIView):
     queryset = Department.objects.all()
@@ -101,6 +127,7 @@ class FieldWorkerSignupAPIView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(csrf_protect, name='dispatch')
 class VerifyOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -123,14 +150,28 @@ class VerifyOTPAPIView(APIView):
                     user = serializer.save()
                     del otp_storage[email] 
                     
-                    # Login user using session (no token)
-                    login(request, user)
-                    
-                    return Response({
+                    # Issue JWTs (access + refresh) and set refresh as HttpOnly cookie
+                    refresh = RefreshToken.for_user(user)
+                    access_token = str(refresh.access_token)
+                    refresh_token = str(refresh)
+
+                    response = Response({
                         "message": "Registration successful!",
+                        "access": access_token,
                         "user_id": user.id,
                         "username": user.username
                     }, status=status.HTTP_201_CREATED)
+
+                    # set refresh token as HttpOnly cookie; secure flag depends on DEBUG
+                    response.set_cookie(
+                        'refresh',
+                        refresh_token,
+                        httponly=True,
+                        secure=not settings.DEBUG,
+                        samesite='Lax',
+                        max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME').total_seconds())
+                    )
+                    return response
                     
                 except IntegrityError as e:
                     return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -169,6 +210,8 @@ class VerifyOTPAPIView(APIView):
         
         return Response({"error": "Invalid user type."}, status=status.HTTP_400_BAD_REQUEST)
 
+
+@method_decorator(csrf_protect, name='dispatch')
 class UserLoginAPIView(APIView):
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
@@ -187,33 +230,118 @@ class UserLoginAPIView(APIView):
             if (u1 is not None and not u1.verified) or (u2 is not None and not u2.verified):
                 return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
             
-            # Login user using session (no token)
-            login(request, user)
-            
-            return Response({
+            # Issue JWT tokens (access + refresh)
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+            response = Response({
                 "message": "Login successful.",
+                "access": access_token,
                 "user_id": user.id,
                 "username": user.username
             }, status=status.HTTP_200_OK)
+
+            response.set_cookie(
+                'refresh',
+                refresh_token,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME').total_seconds())
+            )
+            return response
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class UserLogoutAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def post(self, request):
-        logout(request)
-        return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
 
-class CheckAuthAPIView(APIView):
-    def get(self, request):
-        if request.user.is_authenticated:
-            return Response({
-                "authenticated": True,
-                "user_id": request.user.id,
-                "username": request.user.username
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({
-                "authenticated": False
-            }, status=status.HTTP_200_OK)
+@method_decorator(csrf_protect, name='dispatch')
+class UserLogoutAPIView(APIView):
+    """
+    Expect POST with {"refresh": "<refresh_token>"}.
+    Blacklists the refresh in DB (simplejwt.token_blacklist) and caches the token jti in Redis with TTL.
+    """
+    permission_classes = [permissions.AllowAny]
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh') or request.data.get('refresh') 
+        if not refresh_token:
+            return Response({"detail": "Refresh token required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            # blacklist in DB
+            token.blacklist()
+            # cache jti in redis with TTL
+            # use payload for safety
+            jti = getattr(token, 'payload', {}).get('jti') or token.get('jti') if hasattr(token, 'get') else None
+            exp = getattr(token, 'payload', {}).get('exp') or token.get('exp') if hasattr(token, 'get') else None
+            import time
+            ttl = max(0, int(exp - time.time())) if exp else None
+            if jti and ttl:
+                try:
+                    redis_cache.set(f"blacklist:{jti}", 1, ttl)
+                except Exception:
+                    # Redis may be down — we still blacklist in DB, so continue
+                    pass
+            # delete refresh cookie on logout
+            response = Response({"detail": "Logged out."}, status=status.HTTP_200_OK)
+            response.delete_cookie('refresh')
+            return response
+        except TokenError:
+            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": "Logout failed.", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@method_decorator(csrf_protect, name='dispatch')
+class TokenRefreshCookieView(TokenRefreshView):
+    """Wrap TokenRefreshView to accept refresh from cookie when not provided in body
+    and set the returned refresh token as an HttpOnly cookie when rotation occurs.
+    """
+    def post(self, request, *args, **kwargs):
+        # if no refresh in body try cookie
+        if 'refresh' not in request.data and request.COOKIES.get('refresh'):
+            data = request.data.copy()
+            data['refresh'] = request.COOKIES.get('refresh')
+            # override request._full_data so DRF uses the modified data
+            request._full_data = data
+
+        # checking for blacklisted token in redis/db
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            try:
+                backend = TokenBackend(
+                    algorithm=settings.SIMPLE_JWT['ALGORITHM'],
+                    signing_key=settings.SIMPLE_JWT.get('SIGNING_KEY')
+                )
+                payload = backend.decode(refresh_token, verify=False)
+                jti = payload.get('jti')  # decode without verification
+                # --- Redis check ---
+                from users.authentication import redis_cache  # or import your redis_client helper
+                if jti and redis_cache.get(f"blacklist:{jti}"):
+                    return Response({"detail": "Token has been blacklisted in Redis."}, status=status.HTTP_401_UNAUTHORIZED)
+            except TokenError:
+                return Response({"detail": "Invalid refresh token."}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"detail": f"Token check failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+       
+
+        response = super().post(request, *args, **kwargs)
+
+        # if a new refresh token is returned (rotation), set it as cookie
+        refresh = getattr(response, 'data', {}).get('refresh')
+        if refresh:
+            response.set_cookie(
+                'refresh',
+                refresh,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME').total_seconds())
+            )
+            # remove refresh from response body to keep it HttpOnly
+            try:
+                del response.data['refresh']
+            except Exception:
+                pass
+
+        return response
+

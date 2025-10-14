@@ -24,5 +24,6 @@ COPY Pipfile Pipfile.lock /code/
 RUN pip install pipenv && pipenv install --system && pip install pillow
 RUN pip install Django djangorestframework
 RUN pip install Django django-cors-headers
+RUN pip install djangorestframework-simplejwt django-redis redis
 # Copy project files
 COPY . /code/
