@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import api from '../utils/axiosConfig';
+import { setAccessToken } from '../utils/auth';
 
 
 
@@ -86,7 +87,12 @@ const CitizenSignUpForm = () => {
       setMessage(res.data.message || "Registration successful!");
       setStep('success');
       
-      // For citizens - they are automatically logged in via session
+      // Storing JWT access token in memory 
+      if (res.data.access) {
+        setAccessToken(res.data.access);
+      }
+      
+      // Store user info in localStorage for UI components
       if (res.data.user_id) {
         localStorage.setItem('user_id', res.data.user_id);
         localStorage.setItem('username', res.data.username);

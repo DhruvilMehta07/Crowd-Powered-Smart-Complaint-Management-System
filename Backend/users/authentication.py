@@ -8,9 +8,7 @@ redis_cache = caches['default']
 
 class RedisCheckingJWTAuthentication(JWTAuthentication):
     """
-    Extends JWTAuthentication: after signature validation, check Redis for token jti blacklist.
-    If Redis has the jti -> raise InvalidToken. If Redis misses, fall back to DB check
-    (BlacklistedToken) and cache the result in Redis for speed.
+    Custom authentication checker which first checks redis and then db if redis fails
     """
     def get_validated_token(self, raw_token):
         token = super().get_validated_token(raw_token)
@@ -20,7 +18,7 @@ class RedisCheckingJWTAuthentication(JWTAuthentication):
             raise InvalidToken('Token missing jti claim.')
 
         cache_key = f"blacklist:{jti}"
-        # fast Redis check
+        # First redis check
         if redis_cache.get(cache_key):
             raise InvalidToken('Token has been blacklisted in redis.')
 
@@ -37,7 +35,6 @@ class RedisCheckingJWTAuthentication(JWTAuthentication):
                 try:
                     redis_cache.set(cache_key, 1, ttl)
                 except Exception:
-                    # if Redis is down, continue to raise InvalidToken without caching
                     pass
             raise InvalidToken('Token has been blacklisted.')
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from "react-router-dom";
+import axios from 'axios';
 import Navbar from './components/Navbar';
 import Login from './components/LoginForm'; // Import the main Login component with tabs
 import Sidebar from './pages/SideBar';
@@ -13,6 +14,23 @@ import TrendingComplaints from './pages/TrendingComplaints';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Citizen');
+
+  // Fetch CSRF token on app mount
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/csrf-token/`,
+          { withCredentials: true }
+        );
+        console.log('CSRF token fetched successfully');
+      } catch (error) {
+        console.warn('Failed to fetch CSRF token:', error);
+      }
+    };
+
+    fetchCsrfToken();
+  }, []);
 
   // Auth Layout Component
   const AuthLayout = () => (

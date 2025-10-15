@@ -2,6 +2,8 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 import TrendingComplaints from '../pages/TrendingComplaints';
+import { clearAccessToken } from '../utils/auth';
+import { logoutUser } from '../services/api';
 
 const SearchIcon = ({ className = 'w-6 h-6' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -309,7 +311,19 @@ const Homepage = () => {
         navigate('/auth');
     }, [navigate]);
 
-    const onLogoutClick = useCallback(() => {
+    const onLogoutClick = useCallback(async () => {
+        try {
+            // Call backend logout API to blacklist refresh token
+            await logoutUser();
+        } catch (error) {
+            console.warn('Logout API call failed:', error);
+            // Continue with local cleanup even if API call fails
+        }
+        
+        // Clear JWT access token from memory
+        clearAccessToken();
+        
+        // Clear localStorage (keeping existing logic)
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('username');
         localStorage.removeItem('user_id');

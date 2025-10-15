@@ -279,7 +279,7 @@ class UserLogoutAPIView(APIView):
                 try:
                     redis_cache.set(f"blacklist:{jti}", 1, ttl)
                 except Exception:
-                    # Redis may be down — we still blacklist in DB, so continue
+                    # Redis may be down we still blacklist in DB
                     pass
             # delete refresh cookie on logout
             response = Response({"detail": "Logged out."}, status=status.HTTP_200_OK)
@@ -297,11 +297,9 @@ class TokenRefreshCookieView(TokenRefreshView):
     and set the returned refresh token as an HttpOnly cookie when rotation occurs.
     """
     def post(self, request, *args, **kwargs):
-        # if no refresh in body try cookie
         if 'refresh' not in request.data and request.COOKIES.get('refresh'):
             data = request.data.copy()
             data['refresh'] = request.COOKIES.get('refresh')
-            # override request._full_data so DRF uses the modified data
             request._full_data = data
 
         # checking for blacklisted token in redis/db
@@ -314,8 +312,8 @@ class TokenRefreshCookieView(TokenRefreshView):
                 )
                 payload = backend.decode(refresh_token, verify=False)
                 jti = payload.get('jti')  # decode without verification
-                # --- Redis check ---
-                from users.authentication import redis_cache  # or import your redis_client helper
+                
+                from users.authentication import redis_cache  
                 if jti and redis_cache.get(f"blacklist:{jti}"):
                     return Response({"detail": "Token has been blacklisted in Redis."}, status=status.HTTP_401_UNAUTHORIZED)
             except TokenError:

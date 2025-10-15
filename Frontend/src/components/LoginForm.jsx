@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import googleLogo from '../assets/google-logo.svg';
+import { setAccessToken } from '../utils/auth';
 
 import CitizenSignUpForm from './CitizenSignUpForm';
 import GovtAuthSignUpForm from './GovtAuthSignUpForm';
@@ -102,21 +103,21 @@ const Login = ({ activeTab }) => {
   const [loading, setLoading] = useState(false);
 
   // Get CSRF token on component mount
-  useEffect(() => {
-    const getCSRFToken = async () => {
-      try {
-        // First, make a GET request to get the CSRF token cookie
-        await axios.get('http://localhost:7000/users/csrf/', {
-          withCredentials: true
-        });
-        console.log('CSRF token retrieved');
-      } catch (err) {
-        console.warn('Could not get CSRF token:', err);
-      }
-    };
+  // useEffect(() => {
+  //   const getCSRFToken = async () => {
+  //     try {
+  //       // First, make a GET request to get the CSRF token cookie
+  //       await axios.get('http://localhost:7000/users/csrf-token/', {
+  //         withCredentials: true
+  //       });
+  //       console.log('CSRF token retrieved');
+  //     } catch (err) {
+  //       console.warn('Could not get CSRF token:', err);
+  //     }
+  //   };
 
-    getCSRFToken();
-  }, []);
+  //   getCSRFToken();
+  // }, []);
 
   // Login form handlers
   const handleLoginChange = (e) => {
@@ -171,7 +172,12 @@ const Login = ({ activeTab }) => {
       if (res.data.message) {
         setMessage('Login successful');
         
-        // Store user info in localStorage
+        // Store JWT access token in memory 
+        if (res.data.access) {
+          setAccessToken(res.data.access);
+        }
+        
+        // Store user info in localStorage 
         localStorage.setItem('user_id', res.data.user_id);
         localStorage.setItem('username', res.data.username);
         localStorage.setItem('isAuthenticated', 'true');

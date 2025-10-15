@@ -1,18 +1,101 @@
 import axios from "axios";
+import { getAccessToken, setAccessToken, getCsrfToken } from "../utils/auth";
 
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:7000",
-  withCredentials: true, // needed if backend uses session cookies
+  withCredentials: true, 
 });
 
-// Attach token if backend uses JWT
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+
+API.interceptors.request.use(
+  (config) => {
+    const token = getAccessToken() || localStorage.getItem("token"); // fallback to old localStorage
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRFToken'] = csrfToken;
+      }
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// Response interceptor: Auto-refresh token on expiry
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+API.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If access token is expired, try to refresh token
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return API(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Call refresh endpoint (reads refresh token from HttpOnly cookie)
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL || "http://localhost:7000"}/users/token/refresh/`,
+          {},
+          { withCredentials: true }
+        );
+
+        const newAccessToken = response.data.access;
+        setAccessToken(newAccessToken);
+        
+        // Update Authorization header and retry original request
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        processQueue(null, newAccessToken);
+        
+        return API(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        setAccessToken(null);
+        localStorage.removeItem('isAuthenticated');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Auth APIs
 export const loginUser = (credentials) => API.post("/users/login/", credentials);
