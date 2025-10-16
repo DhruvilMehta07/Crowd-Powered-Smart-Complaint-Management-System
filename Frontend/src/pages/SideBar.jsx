@@ -145,12 +145,12 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       <div className="bg-white w-[100%] max-w-md rounded-2xl shadow-xl p-6 relative mx-4">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-lg bg-white rounded-full w-8 h-8 flex items-center justify-center border border-gray-200"
+          className="absolute top-3 right-3 text-[#4B687A] hover:text-[#AAAAAA] text-lg bg-white w-12 h-12 flex items-center justify-center"
         >
           ✕
         </button>
 
-        <h2 className="text-xl font-semibold text-center mb-6">Raise Complaint</h2>
+        <h2 className="text-xl font-semibold text-center text-[#4B687A] mb-6" >Raise Complaint</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -159,7 +159,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             value={form.title}
             onChange={handleChange}
             placeholder="Complaint title..."
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9]"
             required
           />
 
@@ -169,7 +169,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             onChange={handleChange}
             placeholder="Describe your complaint in detail..."
             rows="4"
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] resize-none"
             required
           />
 
@@ -178,7 +178,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             value={form.category}
             onChange={handleChange}
             disabled={departmentsLoading}
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full border border-gray-400 text-gray-500 focus:outline-none disabled:cursor-not-allowed bg-white"
             required
           >
             <option value="" disabled>
@@ -193,7 +193,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 
           <label
             htmlFor="file-upload"
-            className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+            className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-[#4B687A] rounded-lg cursor-pointer hover:bg-gray-100 transition"
           >
             <svg
               className="w-8 h-8 text-gray-400 mb-1"
@@ -223,7 +223,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
           <button
             type="submit"
             disabled={loading || departmentsLoading}
-            className="bg-blue-600 w-full text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="bg-[#4B687A] w-full text-white py-3 rounded-lg hover:bg-[#4B687AB5] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {loading ? 'Submitting...' : 'Submit Complaint'}
           </button>
@@ -242,7 +242,7 @@ export default function Sidebar({}) {
   const isAuth = !!token || isAuthFlag;
 
   const handleOpenRaiseComplaint = () => {
-    if (!isAuth) {
+    if (isAuth) {
       alert('Please login to raise a complaint.');
       navigate('/auth');
       return;
@@ -264,7 +264,7 @@ export default function Sidebar({}) {
             onClick={handleOpenRaiseComplaint}
             className="flex items-center gap-3 bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors duration-300 mb-6"
           >
-            <PlusCircleIcon className="w-6 h-6" />
+            <PlusCircleIcon className="w-6 h-6"/>
             Raise Complaint
           </button>
           
