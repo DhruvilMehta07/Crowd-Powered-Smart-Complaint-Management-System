@@ -242,7 +242,7 @@ export default function Sidebar({}) {
   const isAuth = !!token || isAuthFlag;
 
   const handleOpenRaiseComplaint = () => {
-    if (isAuth) {
+    if (!isAuth) {
       alert('Please login to raise a complaint.');
       navigate('/auth');
       return;
