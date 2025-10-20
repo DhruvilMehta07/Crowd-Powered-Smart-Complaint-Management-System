@@ -38,9 +38,9 @@ const PlusCircleIcon = ({ className = 'w-6 h-6' }) => (
 
 const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
-    title: "",
     description: "",
     category: "",
+    address: "",
     file: null,
   });
   const [loading, setLoading] = useState(false);
@@ -83,14 +83,14 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.description || !form.category) {
+    if (!form.address || !form.description || !form.category) {
       return alert("Please fill in all fields.");
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      const content = `Title: ${form.title}\nCategory: ${form.category}\n\n${form.description}`;
+      const content = `Address: ${form.address}\nCategory: ${form.category}\n\n${form.description}`;
       formData.append('content', content);
       
       // Add the assigned_to field with department ID
@@ -110,7 +110,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 
       if (response.status === 201) {
         alert("Complaint submitted successfully!");
-        setForm({ title: "", description: "", category: "", file: null });
+        setForm({description: "",address: "", category: "", file: null });
         onClose();
         window.location.reload();
       }
@@ -153,23 +153,23 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
         <h2 className="text-xl font-semibold text-center text-[#4B687A] mb-6" >Raise Complaint</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            placeholder="Complaint title..."
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9]"
-            required
-          />
-
           <textarea
             name="description"
             value={form.description}
             onChange={handleChange}
             placeholder="Describe your complaint in detail..."
-            rows="4"
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] resize-none"
+            rows="3"
+            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] hover:border-gray-500 resize-none"
+            required
+          />
+
+          <textarea
+            name="address"
+            value={form.address}
+            onChange={handleChange}
+            placeholder="Enter address with Pincode..."
+            rows="3"
+            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] hover:border-gray-500 resize-none"
             required
           />
 
@@ -178,7 +178,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             value={form.category}
             onChange={handleChange}
             disabled={departmentsLoading}
-            className="w-full border border-gray-400 text-gray-500 focus:outline-none disabled:cursor-not-allowed bg-white"
+            className="w-full border border-gray-300 text-gray-500 focus:outline-none disabled:cursor-not-allowed bg-white"
             required
           >
             <option value="" disabled>
@@ -193,7 +193,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 
           <label
             htmlFor="file-upload"
-            className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-[#4B687A] rounded-lg cursor-pointer hover:bg-gray-100 transition"
+            className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-500 transition"
           >
             <svg
               className="w-8 h-8 text-gray-400 mb-1"
