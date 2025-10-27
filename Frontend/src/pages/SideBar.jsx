@@ -36,18 +36,167 @@ const PlusCircleIcon = ({ className = 'w-6 h-6' }) => (
 );
 
 
-const RaiseComplaintModal = ({ isOpen, onClose }) => {
+  const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
     description: "",
     category: "",
     address: "",
+    pincode: "",
+    latitude: "",
+    longitude: "",
+    location_type: 'manual',
     file: null,
   });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-  // Fetch departments from API
+  const reverseGeocodeMapmyIndia = async (lat, lng) => {
+  try {
+    console.log('Starting reverse geocode for:', { lat, lng });
+    
+    const response = await api.post('/complaints/reverse-geocode/', {
+      latitude: lat,
+      longitude: lng
+    });
+    
+    console.log('Reverse geocode API response:', response.data);
+    
+    if (response.data.success) {
+      console.log('Address data received:', response.data.data);
+      return response.data.data;
+    } else {
+      console.error('Reverse geocode failed:', response.data.error);
+      throw new Error(response.data.error || 'Reverse geocoding failed');
+    }
+  } catch (error) {
+    console.error('Reverse geocoding error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      config: error.config
+    });
+    
+    if (error.response?.status === 404) {
+      throw new Error('No address found for this location. Please enter address manually.');
+    } else if (error.response?.status === 408) {
+      throw new Error('Location service timeout. Please try again or enter address manually.');
+    } else if (error.response?.status === 500) {
+        const message = error.response.data?.message || error.response.data?.detail || 'Internal Server Error';
+        throw new Error(message)
+        
+    } else { 
+      const msg = error.response.errorMessage||error.response.message||error.response.data.message||"Sorry";
+      throw new Error(msg);
+    }
+  }
+};
+
+// Updated GPS location function
+const getGPSLocation = async () => {
+  setIsGettingLocation(true);
+  setLocationError('');
+
+  if (!navigator.geolocation) {
+    setLocationError('geolocation not supported by your browser');
+    setIsGettingLocation(false);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      
+      // Show coordinates immediately
+      setForm(prev => ({
+        ...prev,
+        latitude: lat.toString(),
+        longitude: lng.toString(),
+        location_type: 'gps',
+        address: 'Fetching address from MapmyIndia...',
+        pincode: ''
+      }));
+      
+      // Get address from MapmyIndia
+      try {
+        const addressData = await reverseGeocodeMapmyIndia(lat, lng);
+        if (addressData) {
+          setForm(prev => ({
+            ...prev,
+            address: addressData.address || 'Address not found',
+            pincode: addressData.pincode || ''
+          }));
+          setLocationError('');
+          
+          if (!addressData.pincode) {
+            setLocationError('Address found but pincode not available. Please add pincode manually.');
+          }
+        }
+      } catch (error) {
+        setLocationError(error.message);
+        // Keep GPS coordinates but allow manual address editing
+        setForm(prev => ({
+          ...prev,
+          address: 'Please enter address manually...'
+        }));
+      } finally {
+        setIsGettingLocation(false);
+      }
+    },
+    (error) => {
+      let errorMessage = 'unable to retrieve location. please enter address manually.';
+      
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'location access denied. please enable location services or enter address manually.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'location information unavailable. please enter address manually.';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'location request timed out. please enter address manually.';
+          break;
+      }
+      
+      setLocationError(errorMessage);
+      setIsGettingLocation(false);
+      setForm(prev => ({
+        ...prev,
+        location_type: 'manual'
+      }));
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 60000
+    }
+  );
+};
+
+  
+
+  // extract pincode from address when address changes
+  useEffect(() => {
+    if (form.address && form.location_type === 'manual') {
+      const pincodeMatch = form.address.match(/\b[1-9][0-9]{5}\b/);
+      if (pincodeMatch) {
+        setForm(prev => ({
+          ...prev,
+          pincode: pincodeMatch[0]
+        }));
+      } else {
+        setForm(prev => ({
+          ...prev,
+          pincode: ''
+        }));
+      }
+    }
+  }, [form.address, form.location_type]);
+
+  // fetch departments from api
   useEffect(() => {
     const fetchDepartments = async () => {
       if (!isOpen) return;
@@ -57,8 +206,8 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
         const response = await api.get('/users/departments/');
         setDepartments(response.data);
       } catch (error) {
-        console.error('Error fetching departments:', error);
-        // Fallback to default departments if API fails
+        console.error('error fetching departments:', error);
+        // fallback to default departments if api fails
         setDepartments([
           { id: 1, name: "Water" },
           { id: 2, name: "Road" },
@@ -74,26 +223,67 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
-    setForm({ ...form, file: e.target.files[0] });
+    setForm(prev => ({ ...prev, file: e.target.files[0] }));
+  };
+
+  const handleLocationMethodChange = (method) => {
+    setForm(prev => ({ 
+      ...prev, 
+      location_type: method,
+      address: method === 'gps' ? '' : prev.address,
+      pincode: method === 'gps' ? '' : prev.pincode,
+      latitude: method === 'manual' ? '' : prev.latitude,
+      longitude: method === 'manual' ? '' : prev.longitude
+    }));
+    
+    if (method === 'gps') {
+      getGPSLocation();
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.address || !form.description || !form.category) {
-      return alert("Please fill in all fields.");
+    
+    // validate form based on location method
+    if (form.location_type === 'gps' && (!form.latitude || !form.longitude)) {
+      setLocationError('gps location is required');
+      return;
+    }
+    
+    if (form.location_type === 'manual' && !form.address) {
+      setLocationError('address is required when using manual location');
+      return;
+    }
+
+    if (!form.description || !form.category) {
+      return alert("please fill in all required fields.");
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      const content = `Address: ${form.address}\nCategory: ${form.category}\n\n${form.description}`;
+      const content = Address: ${form.address}\nCategory: ${form.category}\n\n${form.description};
       formData.append('content', content);
       
-      // Add the assigned_to field with department ID
+      // add location data based on source
+      formData.append('location_type', form.location_type);
+      
+      if (form.location_type === 'gps') {
+        formData.append('latitude', form.latitude);
+        formData.append('longitude', form.longitude);
+      } else {
+        formData.append('address', form.address);
+        if (form.pincode) {
+          formData.append('pincode', form.pincode);
+        }
+      }
+      
+      // add department and file
       if (form.category) {
         formData.append('assigned_to', form.category);
       }
@@ -109,20 +299,30 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       });
 
       if (response.status === 201) {
-        alert("Complaint submitted successfully!");
-        setForm({description: "",address: "", category: "", file: null });
+        alert("complaint submitted successfully!");
+        setForm({
+          description: "",
+          address: "", 
+          category: "", 
+          pincode: "",
+          latitude: "",
+          longitude: "",
+          location_type: 'manual',
+          file: null 
+        });
+        setLocationError('');
         onClose();
         window.location.reload();
       }
     } catch (error) {
-      console.error('Error submitting complaint:', error);
+      console.error('error submitting complaint:', error);
       const serverMessage = error.response?.data || error.message;
       if (error.response?.status === 403) {
-        alert('Security token expired. Please refresh the page and try again.');
+        alert('security token expired. please refresh the page and try again.');
       } else if (error.response?.status === 400) {
-        alert('Failed to submit complaint (400). Server response: ' + JSON.stringify(serverMessage));
+        alert('failed to submit complaint (400). server response: ' + JSON.stringify(serverMessage));
       } else {
-        alert('Failed to submit complaint. ' + (typeof serverMessage === 'string' ? serverMessage : JSON.stringify(serverMessage)));
+        alert('failed to submit complaint. ' + (typeof serverMessage === 'string' ? serverMessage : JSON.stringify(serverMessage)));
       }
     } finally {
       setLoading(false);
@@ -142,7 +342,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white w-[100%] max-w-md rounded-2xl shadow-xl p-6 relative mx-4">
+      <div className="bg-white w-[100%] max-w-md rounded-2xl shadow-xl p-6 relative mx-4 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-[#4B687A] hover:text-[#AAAAAA] text-lg bg-white w-12 h-12 flex items-center justify-center"
@@ -150,28 +350,150 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
           ✕
         </button>
 
-        <h2 className="text-xl font-semibold text-center text-[#4B687A] mb-6" >Raise Complaint</h2>
+        <h2 className="text-xl font-semibold text-center text-[#4B687A] mb-6">Raise Complaint</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <textarea
             name="description"
             value={form.description}
             onChange={handleChange}
-            placeholder="Describe your complaint in detail..."
+            placeholder="describe your complaint in detail..."
             rows="3"
             className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] hover:border-gray-500 resize-none"
             required
           />
 
-          <textarea
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-            placeholder="Enter address with Pincode..."
-            rows="3"
-            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] hover:border-gray-500 resize-none"
-            required
-          />
+          {/* location method selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">location method</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleLocationMethodChange('gps')}
+                disabled={isGettingLocation}
+                className={`flex-1 py-2 px-3 rounded-lg border transition ${
+                  form.location_type === 'gps' 
+                    ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                } ${isGettingLocation ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isGettingLocation ? 'getting location...' : 'use gps location'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLocationMethodChange('manual')}
+                className={`flex-1 py-2 px-3 rounded-lg border transition ${
+                  form.location_type === 'manual' 
+                    ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                enter address
+              </button>
+            </div>
+            
+            {locationError && (
+              <div className="text-red-500 text-sm mt-1">{locationError}</div>
+            )}
+          </div>
+
+          {/* location input based on method */}
+          {form.location_type === 'gps' ? (
+            <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800 font-medium mb-2">📍 GPS Location Detected</p>
+                {form.latitude && form.longitude ? (
+                  <div className="text-xs text-blue-700 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="font-medium">Latitude:</span> {form.latitude}
+                      </div>
+                      <div>
+                        <span className="font-medium">Longitude:</span> {form.longitude}
+                      </div>
+                    </div>
+                    
+                    {/* Show the address details when available */}
+                    {form.address && form.address !== 'Fetching address from MapmyIndia...' && (
+                      <div className="mt-3 p-2 bg-white rounded border border-green-200">
+                        <div className="font-medium text-green-700 mb-1">Address Found:</div>
+                        <div className="text-gray-700 text-sm">{form.address}</div>
+                        
+                        {form.pincode && (
+                          <div className="flex items-center mt-2 p-1 bg-green-50 rounded">
+                            <svg className="w-4 h-4 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-green-700 font-medium">Pincode: {form.pincode}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Show loading state */}
+                    {form.address === 'Fetching address from MapmyIndia...' && (
+                      <div className="flex items-center justify-center p-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span className="ml-2 text-blue-600">Fetching address details...</span>
+                      </div>
+                    )}
+                    
+                    {/* Show manual override option */}
+                    {form.address && form.address !== 'Fetching address from MapmyIndia...' && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const userAddress = prompt("Edit the address if needed:", form.address);
+                            if (userAddress !== null) {
+                              setForm(prev => ({ ...prev, address: userAddress }));
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Edit address
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center p-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-blue-600">Getting coordinates...</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Additional info for GPS mode */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                <div className="flex items-start text-xs text-gray-600">
+                  <svg className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Your location has been automatically detected. The address above is fetched using MapmyIndia API.</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Manual address section remains the same
+            <div className="space-y-2">
+              <textarea
+                name="address"
+                value={form.address}
+                onChange={handleChange}
+                placeholder="enter complete address with pincode..."
+                rows="3"
+                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] hover:border-gray-500 resize-none"
+                required
+              />
+              {form.pincode && (
+                <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded px-3 py-1">
+                  extracted pincode: <strong>{form.pincode}</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           <select
             name="category"
@@ -182,7 +504,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             required
           >
             <option value="" disabled>
-              {departmentsLoading ? "Loading departments..." : "Select Department..."}
+              {departmentsLoading ? "loading departments..." : "select department..."}
             </option>
             {departments.map((dept) => (
               <option key={dept.id} value={dept.id}>
@@ -209,12 +531,12 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
               />
             </svg>
             <span className="text-gray-500 text-sm">
-              {form.file ? form.file.name : "Attach Image or Video..."}
+              {form.file ? form.file.name : "attach image or video..."}
             </span>
             <input
               id="file-upload"
               type="file"
-              accept="image/*, video/*"
+              accept="image/, video/"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -222,16 +544,17 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 
           <button
             type="submit"
-            disabled={loading || departmentsLoading}
+            disabled={loading || departmentsLoading || (form.location_type === 'gps' && !form.latitude)}
             className="bg-[#4B687A] w-full text-white py-3 rounded-lg hover:bg-[#4B687AB5] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {loading ? 'Submitting...' : 'Submit Complaint'}
+            {loading ? 'submitting...' : 'submit complaint'}
           </button>
         </form>
       </div>
     </div>
   );
-}; export { RaiseComplaintModal };
+}; 
+
 
 export default function Sidebar({}) {
   const navigate = useNavigate();
