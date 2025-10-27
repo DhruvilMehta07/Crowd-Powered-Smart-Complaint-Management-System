@@ -159,7 +159,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
     const formatUpvotes = (upvotes) => {
         const count = upvotes || 0;
         if (count >= 1000) {
-            return `${(count / 1000).toFixed(1)}k`.replace('.0', '');
+            return ${(count / 1000).toFixed(1)}k.replace('.0', '');
         }
         return count.toString();
     };
@@ -210,7 +210,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                             : 'text-gray-600 hover:text-slate-800'
                     } hover:scale-105 transform`}
                 >
-                    <ArrowUpIcon className={`w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-blue-600' : ''}`} />
+                    <ArrowUpIcon className={w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-blue-600' : ''}} />
                     <span>{formatUpvotes(localUpvotes)}</span>
                 </button>
                 <button className="flex items-center gap-2 text-gray-600 hover:text-slate-800 transition-colors hover:scale-105 transform">
@@ -237,10 +237,11 @@ const Homepage = () => {
 
     useEffect(() => {
         const checkAuthStatus = () => {
+            const token = localStorage.getItem('access_token');
             const authStatus = localStorage.getItem('isAuthenticated');
             const storedUsername = localStorage.getItem('username');
             
-            if (authStatus === 'true' && storedUsername) {
+            if (token && authStatus === 'true' && storedUsername) {
                 setIsAuthenticated(true);
                 setUsername(storedUsername);
             } else {
@@ -273,7 +274,7 @@ const Homepage = () => {
 
     const handleUpvote = async (complaintId, expectedUpvotedStatus, expectedUpvotes) => {
         try {
-            const response = await api.post(`/complaints/${complaintId}/upvote/`);
+            const response = await api.post(/complaints/${complaintId}/upvote/);
             
             // Standardize on upvote_count as the main property
             setComplaints(prevComplaints => 
@@ -297,7 +298,7 @@ const Homepage = () => {
 
     const handleDeleteComplaint = async (complaintId) => {
         try {
-            await api.delete(`/complaints/${complaintId}/delete/`);
+            await api.delete(/complaints/${complaintId}/delete/);
             alert('Complaint deleted successfully!');
             // Refresh the complaints list
             fetchComplaints();
@@ -313,25 +314,30 @@ const Homepage = () => {
 
     const onLogoutClick = useCallback(async () => {
         try {
-            // Call backend logout API to blacklist refresh token
-            await logoutUser();
+            
+            await api.post('/users/logout');
         } catch (error) {
             console.warn('Logout API call failed:', error);
             // Continue with local cleanup even if API call fails
         }
-        
+        finally
+        {
+            
+            
+            // Clear localStorage (keeping existing logic)
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('username');
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('user_type');
+            
+            delete api.defaults.headers.common['Authorization'];
+            setIsAuthenticated(false);
+            setUsername('');
+            alert('Logged out successfully!');
+
+        }
         // Clear JWT access token from memory
-        clearAccessToken();
-        
-        // Clear localStorage (keeping existing logic)
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('username');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_type');
-        
-        setIsAuthenticated(false);
-        setUsername('');
-        alert('Logged out successfully!');
     }, []);
 
     const openRaiseComplaint = useCallback(() => {
