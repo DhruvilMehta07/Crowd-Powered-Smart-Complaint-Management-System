@@ -1,7 +1,9 @@
 from users.serializers import UserLoginSerializer
+from users.models import Department
+
+import re
 
 from .models import Complaint,ComplaintImage,Upvote
-from users.models import Department
 
 from rest_framework import serializers
 
@@ -16,17 +18,23 @@ class ComplaintSerializer(serializers.ModelSerializer):
     upvotes_count = serializers.ReadOnlyField()
     is_upvoted = serializers.SerializerMethodField()
     assigned_to = serializers.StringRelatedField()  
-
+    location_display = serializers.SerializerMethodField()
     class Meta:
         model = Complaint
-        fields = ['id','posted_by','content','posted_at','images','images_count','upvotes_count','is_upvoted','assigned_to']
-        read_only_fields = ['posted_by', 'posted_at',]
+        fields = ['id','posted_by','content','posted_at','images',
+                  'images_count','upvotes_count','is_upvoted','assigned_to','address','pincode',
+                  'latitude','longitude','location_type','location_display']
+        read_only_fields = ['posted_by', 'posted_at','location_display']
 
     def get_is_upvoted(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.upvotes.filter(id=request.user.id).exists()
         return False
+    
+    def get_location_display(self,obj):
+        return obj.get_location_display()
+    
 
 class ComplaintCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
@@ -40,11 +48,44 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+
+    latitude = serializers.DecimalField(max_digits=11, decimal_places=8, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=11, decimal_places=8, required=False, allow_null=True)
+    location_type = serializers.ChoiceField(choices=Complaint.Location_Choice, default='manual')
+
     class Meta:
         model = Complaint
-        fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to']
+        fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to','address',
+                  'pincode','latitude','longitude','location_type']
         read_only_fields = ['posted_by', 'posted_at']
 
+    def validate(self, data):
+        #validate that either GPS coordinates or address is provided
+        address = data.get('address')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        location_type = data.get('location_type', 'manual')
+
+        if location_type == 'gps':
+            if not latitude or not longitude:
+                raise serializers.ValidationError(
+                    "GPS coordinates are required when location source is GPS."
+                )
+        else:  # manual
+            if not address:
+                raise serializers.ValidationError(
+                    "Address is required when location source is manual."
+                )
+
+        # validate pincode format if provided
+        pincode = data.get('pincode')
+        if pincode and not re.match(r'^[1-9][0-9]{5}$', pincode):
+            raise serializers.ValidationError(
+                {"pincode": "Pincode must be 6 digits starting with 1-9"}
+            )
+
+        return data
+    
     def validate_images(self, value):
         if len(value) > 4:
             raise serializers.ValidationError("A maximum of 4 images are allowed.")

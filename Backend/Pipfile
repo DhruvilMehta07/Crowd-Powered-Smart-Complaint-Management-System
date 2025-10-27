@@ -8,6 +8,10 @@ django = "*"
 psycopg2-binary = "*"
 redis = "*"           
 django-redis = "*" 
+requests = "*"
+pillow = "*"
+rest-framework-simplejwt = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 
