@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import ComplaintListView,ComplaintCreateView,UpvoteComplaintView,ComplaintDeleteView
+from .views import ComplaintListView,ComplaintCreateView,UpvoteComplaintView,ComplaintDeleteView,ReverseGeocodeView
 
 
 urlpatterns = [
@@ -8,4 +8,5 @@ urlpatterns = [
     path('create/', ComplaintCreateView.as_view(), name='complaint-create'),
     path('<int:complaint_id>/upvote/', UpvoteComplaintView.as_view(), name='complaint-upvote'),
     path('<int:complaint_id>/delete/', ComplaintDeleteView.as_view(), name='complaint-delete'),
+    path('reverse-geocode/',ReverseGeocodeView.as_view(),)
 ]

@@ -208,3 +208,4 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-requested-with',
 ]
+MAPMYINDIA_API_KEY = os.getenv('MAPMYINDIA_API_KEY')

@@ -4,17 +4,18 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics
 from rest_framework import permissions
+from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
+from rest_framework_simplejwt.backends import TokenBackend
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from django.contrib.auth import logout
 from django.contrib.auth import authenticate, login
 from django.db import IntegrityError
-
-from django.core.cache import caches
-from rest_framework_simplejwt.backends import TokenBackend
-from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
+from django.core.cache import caches
+
+import re,requests,json
 
 from .models import Citizen, Government_Authority, Field_Worker, Department
 from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer
@@ -30,16 +31,6 @@ otp_storage = {}
 
 # Setting up redis cache
 redis_cache = caches['default']
-
-@method_decorator(ensure_csrf_cookie, name='dispatch')
-class GetCSRFToken(APIView):
-    """
-    Simple GET endpoint to set the csrftoken cookie for the frontend.
-    """
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        return Response({"detail": "CSRF cookie set."})
    
 
 class DepartmentListCreateAPIView(generics.ListCreateAPIView):
@@ -127,7 +118,6 @@ class FieldWorkerSignupAPIView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@method_decorator(csrf_protect, name='dispatch')
 class VerifyOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -211,7 +201,6 @@ class VerifyOTPAPIView(APIView):
         return Response({"error": "Invalid user type."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@method_decorator(csrf_protect, name='dispatch')
 class UserLoginAPIView(APIView):
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
@@ -253,8 +242,6 @@ class UserLoginAPIView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-@method_decorator(csrf_protect, name='dispatch')
 class UserLogoutAPIView(APIView):
     """
     Expect POST with {"refresh": "<refresh_token>"}.
@@ -291,7 +278,6 @@ class UserLogoutAPIView(APIView):
             return Response({"detail": "Logout failed.", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(csrf_protect, name='dispatch')
 class TokenRefreshCookieView(TokenRefreshView):
     """Wrap TokenRefreshView to accept refresh from cookie when not provided in body
     and set the returned refresh token as an HttpOnly cookie when rotation occurs.

@@ -2,16 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import googleLogo from '../assets/google-logo.svg';
-import { setAccessToken } from '../utils/auth';
 
 import CitizenSignUpForm from './CitizenSignUpForm';
 import GovtAuthSignUpForm from './GovtAuthSignUpForm';
 import FieldWorkerSignUpForm from './FieldWorkerSignUpForm';
 import AdminSignUpForm from './AdminSignUpForm';
 
-// Configure axios for CSRF
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+// Configure axios defaults
 axios.defaults.withCredentials = true;
 
 const LoginForm = ({ 
@@ -26,7 +23,7 @@ const LoginForm = ({
   testConnection 
 }) => (
   <form onSubmit={handleLoginSubmit} className="auth-form">
-    {/* Optional: Test connection button for debugging */}
+    {/* Debug connection button */}
     <button 
       type="button" 
       onClick={testConnection}
@@ -102,24 +99,12 @@ const Login = ({ activeTab }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Get CSRF token on component mount
-  // useEffect(() => {
-  //   const getCSRFToken = async () => {
-  //     try {
-  //       // First, make a GET request to get the CSRF token cookie
-  //       await axios.get('http://localhost:7000/users/csrf-token/', {
-  //         withCredentials: true
-  //       });
-  //       console.log('CSRF token retrieved');
-  //     } catch (err) {
-  //       console.warn('Could not get CSRF token:', err);
-  //     }
-  //   };
+  // No need for CSRF initialization with JWT
+  useEffect(() => {
+    // You can add any initialization logic here if needed
+    console.log('Login component mounted - JWT authentication');
+  }, []);
 
-  //   getCSRFToken();
-  // }, []);
-
-  // Login form handlers
   const handleLoginChange = (e) => {
     setLoginFormData({ 
       ...loginFormData, 
@@ -134,104 +119,91 @@ const Login = ({ activeTab }) => {
     setLoading(true);
 
     try {
-      // Get CSRF token from cookie
-      const getCookie = (name) => {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
-            }
-          }
-        }
-        return cookieValue;
-      };
-
-      const csrfToken = getCookie('csrftoken');
+      console.log('Attempting JWT login...');
       
-      if (!csrfToken) {
-        throw new Error('CSRF token not found');
-      }
-
-      const res = await axios.post("http://localhost:7000/users/login/", 
-        loginFormData,  
+      const response = await axios.post(
+        "http://localhost:7000/users/login/", 
+        loginFormData,
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
           },
           withCredentials: true
         }
       );
 
-      console.log('Login response:', res.data);
+      console.log('JWT Login successful:', response.data);
 
-      if (res.data.message) {
-        setMessage('Login successful');
-        
-        // Store JWT access token in memory 
-        if (res.data.access) {
-          setAccessToken(res.data.access);
-        }
-        
-        // Store user info in localStorage 
-        localStorage.setItem('user_id', res.data.user_id);
-        localStorage.setItem('username', res.data.username);
+      if (response.data.access) {
+        // Store the access token in localStorage
+        localStorage.setItem('access_token', response.data.access);
+        localStorage.setItem('user_id', response.data.user_id);
+        localStorage.setItem('username', response.data.username);
         localStorage.setItem('isAuthenticated', 'true');
         
-        // Optional: Store additional user data if available
-        if (res.data.user_type) {
-          localStorage.setItem('user_type', res.data.user_type);
-        }
+        // Set default Authorization header for future requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
         
-        // Redirect to home page
+        setMessage('Login successful! Redirecting...');
+        
+        // Redirect after delay
         setTimeout(() => {
           navigate('/');
-        }, 1000);
+        }, 1500);
       }
     } catch (err) {
-      console.error('Login error:', err);
-      console.error('Error response:', err.response?.data);
+      console.error('JWT Login error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        code: err.code
+      });
       
-      // Better error handling with CSRF specific error
-      if (err.response?.status === 403 && err.response?.data?.detail?.includes('CSRF')) {
-        setError('Security token missing. Please refresh the page and try again.');
-      } else if (err.response?.status === 401) {
-        setError('Invalid username or password');
-      } else if (err.response?.status === 400) {
-        setError(err.response.data.error || 'Invalid form data');
-      } else if (err.response?.status === 500) {
-        setError('Server error. Please try again later.');
-      } else if (err.code === 'NETWORK_ERROR' || err.code === 'ECONNREFUSED') {
-        setError('Cannot connect to server. Please check if the backend is running.');
-      } else if (err.message === 'CSRF token not found') {
-        setError('Security token issue. Please refresh the page.');
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError('Invalid username or password');
+        } else if (err.response.status === 403) {
+          setError('Account pending admin verification');
+        } else if (err.response.status === 400) {
+          setError(err.response.data.error || 'Invalid form data');
+        } else {
+          setError(err.response.data.error || `Server error: ${err.response.status}`);
+        }
+      } else if (err.request) {
+        setError('Cannot connect to server. Please check: 1) Backend is running, 2) Port 7000 is correct');
       } else {
-        setError(err.response?.data?.error || 'Login failed. Please try again.');
+        setError('Login failed: ' + err.message);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Test backend connection (optional)
+  // Test backend connection
   const testConnection = async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    
     try {
-      const res = await axios.get('http://localhost:7000/users/test/', {
-        withCredentials: true
+      const response = await axios.get('http://localhost:7000/users/departments/', {
+        withCredentials: true,
+        timeout: 5000
       });
-      console.log('Connection test:', res.data);
-      setMessage('Backend connection successful');
+      setMessage('✅ Backend connection successful! JWT endpoints are working.');
+      console.log('Connection test response:', response.data);
     } catch (err) {
       console.error('Connection test failed:', err);
-      setError('Cannot connect to backend server');
+      if (err.response) {
+        setError(`Backend responded with ${err.response.status}: ${err.response.data?.detail || 'Check endpoint'}`);
+      } else {
+        setError('❌ Cannot connect to backend. Check: 1) Server running on port 7000, 2) Backend CORS configured');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Signup form renderer
   const renderSignUpForm = () => {
     switch (activeTab) {
       case 'Citizen':
@@ -273,7 +245,6 @@ const Login = ({ activeTab }) => {
         </span>
       </div>
 
-      {/* Render the correct form */}
       {activeForm === 'Login' ? (
         <LoginForm 
           loginFormData={loginFormData}
@@ -290,14 +261,12 @@ const Login = ({ activeTab }) => {
         renderSignUpForm()
       )}
 
-      {/* Divider */}
       <div className="relative flex items-center py-6">
         <div className="flex-grow border-t border-gray-300"></div>
         <span className="flex-shrink mx-4 text-[#7b8d97] text-sm font-medium">Or</span>
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
 
-      {/* Google Login */}
       <div className="flex justify-center">
         <img
           src={googleLogo}
