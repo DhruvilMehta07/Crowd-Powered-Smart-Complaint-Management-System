@@ -49,27 +49,27 @@ const ShareIcon = ({ className = 'w-5 h-5' }) => (
 );
 
 const Header = ({ onLoginClick, onLogoutClick, isAuthenticated, username }) => (
-    <header className="bg-white shadow-sm w-full p-4 flex justify-between items-center sticky top-0 z-10">
+    <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
         <div className="flex-1 max-w-xl">
             <div className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
                 <input
                     type="search"
                     placeholder="Search for complaints, people, or keywords"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    className="w-full pl-12 pr-4 py-3 border-2 border-indigo-200 rounded-full bg-indigo-50/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                 />
             </div>
         </div>
         <div className="flex items-center gap-4">
             {isAuthenticated ? (
                 <>
-                    <div className="flex items-center gap-2 text-slate-700">
-                        <UserCircleIcon className="w-6 h-6" />
-                        <span className="font-medium">Welcome, {username}</span>
+                    <div className="flex items-center gap-2 text-indigo-900">
+                        <UserCircleIcon className="w-6 h-6 text-indigo-600" />
+                        <span className="font-semibold">Welcome, {username}</span>
                     </div>
                     <button
                         onClick={onLogoutClick}
-                        className="flex items-center gap-2 bg-red-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-red-700 transition-colors duration-300"
+                        className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-3 px-6 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
                     >
                         <LogoutIcon className="w-4 h-4" />
                         Logout
@@ -78,7 +78,7 @@ const Header = ({ onLoginClick, onLogoutClick, isAuthenticated, username }) => (
             ) : (
                 <button
                     onClick={onLoginClick}
-                    className="bg-slate-700 text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors duration-300"
+                    className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-lg"
                 >
                     Login / SignUp
                 </button>
@@ -89,8 +89,6 @@ const Header = ({ onLoginClick, onLogoutClick, isAuthenticated, username }) => (
 
 const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
     const [isUpvoting, setIsUpvoting] = useState(false);
-    
-    // Standardize on upvote_count as the main property
     const [localUpvotes, setLocalUpvotes] = useState(complaint.upvote_count || complaint.upvotes || 0);
     const [userHasUpvoted, setUserHasUpvoted] = useState(complaint.user_has_upvoted || false);
 
@@ -137,7 +135,6 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
         try {
             await onUpvote(complaint.id, newUpvotedStatus, newUpvotes);
         } catch (error) {
-            // Rollback on error
             setUserHasUpvoted(previousUpvotedStatus);
             setLocalUpvotes(previousUpvotes);
             console.error('Failed to update upvote:', error);
@@ -159,20 +156,20 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
     const formatUpvotes = (upvotes) => {
         const count = upvotes || 0;
         if (count >= 1000) {
-            return ${(count / 1000).toFixed(1)}k.replace('.0', '');
+            return `${(count / 1000).toFixed(1)}k`.replace('.0', '');
         }
         return count.toString();
     };
 
     return (
-        <div className="bg-slate-50/70 p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div className="bg-white p-6 rounded-xl border-2 border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="bg-slate-200 rounded-full p-1 text-slate-500">
+                    <div className="bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full p-1 text-indigo-600">
                         <UserIcon />
                     </div>
                     <div>
-                        <p className="font-bold text-lg text-slate-800">
+                        <p className="font-bold text-lg text-gray-800">
                             {complaint.author || complaint.posted_by?.username || 'Anonymous User'}
                         </p>
                         <p className="text-sm text-gray-500">
@@ -183,7 +180,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                 {isAuthenticated && (
                     <button
                         onClick={handleDeleteComplaint}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        className="text-red-600 hover:text-red-800 text-sm font-semibold transition-colors"
                     >
                         Delete
                     </button>
@@ -194,30 +191,30 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                 {complaint.content || complaint.description || complaint.title}
             </p>
 
-            <div className="text-sm text-gray-600 mb-4">
-                <span className="font-semibold">Assigned to:</span> {complaint.assigned_to || complaint.assignedTo || complaint.category || 'Not assigned'}
+            <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block">
+                <span className="font-semibold text-indigo-700">Assigned to:</span> <span className="text-gray-800">{complaint.assigned_to || complaint.assignedTo || complaint.category || 'Not assigned'}</span>
             </div>
 
-            <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
+            <div className="flex items-center gap-4 pt-4 border-t-2 border-indigo-100">
                 <button 
                     onClick={handleUpvote}
                     disabled={isUpvoting}
-                    className={`flex items-center gap-2 transition-colors ${
+                    className={`flex items-center gap-2 transition-all ${
                         isUpvoting 
                             ? 'text-gray-400 cursor-not-allowed' 
                             : userHasUpvoted
-                            ? 'text-blue-600 hover:text-blue-700'
-                            : 'text-gray-600 hover:text-slate-800'
-                    } hover:scale-105 transform`}
+                            ? 'text-indigo-600 hover:text-indigo-700'
+                            : 'text-gray-600 hover:text-indigo-600'
+                    } hover:scale-105 transform font-semibold`}
                 >
-                    <ArrowUpIcon className={w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-blue-600' : ''}} />
+                    <ArrowUpIcon className={`w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-indigo-600' : ''}`} />
                     <span>{formatUpvotes(localUpvotes)}</span>
                 </button>
-                <button className="flex items-center gap-2 text-gray-600 hover:text-slate-800 transition-colors hover:scale-105 transform">
+                <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
                     <ChatBubbleIcon />
                     <span>Comment</span>
                 </button>
-                <button className="flex items-center gap-2 text-gray-600 hover:text-slate-800 transition-colors hover:scale-105 transform">
+                <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
                     <ShareIcon />
                     <span>Share</span>
                 </button>
@@ -274,9 +271,8 @@ const Homepage = () => {
 
     const handleUpvote = async (complaintId, expectedUpvotedStatus, expectedUpvotes) => {
         try {
-            const response = await api.post(/complaints/${complaintId}/upvote/);
+            const response = await api.post(`/complaints/${complaintId}/upvote/`);
             
-            // Standardize on upvote_count as the main property
             setComplaints(prevComplaints => 
                 prevComplaints.map(complaint => 
                     complaint.id === complaintId 
@@ -298,9 +294,8 @@ const Homepage = () => {
 
     const handleDeleteComplaint = async (complaintId) => {
         try {
-            await api.delete(/complaints/${complaintId}/delete/);
+            await api.delete(`/complaints/${complaintId}/delete/`);
             alert('Complaint deleted successfully!');
-            // Refresh the complaints list
             fetchComplaints();
         } catch (error) {
             console.error('Error deleting complaint:', error);
@@ -314,17 +309,11 @@ const Homepage = () => {
 
     const onLogoutClick = useCallback(async () => {
         try {
-            
             await api.post('/users/logout');
         } catch (error) {
             console.warn('Logout API call failed:', error);
-            // Continue with local cleanup even if API call fails
         }
-        finally
-        {
-            
-            
-            // Clear localStorage (keeping existing logic)
+        finally {
             localStorage.removeItem('access_token');
             localStorage.removeItem('user_id');
             localStorage.removeItem('username');
@@ -335,9 +324,7 @@ const Homepage = () => {
             setIsAuthenticated(false);
             setUsername('');
             alert('Logged out successfully!');
-
         }
-        // Clear JWT access token from memory
     }, []);
 
     const openRaiseComplaint = useCallback(() => {
@@ -358,7 +345,7 @@ const Homepage = () => {
     }, [fetchComplaints]);
 
     return (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 font-inter min-h-screen flex flex-col">
+        <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col border-r-3 border-indigo-400">
             <Header 
                 onLoginClick={onLoginClick} 
                 onLogoutClick={onLogoutClick}
@@ -366,32 +353,27 @@ const Homepage = () => {
                 username={username}
             />
             
-            {/* Main content area */}
             <div className="flex-1 flex">
-                {/* Center feed - takes available space between sidebar and trending */}
-                <div className="flex-1 flex justify-center px-4 py-8">
+                <div className="flex-1 flex justify-center px-4 py-8 ">
                     <div className="w-full max-w-2xl lg:max-w-4xl space-y-6">
-                        {/* Loading State */}
                         {loading && (
                             <div className="flex justify-center items-center py-12">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600"></div>
                             </div>
                         )}
 
-                        {/* Error State */}
                         {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-6">
-                                <p className="text-red-600 font-medium">{error}</p>
+                            <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 text-center mb-6">
+                                <p className="text-red-700 font-semibold">{error}</p>
                                 <button
                                     onClick={fetchComplaints}
-                                    className="mt-4 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                                    className="mt-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-2 px-6 rounded-lg transition-all shadow-lg"
                                 >
                                     Try Again
                                 </button>
                             </div>
                         )}
 
-                        {/* Complaints List */}
                         {!loading && !error && (
                             <>
                                 {complaints.length > 0 ? (
@@ -405,12 +387,12 @@ const Homepage = () => {
                                         />
                                     ))
                                 ) : (
-                                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
-                                        <p className="text-gray-500 text-lg font-medium">No complaints found.</p>
-                                        <p className="text-gray-400 mt-2">Be the first to raise a complaint!</p>
+                                    <div className="text-center py-12 bg-white rounded-xl border-2 border-indigo-200 shadow-lg">
+                                        <p className="text-gray-700 text-lg font-semibold">No complaints found.</p>
+                                        <p className="text-gray-500 mt-2">Be the first to raise a complaint!</p>
                                         <button
                                             onClick={openRaiseComplaint}
-                                            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                                            className="mt-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-all shadow-lg"
                                         >
                                             Raise First Complaint
                                         </button>
@@ -422,10 +404,9 @@ const Homepage = () => {
                 </div>
             </div>
 
-            {/* Raise Complaint Modal (Placeholder) */}
             {isRaiseOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-indigo-200">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4">Raise a Complaint</h2>
                         <p className="text-gray-600 mb-6">
                             Complaint form would go here. This is a placeholder modal.
@@ -433,7 +414,7 @@ const Homepage = () => {
                         <div className="flex gap-4">
                             <button
                                 onClick={closeRaiseComplaint}
-                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 rounded-lg transition-colors"
+                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
@@ -442,7 +423,7 @@ const Homepage = () => {
                                     closeRaiseComplaint();
                                     alert('Complaint raised successfully!');
                                 }}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors"
+                                className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg"
                             >
                                 Submit
                             </button>

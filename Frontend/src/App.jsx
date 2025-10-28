@@ -34,15 +34,8 @@ function App() {
 
   // Auth Layout Component
   const AuthLayout = () => (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl overflow-hidden">
-        
-        {/* Navigation Tabs */}
-        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-        
-        {/* Login/Signup Content with Tabs */}
-        <Login activeTab={activeTab} />
-      </div>
+    <div className="min-h-screen w-full">
+      <Login activeTab={activeTab} />
     </div>
   );
 

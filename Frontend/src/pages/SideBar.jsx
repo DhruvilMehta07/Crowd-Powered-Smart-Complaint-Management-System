@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from '../utils/axiosConfig';
 
 const HomeIcon = ({ className = 'w-6 h-6' }) => (
@@ -267,7 +267,7 @@ const getGPSLocation = async () => {
     setLoading(true);
     try {
       const formData = new FormData();
-      const content = Address: ${form.address}\nCategory: ${form.category}\n\n${form.description};
+      const content = `Address: ${form.address}\nCategory: ${form.category}\n\n${form.description}`;
       formData.append('content', content);
       
       // add location data based on source
@@ -559,7 +559,8 @@ const getGPSLocation = async () => {
 export default function Sidebar({}) {
   const navigate = useNavigate();
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
-  
+  const location = useLocation();
+  const pathname = location?.location?.pathname || location.pathname || '/';
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const isAuthFlag = typeof window !== "undefined" ? localStorage.getItem("isAuthenticated") === "true" : false;
   const isAuth = !!token || isAuthFlag;
@@ -577,15 +578,25 @@ export default function Sidebar({}) {
     setIsRaiseModalOpen(false);
   };
 
+  const getLinkClass = (path) => {
+  const base =
+    "flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium transition-all duration-200";
   
+  if (pathname === path) {
+    return `${base} bg-blue-700 text-white shadow-md hover:shadow-lg hover:bg-blue-800`;
+  }
+
+  // Soft glowing shadow on hover for inactive links
+  return `${base} text-gray-700 hover:bg-blue-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px]`;
+};
 
   return (
     <>
-      <aside className="w-80 p-4 hidden md:block">
+      <aside className="w-80 p-4 hidden md:block border-r-3 border-indigo-400">
         <div className="sticky top-24 flex flex-col h-[calc(100vh-6rem)]">
           <button 
             onClick={handleOpenRaiseComplaint}
-            className="flex items-center gap-3 bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors duration-300 mb-6"
+            className="flex items-center gap-3 bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl hover:bg-blue-900 transition-colors duration-300 mb-6"
           >
             <PlusCircleIcon className="w-6 h-6"/>
             Raise Complaint
@@ -596,7 +607,9 @@ export default function Sidebar({}) {
               <li>
                 <Link
                   to="/"
-                  className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+                  
+               
+                className={getLinkClass('/')}
                 >
                   <HomeIcon className="w-6 h-6" />
                   Home
@@ -605,8 +618,7 @@ export default function Sidebar({}) {
               <li>
                 <Link
                   to="/notifications"
-                  className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
-                >
+                  className={getLinkClass('/notifications')}>
                   <BellIcon className="w-6 h-6" />
                   Notifications
                 </Link>
@@ -614,8 +626,7 @@ export default function Sidebar({}) {
               <li>
                 <Link
                   to="/past-complaints"
-                  className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
-                >
+                  className={getLinkClass('/past-complaints')}>
                   <DocumentTextIcon className="w-6 h-6" />
                   Past Complaints
                 </Link>
@@ -623,8 +634,7 @@ export default function Sidebar({}) {
               <li>
                 <Link
                   to="/help"
-                  className="flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 text-gray-700 transition-colors duration-200"
-                >
+                  className={getLinkClass('/help')}>
                   <QuestionMarkCircleIcon className="w-6 h-6" />
                   Help
                 </Link>
