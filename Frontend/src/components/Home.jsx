@@ -18,18 +18,6 @@ const UserIcon = ({ className = 'w-12 h-12' }) => (
     </svg>
 );
 
-const UserCircleIcon = ({ className = 'w-6 h-6' }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clipRule="evenodd" />
-    </svg>
-);
-
-const LogoutIcon = ({ className = 'w-5 h-5' }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path fillRule="evenodd" d="M7.5 3.75A1.5 1.5 0 006 5.25v13.5a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5V15a.75.75 0 011.5 0v3.75a3 3 0 01-3 3h-6a3 3 0 01-3-3V5.25a3 3 0 013-3h6a3 3 0 013 3V9A.75.75 0 0115 9V5.25a1.5 1.5 0 00-1.5-1.5h-6zm10.72 4.72a.75.75 0 011.06 0l3 3a.75.75 0 010 1.06l-3 3a.75.75 0 11-1.06-1.06l1.72-1.72H9a.75.75 0 010-1.5h10.94l-1.72-1.72a.75.75 0 010-1.06z" clipRule="evenodd" />
-    </svg>
-);
-
 const ArrowUpIcon = ({ className = 'w-5 h-5', filled = false }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
         <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.03 9.83a.75.75 0 01-1.06-1.06l5.25-5.25a.75.75 0 011.06 0l5.25 5.25a.75.75 0 11-1.06 1.06L10.75 5.612V16.25a.75.75 0 01-.75.75z" clipRule="evenodd" />
@@ -48,9 +36,9 @@ const ShareIcon = ({ className = 'w-5 h-5' }) => (
     </svg>
 );
 
-const Header = ({ onLoginClick, onLogoutClick, isAuthenticated, username }) => (
+const Header = () => (
     <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
-        <div className="flex-1 max-w-xl">
+        <div className="flex-1 max-w-2xl mx-auto">
             <div className="relative">
                 <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
                 <input
@@ -60,30 +48,7 @@ const Header = ({ onLoginClick, onLogoutClick, isAuthenticated, username }) => (
                 />
             </div>
         </div>
-        <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-                <>
-                    <div className="flex items-center gap-2 text-indigo-900">
-                        <UserCircleIcon className="w-6 h-6 text-indigo-600" />
-                        <span className="font-semibold">Welcome, {username}</span>
-                    </div>
-                    <button
-                        onClick={onLogoutClick}
-                        className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold py-3 px-6 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
-                    >
-                        <LogoutIcon className="w-4 h-4" />
-                        Logout
-                    </button>
-                </>
-            ) : (
-                <button
-                    onClick={onLoginClick}
-                    className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 shadow-lg"
-                >
-                    Login / SignUp
-                </button>
-            )}
-        </div>
+        
     </header>
 );
 
@@ -346,12 +311,7 @@ const Homepage = () => {
 
     return (
         <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col border-r-3 border-indigo-400">
-            <Header 
-                onLoginClick={onLoginClick} 
-                onLogoutClick={onLogoutClick}
-                isAuthenticated={isAuthenticated}
-                username={username}
-            />
+            <Header />
             
             <div className="flex-1 flex">
                 <div className="flex-1 flex justify-center px-4 py-8 ">

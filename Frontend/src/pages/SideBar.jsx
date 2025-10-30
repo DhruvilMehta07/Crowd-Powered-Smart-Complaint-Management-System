@@ -593,12 +593,12 @@ export default function Sidebar({}) {
   return (
     <>
       <aside className="w-80 p-4 hidden md:block border-r-3 border-indigo-400">
-        <div className="sticky top-24 flex flex-col h-[calc(100vh-6rem)]">
+        <div className="sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15">
           <button 
             onClick={handleOpenRaiseComplaint}
             className="flex items-center gap-3 bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl hover:bg-blue-900 transition-colors duration-300 mb-6"
           >
-            <PlusCircleIcon className="w-6 h-6"/>
+            <PlusCircleIcon className="w-6 h-7"/>
             Raise Complaint
           </button>
           
