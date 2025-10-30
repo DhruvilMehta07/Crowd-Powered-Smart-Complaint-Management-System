@@ -52,6 +52,9 @@ RUN pip install pipenv && pipenv install --system && pip install pillow && pip i
 RUN pip install djangorestframework && pipenv install djangorestframework
 RUN pip install django-cors-headers && pipenv install django-cors-headers
 RUN pip install djangorestframework-simplejwt django-redis redis && pipenv install djangorestframework-simplejwt django-redis redis
+RUN pip install pytest pytest-django coverage
+
+
 # Copy project files
 COPY . /code/
 # Copy project files

@@ -21,7 +21,6 @@ from .models import Citizen, Government_Authority, Field_Worker, Department
 from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer
 from .EmailService import EmailService
 
-# Securing CSRF attacks on cookies
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 
@@ -31,7 +30,10 @@ otp_storage = {}
 
 # Setting up redis cache
 redis_cache = caches['default']
-   
+
+email_exists_error="User with this email already exists."
+otp_sent_message="OTP sent to email. Verify to complete registration."
+otp_failed_error="Failed to send OTP email."
 
 class DepartmentListCreateAPIView(generics.ListCreateAPIView):
     queryset = Department.objects.all()
@@ -44,7 +46,7 @@ class CitizenSignupAPIView(APIView):
             email = request.data.get('email')
             
             if Citizen.objects.filter(email=email).exists():
-                return Response({"error": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": email_exists_error}, status=status.HTTP_400_BAD_REQUEST)
             
             otp = EmailService.generate_otp()
             otp_storage[email] = {
@@ -55,12 +57,12 @@ class CitizenSignupAPIView(APIView):
             
             if EmailService.send_otp_email(email, otp, "Citizen"):
                 return Response({
-                    "message": "OTP sent to email. Verify to complete registration.",
+                    "message": otp_sent_message,
                     "email": email
                 }, status=status.HTTP_200_OK)
             else:
                 del otp_storage[email]
-                return Response({"error": "Failed to send OTP email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": otp_failed_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -71,7 +73,7 @@ class GovernmentAuthoritySignupAPIView(APIView):
             email = request.data.get('email')
             
             if Government_Authority.objects.filter(email=email).exists():
-                return Response({"error": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": email_exists_error}, status=status.HTTP_400_BAD_REQUEST)
             
             otp = EmailService.generate_otp()
             otp_storage[email] = {
@@ -82,12 +84,12 @@ class GovernmentAuthoritySignupAPIView(APIView):
             
             if EmailService.send_otp_email(email, otp, "Government Authority"):
                 return Response({
-                    "message": "OTP sent to email. Verify to complete registration.",
+                    "message": otp_sent_message,
                     "email": email
                 }, status=status.HTTP_200_OK)
             else:
                 del otp_storage[email]
-                return Response({"error": "Failed to send OTP email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": otp_failed_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -98,7 +100,7 @@ class FieldWorkerSignupAPIView(APIView):
             email = request.data.get('email')
             
             if Field_Worker.objects.filter(email=email).exists():
-                return Response({"error": "User with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": email_exists_error}, status=status.HTTP_400_BAD_REQUEST)
             
             otp = EmailService.generate_otp()
             otp_storage[email] = {
@@ -118,6 +120,80 @@ class FieldWorkerSignupAPIView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+def HandleCitizenRegistration(email, user_data):
+    serializer = CitizenSerializer(data=user_data)
+    if serializer.is_valid():
+        try:
+            user = serializer.save()
+            # remove OTP storage entry (caller should still ensure removal if needed)
+            del otp_storage[email]
+            # Issue JWTs (access + refresh) and set refresh as HttpOnly cookie
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+
+            response = Response({
+                "message": "Registration successful!",
+                "access": access_token,
+                "user_id": user.id,
+                "username": user.username
+            }, status=status.HTTP_201_CREATED)
+
+            # set refresh token as HttpOnly cookie; secure flag depends on DEBUG
+            response.set_cookie(
+                'refresh',
+                refresh_token,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME').total_seconds())
+            )
+            return response
+
+        except IntegrityError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def HandleAuthorityRegistration(email, user_data):
+    serializer = GovernmentAuthoritySerializer(data=user_data)
+    if serializer.is_valid():
+        try:
+            user = serializer.save(verified=False)
+            del otp_storage[email]
+
+            return Response({
+                "message": "Registration successful! Awaiting admin verification.",
+                "user_id": user.id,
+                "username": user.username
+            }, status=status.HTTP_201_CREATED)
+
+        except IntegrityError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def HandleFieldWorkerRegistration(email, user_data):
+    serializer = FieldWorkerSerializer(data=user_data)
+    if serializer.is_valid():
+        try:
+            user = serializer.save(verified=False)
+            del otp_storage[email]
+
+            return Response({
+                "message": "Registration successful! Awaiting admin verification.",
+                "user_id": user.id,
+                "username": user.username
+            }, status=status.HTTP_201_CREATED)
+
+        except IntegrityError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class VerifyOTPAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -134,69 +210,13 @@ class VerifyOTPAPIView(APIView):
         user_type = stored_data['user_type']
         
         if user_type == 'citizen':
-            serializer = CitizenSerializer(data=user_data)
-            if serializer.is_valid():
-                try:
-                    user = serializer.save()
-                    del otp_storage[email] 
-                    
-                    # Issue JWTs (access + refresh) and set refresh as HttpOnly cookie
-                    refresh = RefreshToken.for_user(user)
-                    access_token = str(refresh.access_token)
-                    refresh_token = str(refresh)
-
-                    response = Response({
-                        "message": "Registration successful!",
-                        "access": access_token,
-                        "user_id": user.id,
-                        "username": user.username
-                    }, status=status.HTTP_201_CREATED)
-
-                    # set refresh token as HttpOnly cookie; secure flag depends on DEBUG
-                    response.set_cookie(
-                        'refresh',
-                        refresh_token,
-                        httponly=True,
-                        secure=not settings.DEBUG,
-                        samesite='Lax',
-                        max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME').total_seconds())
-                    )
-                    return response
-                    
-                except IntegrityError as e:
-                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return HandleCitizenRegistration(email,user_data)
         
         elif user_type == 'authority':
-            serializer = GovernmentAuthoritySerializer(data=user_data)
-            if serializer.is_valid():
-                try:
-                    user = serializer.save(verified=False)
-                    del otp_storage[email]
-                    
-                    return Response({
-                        "message": "Registration successful! Awaiting admin verification.",
-                        "user_id": user.id,
-                        "username": user.username
-                    }, status=status.HTTP_201_CREATED)
-                    
-                except IntegrityError as e:
-                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return HandleAuthorityRegistration(email,user_data)
         
         elif user_type == 'fieldworker':
-            serializer = FieldWorkerSerializer(data=user_data)
-            if serializer.is_valid():
-                try:
-                    user = serializer.save(verified=False)
-                    del otp_storage[email]
-                    
-                    return Response({
-                        "message": "Registration successful! Awaiting admin verification.",
-                        "user_id": user.id,
-                        "username": user.username
-                    }, status=status.HTTP_201_CREATED)
-                    
-                except IntegrityError as e:
-                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return HandleFieldWorkerRegistration(email,user_data)
         
         return Response({"error": "Invalid user type."}, status=status.HTTP_400_BAD_REQUEST)
 

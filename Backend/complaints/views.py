@@ -72,120 +72,113 @@ class ComplaintDeleteView(APIView):
 
 class ReverseGeocodeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    
+
+    def _get_api_key(self):
+        return getattr(settings, 'MAPMYINDIA_API_KEY', '')
+
+    def _validate_coords(self, latitude, longitude):
+        if latitude is None or longitude is None or latitude == '' or longitude == '':
+            return False
+        return True
+
+    def _build_params(self, latitude, longitude, api_key):
+        return {
+            'lat': float(latitude),
+            'lng': float(longitude),
+            'access_token': api_key,
+            'region': 'IND'
+        }
+
+    def _extract_address(self, result):
+        address = result.get('formatted_address', '') or ''
+        pincode = result.get('pincode', '') or ''
+        city = result.get('city', '') or ''
+        state = result.get('state', '') or ''
+        district = result.get('district', '') or ''
+
+        if not address:
+            parts = []
+            if city:
+                parts.append(city)
+            elif result.get('village'):
+                parts.append(result.get('village'))
+            if district:
+                parts.append(district)
+            if state:
+                parts.append(state)
+            if pincode:
+                parts.append(f"Pincode: {pincode}")
+            address = ", ".join(parts)
+
+        return address, pincode, city, state, district
+
+    def _handle_api_error(self, msg, http_status=status.HTTP_500_INTERNAL_SERVER_ERROR):
+        print(f"MapmyIndia API error: {msg}")
+        return Response({'success': False, 'error': msg}, status=http_status)
+
     def post(self, request):
         latitude = request.data.get('latitude')
         longitude = request.data.get('longitude')
-        
+
         print(f"Reverse geocode request - lat: {latitude}, lng: {longitude}")
-        
-        if not latitude or not longitude:
+
+        if not self._validate_coords(latitude, longitude):
             return Response(
-                {'success': False, 'error': 'Latitude and longitude are required'}, 
+                {'success': False, 'error': 'Latitude and longitude are required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        try:
-            api_key = getattr(settings, 'MAPMYINDIA_API_KEY', '')
-            
-            print(f"API Key present: {bool(api_key)}")
-            
-            if not api_key:
-                return Response(
-                    {'success': False, 'error': 'MapmyIndia API key not configured'}, 
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
 
+        api_key = self._get_api_key()
+        print(f"API Key present: {bool(api_key)}")
+        if not api_key:
+            return Response(
+                {'success': False, 'error': 'MapmyIndia API key not configured'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        try:
             url = "https://search.mappls.com/search/address/rev-geocode"
-            
-            params = {
-                'lat': float(latitude),
-                'lng': float(longitude),
-                'access_token': api_key,
-                'region': 'IND'
-            }
-            
+            params = self._build_params(latitude, longitude, api_key)
             print(f"Calling MapmyIndia API with params: {params}")
-            
+
             response = requests.get(url, params=params, timeout=10)
-            
             print(f"MapmyIndia response status: {response.status_code}")
             print(f"MapmyIndia response text: {response.text}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                print(f"MapmyIndia API response data: {data}")
-                
-                if data.get('responseCode') == 200 and data.get('results'):
-                    result = data['results'][0]
-                    print(f"MapmyIndia result: {result}")
-                    
-                    address = result.get('formatted_address', '')
-                    pincode = result.get('pincode', '')
-                    city = result.get('city', '')
-                    state = result.get('state', '')
-                    district = result.get('district', '')
-                    
-                    if not address:
-                        address_parts = []
-                        if city:
-                            address_parts.append(city)
-                        elif result.get('village'):
-                            address_parts.append(result.get('village'))
-                        if district:
-                            address_parts.append(district)
-                        if state:
-                            address_parts.append(state)
-                        if pincode:
-                            address_parts.append(f"Pincode: {pincode}")
-                        
-                        address = ", ".join(address_parts)
-                    
-                    print(f"Reverse geocode successful - Address: {address}, Pincode: {pincode}")
-                    
-                    return Response({
-                        'success': True,
-                        'data': {
-                            'address': address,
-                            'pincode': pincode,
-                            'city': city,
-                            'state': state,
-                            'district': district
-                        }
-                    })
-                else:
-                    error_msg = f"No results found. Response code: {data.get('responseCode')}"
-                    print(f"MapmyIndia API error: {error_msg}")
-                    return Response(
-                        {'success': False, 'error': error_msg}, 
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-            else:
-                error_msg = f'MapmyIndia API HTTP error: {response.status_code}'
-                print(f"MapmyIndia API error: {error_msg}")
-                return Response(
-                    {'success': False, 'error': error_msg}, 
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-                
+
+            if response.status_code != 200:
+                return self._handle_api_error(f'MapmyIndia API HTTP error: {response.status_code}')
+
+            data = response.json()
+            print(f"MapmyIndia API response data: {data}")
+
+            if data.get('responseCode') != 200 or not data.get('results'):
+                return self._handle_api_error(f"No results found. Response code: {data.get('responseCode')}", http_status=status.HTTP_404_NOT_FOUND)
+
+            result = data['results'][0]
+            print(f"MapmyIndia result: {result}")
+
+            address, pincode, city, state, district = self._extract_address(result)
+            print(f"Reverse geocode successful - Address: {address}, Pincode: {pincode}")
+
+            return Response({
+                'success': True,
+                'data': {
+                    'address': address,
+                    'pincode': pincode,
+                    'city': city,
+                    'state': state,
+                    'district': district
+                }
+            })
         except requests.exceptions.Timeout:
             error_msg = 'MapmyIndia API request timeout'
             print(f"Error: {error_msg}")
-            return Response(
-                {'success': False, 'error': error_msg}, 
-                status=status.HTTP_408_REQUEST_TIMEOUT
-            )
+            return Response({'success': False, 'error': error_msg}, status=status.HTTP_408_REQUEST_TIMEOUT)
         except requests.exceptions.RequestException as e:
             error_msg = f'Network error: {str(e)}'
             print(f"Error: {error_msg}")
-            return Response(
-                {'success': False, 'error': error_msg}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'success': False, 'error': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             error_msg = f'Unexpected error: {str(e)}'
             print(f"Error: {error_msg}")
-            return Response(
-                {'success': False, 'error': error_msg}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'success': False, 'error': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
