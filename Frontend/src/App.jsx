@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import axios from 'axios';
 import Navbar from './components/Navbar';
-import Login from './components/LoginForm'; // Import the main Login component with tabs
+import Login from './components/LoginForm';
 import Sidebar from './pages/SideBar';
 import Home from './components/Home';
 import Notifications from './pages/Notifications';
@@ -11,40 +11,74 @@ import Help from './pages/Help';
 import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
+import GovtAuthHomePage from './components/govauthhomepage.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Citizen');
+  const [userType, setUserType] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch CSRF token on app mount
+  // Fetch CSRF token and check user type on app mount
   useEffect(() => {
-    const fetchCsrfToken = async () => {
+    const initializeApp = async () => {
       try {
+        // Fetch CSRF token
         await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/csrf-token/`,
+          ${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/csrf-token/,
           { withCredentials: true }
         );
         console.log('CSRF token fetched successfully');
+
+        // Check if user is logged in and get user type
+        const storedUserType = localStorage.getItem('userType');
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (storedUserType && accessToken) {
+          setUserType(storedUserType);
+        }
       } catch (error) {
         console.warn('Failed to fetch CSRF token:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchCsrfToken();
+    initializeApp();
   }, []);
 
   // Auth Layout Component
   const AuthLayout = () => (
     <div className="min-h-screen w-full">
-      <Login activeTab={activeTab} />
+      <Login activeTab={activeTab} onLoginSuccess={handleLoginSuccess} />
     </div>
   );
 
-  // Home Layout Component
+  // Handle successful login
+  const handleLoginSuccess = (userData) => {
+    // Determine user type based on username or additional API call
+    // You may need to modify your backend to return user_type in login response
+    const type = determineUserType(userData);
+    setUserType(type);
+    localStorage.setItem('userType', type);
+  };
 
-  const HomeLayout = () => (
+  // Determine user type (you may need to adjust this based on your backend response)
+  const determineUserType = (userData) => {
+    // Option 1: If your backend returns user_type in login response
+    if (userData.user_type) {
+      return userData.user_type;
+    }
+    
+    // Option 2: Make an additional API call to get user details
+    // Option 3: Check against multiple user tables (as you have in views.py)
+    // For now, defaulting to 'citizen' - you should implement proper detection
+    return userData.userType || 'citizen';
+  };
+
+  // Citizen Home Layout
+  const CitizenHomeLayout = () => (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      {/* Main content area - takes remaining space */}
       <div className="flex-1 flex flex-col">
         <Routes>
           <Route index element={<Home />} />
@@ -59,10 +93,78 @@ function App() {
     </div>
   );
 
+  // Government Authority Home Layout
+  const GovAuthHomeLayout = () => (
+    <Routes>
+      <Route index element={<GovtAuthHomePage />} />
+      <Route path="notifications" element={<Notifications />} />
+      <Route path="help" element={<Help />} />
+      {/* Add other gov auth specific routes */}
+    </Routes>
+  );
+
+  // Field Worker Home Layout
+  const FieldWorkerHomeLayout = () => (
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Routes>
+          <Route index element={<Home />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="help" element={<Help />} />
+          {/* Add field worker specific routes */}
+        </Routes>
+      </div>
+    </div>
+  );
+
+  // Protected Route Component
+  const ProtectedRoute = ({ children }) => {
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (isLoading) {
+      return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    }
+    
+    if (!accessToken || !userType) {
+      return <Navigate to="/auth" replace />;
+    }
+    
+    return children;
+  };
+
+  // Home Route that renders based on user type
+  const HomeRoute = () => {
+    switch(userType) {
+      case 'authority':
+        return <GovAuthHomeLayout />;
+      case 'fieldworker':
+        return <FieldWorkerHomeLayout />;
+      case 'citizen':
+      default:
+        return <CitizenHomeLayout />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/auth" element={<AuthLayout />} />
-      <Route path="/" element={<HomeLayout />} />
+      <Route 
+        path="/*" 
+        element={
+          <ProtectedRoute>
+            <HomeRoute />
+          </ProtectedRoute>
+        } 
+      />
     </Routes>
   );
 }
