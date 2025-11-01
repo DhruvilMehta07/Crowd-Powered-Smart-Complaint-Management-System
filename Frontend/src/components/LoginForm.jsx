@@ -7,12 +7,13 @@ import CitizenSignUpForm from './CitizenSignUpForm';
 import GovtAuthSignUpForm from './GovtAuthSignUpForm';
 import FieldWorkerSignUpForm from './FieldWorkerSignUpForm';
 import AdminSignUpForm from './AdminSignUpForm';
+import api from '../utils/axiosConfig';
 
 // Configure axios defaults for JWT (from your first file)
 axios.defaults.withCredentials = true;
 
 // -----------------------------------------------------------------
-// STYLED LoginForm Component (from your second file)
+// STYLED LoginForm Component (from your second file)ß
 // I've made one small but important change:
 // Wrapped it in a <form> and set the button type="submit"
 // to work with your existing handleLoginSubmit function.
@@ -69,12 +70,12 @@ const LoginForm = ({
         <input type="checkbox" className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border-gray-300" />
         <span className="text-gray-600">Remember me</span>
       </label>
-      <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium">Forgot password?</a>
+      <a href="#" className="text-[#4B687A] hover:text-gray-700 font-medium">Forgot password?</a>
     </div>
     
     <button 
       type="submit" // Changed from onClick to type="submit"
-      className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:from-indigo-700 hover:to-blue-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg text-sm sm:text-base"
+      className="w-full bg-[#4B687A] text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg text-sm sm:text-base"
       disabled={loading}
     >
       {loading ? 'Logging in...' : 'Login'}
@@ -96,13 +97,13 @@ const LoginForm = ({
     <button 
       type="button" 
       onClick={testConnection} // Uses JWT testConnection function
-      className="w-full text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors py-2"
+      className="w-full text-xs sm:text-sm text-[#4B687A] hover:text-gray-700 font-medium transition-colors py-2"
     >
       Test Connection
     </button>
 
     <p className="text-center text-gray-600 text-xs sm:text-sm pt-2">
-      Don't have an account? <button type="button" onClick={() => setActiveForm('SignUp')} className="text-indigo-600 font-semibold hover:text-indigo-700">Sign up</button>
+      Don't have an account? <button type="button" onClick={() => setActiveForm('SignUp')} className="text-[#4B687A] font-semibold hover:text-gray-700">Sign up</button>
     </p>
   </form>
 );
@@ -162,8 +163,8 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
     try {
       console.log('Attempting JWT login...');
       
-      const response = await axios.post(
-        "http://localhost:7000/users/login/", 
+      const response = await api.post(
+        "/users/login/", 
         loginFormData,
         {
           headers: {
@@ -181,6 +182,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
         localStorage.setItem('user_id', response.data.user_id);
         localStorage.setItem('username', response.data.username);
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user_type', response.data.user_type);
         
         // Set default Authorization header for future requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
@@ -263,10 +265,10 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
 
   // JSX Layout from your styled (second) file
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#4B687A] via-[#4B687A] to-[#91AABA] flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-[#4B687A] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
       <div className="absolute bottom-0 left-1/2 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
       <div className="relative z-10 w-full max-w-6xl">
@@ -330,7 +332,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                   onClick={() => setActiveForm('Login')}
                   className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-4 font-semibold transition-all duration-300 rounded-lg text-xs sm:text-sm md:text-base ${
                     activeForm === 'Login' 
-                      ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' 
+                      ? 'bg-[#4B687A] text-white shadow-lg' 
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -340,7 +342,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                   onClick={() => setActiveForm('SignUp')}
                   className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-4 font-semibold transition-all duration-300 rounded-lg text-xs sm:text-sm md:text-base ${
                     activeForm === 'SignUp' 
-                      ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' 
+                      ? 'bg-[#4B687A] text-white shadow-lg' 
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -378,7 +380,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                         onClick={() => setActiveSignUpTab(tab)}
                         className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg whitespace-nowrap font-medium text-xs sm:text-sm transition-all ${
                           activeSignUpTab === tab
-                            ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg'
+                            ? 'bg-[#4B687A] text-white shadow '
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >
@@ -393,7 +395,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                   </div>
 
                   <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
-                    Already have an account? <button onClick={() => setActiveForm('Login')} className="text-indigo-600 font-semibold hover:text-indigo-700">Login</button>
+                    Already have an account? <button onClick={() => setActiveForm('Login')} className="text-[#4B687A] font-semibold hover:text-black">Login</button>
                   </p>
                 </div>
               )}

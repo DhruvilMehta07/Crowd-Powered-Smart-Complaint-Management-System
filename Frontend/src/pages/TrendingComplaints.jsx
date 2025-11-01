@@ -18,7 +18,7 @@ const UserCircleIcon = ({ className = 'w-6 h-6' }) => (
 
 export default function TrendingComplaints({
     showViewMore = true,
-    isAuthenticated,
+    
     username,
     onLogoutClick,
     onLoginClick
@@ -26,14 +26,14 @@ export default function TrendingComplaints({
 {
 
     const navigate = useNavigate();
-
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
     const fallbackOnLogin = useCallback(() => {
         navigate('/auth');
     }, [navigate]);
 
     const fallbackOnLogout = useCallback(async () => {
         try {
-            await api.post('/users/logout');
+            await api.post('/users/logout/');
         } catch (error) {
             console.warn('Logout API call failed:', error);
         } finally {

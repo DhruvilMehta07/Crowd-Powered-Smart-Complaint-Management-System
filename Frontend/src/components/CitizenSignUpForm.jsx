@@ -154,7 +154,7 @@ const CitizenSignUpForm = () => {
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Registration Successful!</h3>
           <p className="text-gray-600 mb-4">{message}</p>
-          <p className="text-blue-600">Redirecting to home page...</p>
+          <p className="text-black-600">Redirecting to home page...</p>
         </div>
       </div>
     );
@@ -197,7 +197,7 @@ const CitizenSignUpForm = () => {
             
             <button 
               type="submit" 
-              className="login-btn w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="login-btn w-full bg-[#4B687A] text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               disabled={loading || otp.length !== 6}
             >
               {loading ? 'Verifying...' : 'Verify OTP'}
@@ -328,7 +328,7 @@ const CitizenSignUpForm = () => {
         
         <button 
           type="submit" 
-          className="login-btn w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          className="login-btn w-full bg-[#4B687A] text-white py-3 px-4 rounded-lg hover:bg-gray-700 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           disabled={loading}
         >
           {loading ? 'Sending OTP...' : 'Send OTP to Email'}
