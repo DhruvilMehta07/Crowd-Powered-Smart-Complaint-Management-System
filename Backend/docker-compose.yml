@@ -7,16 +7,9 @@ services:
     ports:
       - 7000:7000
     depends_on:
-      - db
-      - redis
+      - redis # remove db from here
     env_file:
       - .env
-  db:
-    image: postgres:15
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_HOST_AUTH_METHOD: trust
   redis:
     image: redis:7
     container_name: redis
@@ -27,5 +20,4 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
 
 volumes:
-  postgres_data:
   redis_data:
