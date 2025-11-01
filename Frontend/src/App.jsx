@@ -12,10 +12,12 @@ import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
 import GovtAuthHomePage from './components/govauthhomepage.jsx';
+import api from './utils/axiosConfig';
+import GovAuthHomepage from './components/govauthhomepage.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Citizen');
-  const [userType, setUserType] = useState(null);
+  const [userType, setUserType] = useState();
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch CSRF token and check user type on app mount
@@ -23,15 +25,17 @@ function App() {
     const initializeApp = async () => {
       try {
         // Fetch CSRF token
-        await axios.get(
-          ${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/csrf-token/,
+        await api(
+          `{/users/token/refresh/}`,
+          {},
           { withCredentials: true }
         );
         console.log('CSRF token fetched successfully');
 
         // Check if user is logged in and get user type
-        const storedUserType = localStorage.getItem('userType');
+        const storedUserType = localStorage.getItem('user_type');
         const accessToken = localStorage.getItem('accessToken');
+        
         
         if (storedUserType && accessToken) {
           setUserType(storedUserType);
@@ -95,12 +99,23 @@ function App() {
 
   // Government Authority Home Layout
   const GovAuthHomeLayout = () => (
-    <Routes>
-      <Route index element={<GovtAuthHomePage />} />
-      <Route path="notifications" element={<Notifications />} />
-      <Route path="help" element={<Help />} />
-      {/* Add other gov auth specific routes */}
-    </Routes>
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Routes>
+          <Route index element={<GovAuthHomepage/>} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="past-complaints" element={<PastComplaints />} />
+          <Route path="help" element={<Help />} />
+          <Route path="raise-complaint" element={<RaiseComplaintModal />} />
+          <Route path="trending" element={<Trending />} />
+        </Routes>
+      </div>
+      <TrendingComplaints/>
+    </div>
+      
+      
+    
   );
 
   // Field Worker Home Layout
@@ -118,28 +133,12 @@ function App() {
     </div>
   );
 
-  // Protected Route Component
-  const ProtectedRoute = ({ children }) => {
-    const accessToken = localStorage.getItem('accessToken');
-    
-    if (isLoading) {
-      return <div className="flex items-center justify-center h-screen">Loading...</div>;
-    }
-    
-    if (!accessToken || !userType) {
-      return <Navigate to="/auth" replace />;
-    }
-    
-    return children;
-  };
-
   // Home Route that renders based on user type
   const HomeRoute = () => {
-    switch(userType) {
+    const ut = localStorage.getItem('user_type');
+    switch(ut) {
       case 'authority':
         return <GovAuthHomeLayout />;
-      case 'fieldworker':
-        return <FieldWorkerHomeLayout />;
       case 'citizen':
       default:
         return <CitizenHomeLayout />;
@@ -158,11 +157,9 @@ function App() {
     <Routes>
       <Route path="/auth" element={<AuthLayout />} />
       <Route 
-        path="/*" 
+        path="*" 
         element={
-          <ProtectedRoute>
-            <HomeRoute />
-          </ProtectedRoute>
+          <HomeRoute />
         } 
       />
     </Routes>

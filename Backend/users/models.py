@@ -5,7 +5,6 @@ from django.db import IntegrityError
 
 
 class ParentUser(AbstractUser):
-
     def __str__(self):
         return self.email
     

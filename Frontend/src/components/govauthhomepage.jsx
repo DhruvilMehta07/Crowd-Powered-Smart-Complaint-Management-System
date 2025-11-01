@@ -134,53 +134,10 @@ const GovAuthHomepage = () => {
     'Newly filled potholes near the school are starting to reopen after rainfall. Temporary fixes aren\'t lasting; a permanent repair is needed.'
   ];
 
-  const getNavButtonClass = (menuItem) => {
-    const baseClass = "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-200";
-    
-    if (activeMenu === menuItem) {
-      return `${baseClass} bg-indigo-600 text-white shadow-md hover:shadow-lg hover:bg-indigo-700`;
-    }
-    
-    return `${baseClass} text-gray-700 hover:bg-indigo-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px]`;
-  };
-
   return (
-    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 border-r-4 border-indigo-400">
       {/* Left Sidebar */}
-      <aside className="w-72 bg-white border-r-4 border-indigo-400 flex flex-col">
-        <div className="p-6">
-          <nav className="space-y-2">
-            <button
-              onClick={() => setActiveMenu('home')}
-              className={getNavButtonClass('home')}
-            >
-              <HomeIcon className="w-6 h-6" />
-              <span>Home</span>
-            </button>
-            <button
-              onClick={() => setActiveMenu('notification')}
-              className={getNavButtonClass('notification')}
-            >
-              <BellIcon className="w-6 h-6" />
-              <span>Notification</span>
-            </button>
-            <button
-              onClick={() => setActiveMenu('profile')}
-              className={getNavButtonClass('profile')}
-            >
-              <UserCircleIcon className="w-6 h-6" />
-              <span>Profile</span>
-            </button>
-            <button
-              onClick={() => setActiveMenu('help')}
-              className={getNavButtonClass('help')}
-            >
-              <HelpIcon className="w-6 h-6" />
-              <span>Help</span>
-            </button>
-          </nav>
-        </div>
-      </aside>
+      
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -212,29 +169,7 @@ const GovAuthHomepage = () => {
       </main>
 
       {/* Right Sidebar */}
-      <aside className="w-96 bg-white border-l-4 border-indigo-400 p-6 overflow-y-auto">
-        <div className="mb-6 flex justify-center">
-          <button className="bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 hover:shadow-lg hover:-translate-y-[1px] transition-all duration-300 shadow-md">
-            Login/SignUp
-          </button>
-        </div>
-
-        <div className="bg-white border-4 border-indigo-400 rounded-xl p-6">
-          <h3 className="font-bold text-xl text-center mb-6 text-indigo-900">
-            Work in Progress
-          </h3>
-          <div className="space-y-4">
-            {workInProgressItems.map((item, index) => (
-              <div
-                key={index}
-                className="text-sm text-gray-700 hover:bg-indigo-50 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px] p-4 rounded-lg transition-all duration-200 cursor-pointer border border-indigo-100"
-              >
-                <p>{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </aside>
+      
     </div>
   );
 };

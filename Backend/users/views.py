@@ -27,7 +27,6 @@ from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 
 # Store OTPs temporarily in memory
 otp_storage = {}
-
 # Setting up redis cache
 redis_cache = caches['default']
 
@@ -54,11 +53,12 @@ class CitizenSignupAPIView(APIView):
                 'data': request.data,
                 'user_type': 'citizen'
             }
-            
+            user_type ='citizen'
             if EmailService.send_otp_email(email, otp, "Citizen"):
                 return Response({
                     "message": otp_sent_message,
                     "email": email
+                    
                 }, status=status.HTTP_200_OK)
             else:
                 del otp_storage[email]
@@ -81,7 +81,7 @@ class GovernmentAuthoritySignupAPIView(APIView):
                 'data': request.data,
                 'user_type': 'authority'
             }
-            
+            user_type ='authority'
             if EmailService.send_otp_email(email, otp, "Government Authority"):
                 return Response({
                     "message": otp_sent_message,
@@ -98,7 +98,7 @@ class FieldWorkerSignupAPIView(APIView):
         serializer = FieldWorkerSerializer(data=request.data)
         if serializer.is_valid():
             email = request.data.get('email')
-            
+            user_type ='fieldworker'
             if Field_Worker.objects.filter(email=email).exists():
                 return Response({"error": email_exists_error}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -137,7 +137,8 @@ def HandleCitizenRegistration(email, user_data):
                 "message": "Registration successful!",
                 "access": access_token,
                 "user_id": user.id,
-                "username": user.username
+                "username": user.username,
+                'user_type':'citizen'
             }, status=status.HTTP_201_CREATED)
 
             # set refresh token as HttpOnly cookie; secure flag depends on DEBUG
@@ -167,7 +168,8 @@ def HandleAuthorityRegistration(email, user_data):
             return Response({
                 "message": "Registration successful! Awaiting admin verification.",
                 "user_id": user.id,
-                "username": user.username
+                "username": user.username,
+                'user_type':'authority'
             }, status=status.HTTP_201_CREATED)
 
         except IntegrityError as e:
@@ -186,13 +188,15 @@ def HandleFieldWorkerRegistration(email, user_data):
             return Response({
                 "message": "Registration successful! Awaiting admin verification.",
                 "user_id": user.id,
-                "username": user.username
+                "username": user.username,
+                'user_type':'fieldworker'
             }, status=status.HTTP_201_CREATED)
 
         except IntegrityError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class VerifyOTPAPIView(APIView):
     def post(self, request):
@@ -243,11 +247,20 @@ class UserLoginAPIView(APIView):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
+            
+            if u1 is not None:
+                user_type_local = 'authority'
+            elif u2 is not None:
+                user_type_local = 'fieldworker'
+            else:
+                user_type_local = 'citizen'
             response = Response({
                 "message": "Login successful.",
                 "access": access_token,
                 "user_id": user.id,
-                "username": user.username
+                "username": user.username,
+                'user_type': user_type_local
+                
             }, status=status.HTTP_200_OK)
 
             response.set_cookie(
@@ -291,6 +304,7 @@ class UserLogoutAPIView(APIView):
             # delete refresh cookie on logout
             response = Response({"detail": "Logged out."}, status=status.HTTP_200_OK)
             response.delete_cookie('refresh')
+            
             return response
         except TokenError:
             return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)

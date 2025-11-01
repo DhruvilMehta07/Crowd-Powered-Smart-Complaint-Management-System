@@ -78,7 +78,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
             }
         }
     };
-
+    const det = localStorage.getItem('user_type');
     const handleUpvote = async () => {
         if (!isAuthenticated) {
             alert('Please login to upvote complaints.');
@@ -132,6 +132,8 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full p-1 text-indigo-600">
                         <UserIcon />
+                        CitizenHomePage
+                        usertype is {det}
                     </div>
                     <div>
                         <p className="font-bold text-lg text-gray-800">
@@ -233,7 +235,7 @@ const Homepage = () => {
             setLoading(false);
         }
     }, []);
-
+    
     const handleUpvote = async (complaintId, expectedUpvotedStatus, expectedUpvotes) => {
         try {
             const response = await api.post(`/complaints/${complaintId}/upvote/`);
@@ -390,6 +392,7 @@ const Homepage = () => {
                         </div>
                     </div>
                 </div>
+                
             )}
         </div>
     );
