@@ -12,6 +12,7 @@ requests = "*"
 pillow = "*"
 rest-framework-simplejwt = "*"
 django-cors-headers = "*"
+dj-database-url = "==2.0.0"
 
 [dev-packages]
 pytest = "*"

@@ -13,8 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import dj_database_url
 
- 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,11 +44,11 @@ INSTALLED_APPS = [
     #installed startapps
     'users',
     'complaints',
-    
+
     #api apps
     'rest_framework',
     'corsheaders',
-    
+
     # simplejwt blacklist app (persisted in Postgres for lookup if redis server fails)
     'rest_framework_simplejwt.token_blacklist',
 ]
@@ -124,27 +124,91 @@ DEFAULT_FROM_EMAIL = 'ekkatran@gmail.com'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'db',
-        'PORT': 5432
+
+import os
+from django.core.exceptions import ImproperlyConfigured
+
+# Get database URL from environment
+database_url = os.getenv('DATABASE_URL')
+
+if database_url and database_url.strip():
+    try:
+        # Manual parsing of DATABASE_URL
+        # Format: postgresql://user:password@host:port/database
+        if database_url.startswith('postgresql://'):
+            # Remove the postgresql:// prefix
+            db_str = database_url.replace('postgresql://', '')
+
+            # Split into user:password and host:port/database parts
+            if '@' in db_str:
+                user_pass, host_port_db = db_str.split('@', 1)
+                user, password = user_pass.split(':', 1) if ':' in user_pass else (user_pass, '')
+
+                # Split host:port and database
+                if '/' in host_port_db:
+                    host_port, db_name = host_port_db.split('/', 1)
+                    host, port = host_port.split(':', 1) if ':' in host_port else (host_port, '5432')
+                else:
+                    host, port, db_name = host_port_db, '5432', 'postgres'
+            else:
+                # Fallback if format is unexpected
+                raise ValueError("Invalid DATABASE_URL format")
+
+            # Validate database name length
+            if len(db_name) > 63:
+                raise ImproperlyConfigured(
+                    f"Database name '{db_name}' is too long. "
+                    "PostgreSQL limits database names to 63 characters."
+                )
+
+            DATABASES = {
+                'default': {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': db_name,
+                    'USER': user,
+                    'PASSWORD': password,
+                    'HOST': host,
+                    'PORT': port,
+                }
+            }
+        else:
+            raise ValueError("Unsupported database URL format")
+
+    except Exception as e:
+        print(f"Error parsing DATABASE_URL: {e}")
+        print("Falling back to local database configuration...")
+        # Fallback to local development database
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': 'postgres',
+                'USER': 'postgres',
+                'PASSWORD': 'postgres',
+                'HOST': 'db',
+                'PORT': 5432,
+            }
+        }
+else:
+    # Local development database (when DATABASE_URL is not set)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'postgres'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'HOST': os.getenv('DB_HOST', 'db'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
     }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    
+
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
-   
+
 ]
 
 
