@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 import re, requests, json
 from django.db.models import Q
 
-from users.models import Government_Authority, Department
+from users.models import Government_Authority, Department,Field_Worker
 from .models import Complaint, ComplaintImage, Upvote
 from .serializers import ComplaintSerializer, ComplaintCreateSerializer, UpvoteSerializer
 from CPCMS import settings
@@ -231,5 +231,34 @@ class GovernmentHomePageView(APIView):
         except Government_Authority.DoesNotExist:
             return Response(
                 {"error": "User is not a government authority."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+class FieldWorkerHomePageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            # Get the field worker user with department
+            fieldworker = Field_Worker.objects.get(id=request.user.id)
+            user_department = fieldworker.assigned_department
+
+            if not user_department:
+                return Response(
+                    {"error": "No department assigned to this user."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            complaints = Complaint.objects.filter(
+                assigned=fieldworker.name, 
+                assigned_to=user_department
+            )
+            
+            serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Field_Worker.DoesNotExist:
+            return Response(
+                {"error": "User is not a field worker."},
                 status=status.HTTP_403_FORBIDDEN
             )

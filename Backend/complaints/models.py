@@ -48,6 +48,7 @@ class Complaint(models.Model):
     images_count = models.PositiveIntegerField(default=0)
     upvotes_count = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, default='Pending')
+    assigned = models.CharField(max_length=30,default='None')
     class Meta:
         ordering = ['-posted_at']
 
