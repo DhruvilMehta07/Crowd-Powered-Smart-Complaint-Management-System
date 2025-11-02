@@ -11,7 +11,6 @@ import Help from './pages/Help';
 import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
-import GovtAuthHomePage from './components/govauthhomepage.jsx';
 import api from './utils/axiosConfig';
 import GovAuthHomepage from './components/govauthhomepage.jsx';
 
