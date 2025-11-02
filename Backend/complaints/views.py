@@ -241,20 +241,25 @@ class FieldWorkerHomePageView(APIView):
         try:
             # Get the field worker user with department
             fieldworker = Field_Worker.objects.get(id=request.user.id)
-            user_department = fieldworker.assigned_department
+      
 
-            if not user_department:
-                return Response(
-                    {"error": "No department assigned to this user."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            
             
             complaints = Complaint.objects.filter(
-                assigned=fieldworker.name, 
-                assigned_to=user_department
+                status = 'Pending',
+                assigned=fieldworker.username, 
             )
-            
+            if( not complaints ):
+                return Response(
+                    {"message": "No pending complaints assigned to your department."},
+                    status=status.HTTP_200_OK
+                )
             serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+            if(not serializer.data):
+                return Response(
+                    {"message": "No pending complaints assigned to your department."},
+                    status=status.HTTP_200_OK
+                )
             return Response(serializer.data, status=status.HTTP_200_OK)
             
         except Field_Worker.DoesNotExist:
