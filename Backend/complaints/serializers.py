@@ -19,8 +19,8 @@ class ComplaintSerializer(serializers.ModelSerializer):
     is_upvoted = serializers.SerializerMethodField()
     assigned_to = serializers.StringRelatedField()  
     location_display = serializers.SerializerMethodField()
-    status = serializers.CharField(source='status',)
-    assigned = serializers.CharField(source='assigned', )
+    status = serializers.CharField()
+    assigned = serializers.CharField()
     class Meta:
         model = Complaint
         fields = ['id','posted_by','content','posted_at','images',
