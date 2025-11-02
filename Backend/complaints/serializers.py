@@ -19,12 +19,13 @@ class ComplaintSerializer(serializers.ModelSerializer):
     is_upvoted = serializers.SerializerMethodField()
     assigned_to = serializers.StringRelatedField()  
     location_display = serializers.SerializerMethodField()
-    status = serializers.CharField(source='get_status_display', read_only=True)
+    status = serializers.CharField(source='status',)
+    assigned = serializers.CharField(source='assigned', )
     class Meta:
         model = Complaint
         fields = ['id','posted_by','content','posted_at','images',
                   'images_count','upvotes_count','is_upvoted','assigned_to','address','pincode',
-                  'latitude','longitude','location_type','location_display','status']
+                  'latitude','longitude','location_type','location_display','status','assigned']
         read_only_fields = ['posted_by', 'posted_at','location_display',]
 
     def get_is_upvoted(self, obj):
@@ -57,7 +58,7 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Complaint
         fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to','address',
-                  'pincode','latitude','longitude','location_type','status']
+                  'pincode','latitude','longitude','location_type','status','assigned']
         read_only_fields = ['posted_by', 'posted_at']
 
     def validate(self, data):
