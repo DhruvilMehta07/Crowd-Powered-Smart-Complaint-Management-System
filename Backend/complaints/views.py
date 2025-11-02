@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 import re, requests, json
 from django.db.models import Q
 
+from users.models import Government_Authority, Department
 from .models import Complaint, ComplaintImage, Upvote
 from .serializers import ComplaintSerializer, ComplaintCreateSerializer, UpvoteSerializer
 from CPCMS import settings
@@ -208,11 +209,27 @@ class GovernmentHomePageView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if not request.user.is_government_official:
+        try:
+            # Get the government authority user with department
+            gov_user = Government_Authority.objects.get(id=request.user.id)
+            user_department = gov_user.assigned_department
+            
+            if not user_department:
+                return Response(
+                    {"error": "No department assigned to this user."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            complaints = Complaint.objects.filter(
+                status='Pending', 
+                assigned_to=user_department
+            )
+            
+            serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Government_Authority.DoesNotExist:
             return Response(
-                {"error": "Access denied. Government officials only."},
+                {"error": "User is not a government authority."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        complaints = Complaint.objects.filter(status='Pending', assigned_to__in=request.user.departments.all())
-        serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)

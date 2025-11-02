@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import api from '../utils/axiosConfig';
+import axios from 'axios';
 
 const SearchIcon = ({ className = 'w-6 h-6' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -109,22 +111,10 @@ const ComplaintCard = ({ complaint }) => {
 };
 
 const GovAuthHomepage = () => {
-  const [complaints] = useState([
-    {
-      id: 1,
-      author: 'Anonymous User',
-      date: '15/09/2025',
-      content: 'Every day on my way to the office, I come across deep potholes that make the journey stressful and unsafe. It\'s not just damaging to vehicles, but it also puts people at real risk. I sincerely hope this issue can be fixed soon, as it affects so many of us daily.',
-      assignedTo: 'Road Department, ward No. 3'
-    },
-    {
-      id: 2,
-      author: 'Parth Bhatt',
-      date: '07/09/2025',
-      content: 'The street outside my housing complex has several uneven patches and cracks. During rain, these turn into puddles, making it difficult for vehicles and pedestrians. Please consider resurfacing the road to avoid further deterioration.',
-      assignedTo: 'Road Department, Ward No. 8'
-    }
-  ]);
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [query, setQuery] = useState('');
 
   const [activeMenu, setActiveMenu] = useState('home');
 
@@ -134,9 +124,46 @@ const GovAuthHomepage = () => {
     'Newly filled potholes near the school are starting to reopen after rainfall. Temporary fixes aren\'t lasting; a permanent repair is needed.'
   ];
 
+  const fetchGovComplaints = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get('/complaints/govhome/')
+
+      setComplaints(res.data || []);
+    } catch (err) {
+      console.error('Error loading gov complaints', err);
+      setError('Failed to load complaints.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const searchComplaints = useCallback(async (q) => {
+    if (!q) {
+      // if empty query, reload govhome
+      return fetchGovComplaints();
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/complaints/search/?q=${encodeURIComponent(q)}`);
+      setComplaints(res.data || []);
+    } catch (err) {
+      console.error('Search error', err);
+      setError('Search failed.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchGovComplaints]);
+
+  useEffect(() => {
+    fetchGovComplaints();
+  }, [fetchGovComplaints]);
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 border-r-4 border-indigo-400">
-      {/* Left Sidebar */}
+     
       
 
       {/* Main Content */}
@@ -148,7 +175,10 @@ const GovAuthHomepage = () => {
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
               <input
                 type="search"
-                placeholder="Search"
+                placeholder="Search complaints"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); searchComplaints(query); } }}
                 className="w-full pl-12 pr-4 py-3 border-2 border-indigo-300 rounded-full bg-blue-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-indigo-400 transition-all duration-200"
               />
             </div>
@@ -161,14 +191,32 @@ const GovAuthHomepage = () => {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-4xl space-y-6">
-            {complaints.map((complaint) => (
+            {loading && (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600"></div>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 text-center mb-6">
+                <p className="text-red-700 font-semibold">{error}</p>
+              </div>
+            )}
+
+            {!loading && complaints.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-xl border-2 border-indigo-200 shadow-lg">
+                <p className="text-gray-700 text-lg font-semibold">No complaints found.</p>
+                <p className="text-gray-500 mt-2">Try adjusting your search or check back later.</p>
+              </div>
+            )}
+
+            {!loading && complaints.map((complaint) => (
               <ComplaintCard key={complaint.id} complaint={complaint} />
             ))}
           </div>
         </div>
       </main>
 
-      {/* Right Sidebar */}
       
     </div>
   );

@@ -25,7 +25,7 @@ function App() {
       try {
         // Fetch CSRF token
         await api(
-          `{/users/token/refresh/}`,
+          '{/users/token/refresh/}',
           {},
           { withCredentials: true }
         );
