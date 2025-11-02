@@ -204,3 +204,15 @@ class PastComplaintsView(APIView):
         serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+class GovernmentHomePageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_government_official:
+            return Response(
+                {"error": "Access denied. Government officials only."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        complaints = Complaint.objects.filter(status='Pending', assigned_to__in=request.user.departments.all())
+        serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

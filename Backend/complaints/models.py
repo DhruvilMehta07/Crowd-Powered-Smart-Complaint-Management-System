@@ -47,7 +47,7 @@ class Complaint(models.Model):
     assigned_to = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL)
     images_count = models.PositiveIntegerField(default=0)
     upvotes_count = models.PositiveIntegerField(default=0)
-
+    status = models.CharField(max_length=20, default='Pending')
     class Meta:
         ordering = ['-posted_at']
 

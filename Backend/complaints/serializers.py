@@ -23,8 +23,8 @@ class ComplaintSerializer(serializers.ModelSerializer):
         model = Complaint
         fields = ['id','posted_by','content','posted_at','images',
                   'images_count','upvotes_count','is_upvoted','assigned_to','address','pincode',
-                  'latitude','longitude','location_type','location_display']
-        read_only_fields = ['posted_by', 'posted_at','location_display']
+                  'latitude','longitude','location_type','location_display','status']
+        read_only_fields = ['posted_by', 'posted_at','location_display',]
 
     def get_is_upvoted(self, obj):
         request = self.context.get('request')
@@ -56,7 +56,7 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Complaint
         fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to','address',
-                  'pincode','latitude','longitude','location_type']
+                  'pincode','latitude','longitude','location_type','status']
         read_only_fields = ['posted_by', 'posted_at']
 
     def validate(self, data):
