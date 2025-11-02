@@ -301,96 +301,129 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // validate form based on location method
-    if (form.location_type === 'gps' && (!form.latitude || !form.longitude)) {
-      setLocationError('gps location is required');
-      return;
-    }
+  // Validate form based on location method
+  if (form.location_type === 'gps' && (!form.latitude || !form.longitude)) {
+    setLocationError('GPS location is required');
+    return;
+  }
 
-    if (form.location_type === 'manual' && !form.address) {
-      setLocationError('address is required when using manual location');
-      return;
-    }
+  if (form.location_type === 'manual' && !form.address) {
+    setLocationError('Address is required when using manual location');
+    return;
+  }
 
-    if (!form.description || !form.category) {
-      return alert('please fill in all required fields.');
-    }
+  if (!form.description || !form.category) {
+    return alert('Please fill in all required fields.');
+  }
 
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      const content = `Address: ${form.address}\nCategory: ${form.category}\n\n${form.description}`;
-      formData.append('content', content);
+  setLoading(true);
+  try {
+    const formData = new FormData();
+    
+    // ONLY send the description as content (this is the main fix)
+    formData.append('content', form.description);
 
-      // add location data based on source
-      formData.append('location_type', form.location_type);
+    // Add location data based on source
+    formData.append('location_type', form.location_type);
 
-      if (form.location_type === 'gps') {
-        formData.append('latitude', form.latitude);
-        formData.append('longitude', form.longitude);
-      } else {
+    if (form.location_type === 'gps') {
+      formData.append('latitude', parseFloat(form.latitude).toFixed(8));
+      formData.append('longitude', parseFloat(form.longitude).toFixed(8));
+      
+      // Also include address from GPS reverse geocoding
+      if (form.address && form.address !== 'Fetching address from MapmyIndia...') {
         formData.append('address', form.address);
-        if (form.pincode) {
-          formData.append('pincode', form.pincode);
-        }
       }
-
-      // add department and file
-      if (form.category) {
-        formData.append('assigned_to', form.category);
+    } else {
+      // Manual location
+      formData.append('address', form.address);
+      if (form.pincode) {
+        formData.append('pincode', form.pincode);
       }
-
-      if (form.file) {
-        formData.append('images', form.file);
-      }
-
-      const response = await api.post('/complaints/create/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.status === 201) {
-        alert('complaint submitted successfully!');
-        setForm({
-          description: '',
-          address: '',
-          category: '',
-          pincode: '',
-          latitude: '',
-          longitude: '',
-          location_type: 'manual',
-          file: null,
-        });
-        setLocationError('');
-        onClose();
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('error submitting complaint:', error);
-      const serverMessage = error.response?.data || error.message;
-      if (error.response?.status === 403) {
-        alert('security token expired. please refresh the page and try again.');
-      } else if (error.response?.status === 400) {
-        alert(
-          'failed to submit complaint (400). server response: ' +
-            JSON.stringify(serverMessage)
-        );
-      } else {
-        alert(
-          'failed to submit complaint. ' +
-            (typeof serverMessage === 'string'
-              ? serverMessage
-              : JSON.stringify(serverMessage))
-        );
-      }
-    } finally {
-      setLoading(false);
     }
-  };
 
+    // Add department (category)
+    if (form.category) {
+      formData.append('assigned_to', form.category);
+    }
+
+    // Add file if exists
+    if (form.file) {
+      formData.append('images', form.file);
+    }
+
+    // Debug: Log what we're sending
+    console.log('Submitting complaint with data:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key + ': ' + value);
+    }
+
+    const response = await api.post('/complaints/create/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.status === 201) {
+      alert('Complaint submitted successfully!');
+      setForm({
+        description: '',
+        address: '',
+        category: '',
+        pincode: '',
+        latitude: '',
+        longitude: '',
+        location_type: 'manual',
+        file: null,
+      });
+      setLocationError('');
+      onClose();
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error('Error submitting complaint:', error);
+    
+    // More detailed error logging
+    if (error.response) {
+      console.error('Server response:', error.response.data);
+      console.error('Status:', error.response.status);
+      console.error('Headers:', error.response.headers);
+    }
+    
+    const serverMessage = error.response?.data || error.message;
+    
+    if (error.response?.status === 500) {
+      alert('Server error. Please check the console for details and contact support if the issue persists.');
+    } else if (error.response?.status === 403) {
+      alert('Security token expired. Please refresh the page and try again.');
+    } else if (error.response?.status === 400) {
+      // Show validation errors from backend
+      const errorDetails = error.response.data;
+      let errorMessage = 'Please fix the following errors:\n';
+      
+      if (typeof errorDetails === 'object') {
+        Object.keys(errorDetails).forEach(key => {
+          errorMessage += `• ${key}: ${errorDetails[key]}\n`;
+        });
+      } else {
+        errorMessage = errorDetails;
+      }
+      
+      alert(errorMessage);
+    } else {
+      alert(
+        'Failed to submit complaint. ' +
+        (typeof serverMessage === 'string'
+          ? serverMessage
+          : JSON.stringify(serverMessage))
+      );
+    }
+  } finally {
+    setLoading(false);
+  }
+};
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -866,7 +899,7 @@ export default function Sidebar({}) {
 
   return (
     <>
-      <aside className="w-80 p-4 hidden md:block border-r-3 border-indigo-400">
+      <aside className="w-80 p-4 hidden md:block border-r-3 border-indigo-400 h-screen sticky top-0 overflow-auto">
         {routing()}
 
         <RaiseComplaintModal

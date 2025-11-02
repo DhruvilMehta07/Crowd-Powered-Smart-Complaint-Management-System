@@ -82,7 +82,7 @@ function App() {
   const CitizenHomeLayout = () => (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+  <div className="flex-1 flex flex-col overflow-auto scrollbar-hide">
         <Routes>
           <Route index element={<Home />} />
           <Route path="notifications" element={<Notifications />} />
@@ -100,7 +100,7 @@ function App() {
   const GovAuthHomeLayout = () => (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+  <div className="flex-1 flex flex-col overflow-auto scrollbar-hide">
         <Routes>
           <Route index element={<GovAuthHomepage/>} />
           <Route path="notifications" element={<Notifications />} />
@@ -121,7 +121,7 @@ function App() {
   const FieldWorkerHomeLayout = () => (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+  <div className="flex-1 flex flex-col overflow-auto scrollbar-hide">
         <Routes>
           <Route index element={<Home />} />
           <Route path="notifications" element={<Notifications />} />

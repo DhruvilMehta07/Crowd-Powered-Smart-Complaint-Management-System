@@ -181,7 +181,7 @@ export default function TrendingComplaints({
   };
 
   return (
-    <aside className="w-80 p-4 bg-white hidden md:block border-r-3 border-indigo-400">
+    <aside className="w-80 p-4 bg-white hidden md:block border-l-3 border-indigo-400 h-screen sticky top-0 overflow-auto">
       {Routing()}
     </aside>
   );
