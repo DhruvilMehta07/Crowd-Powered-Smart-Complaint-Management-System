@@ -10,7 +10,8 @@ from .views import (
     VerifyOTPAPIView,
     UserLogoutAPIView, 
     TokenRefreshCookieView,
-    
+    ForgotPasswordAPIView,
+    ResetPasswordAPIView,
 )
 
 
@@ -28,4 +29,6 @@ urlpatterns = [
     path('logout/', UserLogoutAPIView.as_view(), name='logout'),
     # refresh endpoint (reads refresh from HttpOnly cookie when not provided in body)
     path('token/refresh/', TokenRefreshCookieView.as_view(), name='token-refresh'),
+    path('forgot-password/', ForgotPasswordAPIView.as_view(), name='forgot-password'),
+    path('reset-password/', ResetPasswordAPIView.as_view(), name='reset-password'),
 ]
