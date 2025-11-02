@@ -194,4 +194,13 @@ class ComplaintSearchView(APIView):
         return Complaint.objects.filter(
             Q(title__icontains=query) | Q(description__icontains=query) | Q(address__icontains=query)
         )
+
+class PastComplaintsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        complaints = Complaint.objects.filter(posted_by=request.user)
+
+        serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
