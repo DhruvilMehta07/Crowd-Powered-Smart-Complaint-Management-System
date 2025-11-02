@@ -12,7 +12,8 @@ import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
 import api from './utils/axiosConfig';
-import GovAuthHomepage from './components/govauthhomepage.jsx';
+import GovAuthHomepage from './components/govauthhomepage';
+import FieldWorkerHomepage from './components/fieldworkerhomepage';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Citizen');
@@ -26,7 +27,7 @@ function App() {
         // Fetch CSRF token
         await api(
           '{/users/token/refresh/}',
-          {},
+          
           { withCredentials: true }
         );
         console.log('CSRF token fetched successfully');
@@ -62,7 +63,7 @@ function App() {
     // You may need to modify your backend to return user_type in login response
     const type = determineUserType(userData);
     setUserType(type);
-    localStorage.setItem('userType', type);
+    localStorage.setItem('user_type', type);
   };
 
   // Determine user type (you may need to adjust this based on your backend response)
@@ -123,12 +124,14 @@ function App() {
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Routes>
-          <Route index element={<Home />} />
+          <Route index element={<FieldWorkerHomepage />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="help" element={<Help />} />
+          
           {/* Add field worker specific routes */}
         </Routes>
       </div>
+      <TrendingComplaints/>
     </div>
   );
 
@@ -139,6 +142,9 @@ function App() {
       case 'authority':
         return <GovAuthHomeLayout />;
       case 'citizen':
+        return <CitizenHomeLayout />;
+      case 'fieldworker':
+        return <FieldWorkerHomeLayout />;
       default:
         return <CitizenHomeLayout />;
     }

@@ -173,8 +173,7 @@ export default function TrendingComplaints({
         return <GovAuthRightbar />;
       case 'citizen':
         return <CitizenRightbar />;
-      case 'fieldworker':
-        return <WorkerRightbar />;
+      
       default:
         return <CitizenRightbar />;
     }
