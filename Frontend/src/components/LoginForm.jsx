@@ -28,7 +28,8 @@ const LoginForm = ({
   message, 
   error,
   testConnection, // This is the JWT-based handler
-  setActiveForm
+  setActiveForm,
+  onForgotClick
 }) => (
   <form onSubmit={handleLoginSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
     <div className="relative">
@@ -70,7 +71,7 @@ const LoginForm = ({
         <input type="checkbox" className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border-gray-300" />
         <span className="text-gray-600">Remember me</span>
       </label>
-      <a href="#" className="text-[#4B687A] hover:text-gray-700 font-medium">Forgot password?</a>
+  <button type="button" onClick={onForgotClick} className="text-[#4B687A] hover:text-gray-700 font-medium bg-transparent border-none p-0">Forgot password?</button>
     </div>
     
     <button 
@@ -125,6 +126,15 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Forgot / Reset password states
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [resetStage, setResetStage] = useState('request'); // 'request' | 'verify'
 
   // useEffect from your JWT (first) file
   // No need for CSRF initialization with JWT
@@ -151,6 +161,90 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
       ...loginFormData, 
       [e.target.name]: e.target.value 
     });
+  };
+
+  // Forgot password helpers
+  const openForgot = () => {
+    setForgotOpen(true);
+    setForgotMessage('');
+    setForgotError('');
+    setResetStage('request');
+    setForgotEmail('');
+    setForgotOtp('');
+    setNewPassword('');
+  };
+
+  const closeForgot = () => {
+    setForgotOpen(false);
+    setForgotMessage('');
+    setForgotError('');
+  };
+
+  const handleForgotRequest = async (e) => {
+    e && e.preventDefault();
+    setForgotLoading(true);
+    setForgotError('');
+    setForgotMessage('');
+
+    if (!forgotEmail) {
+      setForgotError('Please enter your email.');
+      setForgotLoading(false);
+      return;
+    }
+
+    try {
+      const response = await api.post('/users/forgot-password/', { email: forgotEmail }, { withCredentials: true });
+      setForgotMessage(response.data.message || 'OTP sent to email.');
+      setResetStage('verify');
+    } catch (err) {
+      console.error('Forgot password error:', err.response?.data || err.message || err);
+      if (err.response) {
+        setForgotError(err.response.data.error || err.response.data.detail || `Server ${err.response.status}`);
+      } else if (err.request) {
+        setForgotError('Cannot connect to server.');
+      } else {
+        setForgotError('Request failed: ' + err.message);
+      }
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetSubmit = async (e) => {
+    e && e.preventDefault();
+    setForgotLoading(true);
+    setForgotError('');
+    setForgotMessage('');
+
+    if (!forgotEmail || !forgotOtp || !newPassword) {
+      setForgotError('Email, OTP and new password are required.');
+      setForgotLoading(false);
+      return;
+    }
+
+    try {
+      const payload = { email: forgotEmail, otp: forgotOtp, new_password: newPassword };
+      const response = await api.post('/users/reset-password/', payload, { withCredentials: true });
+      setForgotMessage(response.data.message || 'Password reset successful.');
+
+      // prefill login username with the email and show success message
+      setLoginFormData((prev) => ({ ...prev, username: forgotEmail }));
+      setTimeout(() => {
+        closeForgot();
+        setMessage('Password reset successful. You may now login.');
+      }, 1200);
+    } catch (err) {
+      console.error('Reset password error:', err.response?.data || err.message || err);
+      if (err.response) {
+        setForgotError(err.response.data.error || err.response.data.detail || `Server ${err.response.status}`);
+      } else if (err.request) {
+        setForgotError('Cannot connect to server.');
+      } else {
+        setForgotError('Request failed: ' + err.message);
+      }
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   // handleLoginSubmit from your JWT (first) file
@@ -364,6 +458,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                     message={message}
                     error={error}
                     testConnection={testConnection} // Passing JWT handler
+                    onForgotClick={openForgot}
                     setActiveForm={setActiveForm}
                   />
                 </div>
@@ -400,6 +495,65 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                 </div>
               )}
             </div>
+
+            {/* Forgot / Reset Password Modal (renders when forgotOpen=true) */}
+            {forgotOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                <div className="absolute inset-0 bg-black opacity-40" onClick={closeForgot}></div>
+                <div className="relative z-10 w-full max-w-md bg-white rounded-xl shadow-2xl p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Reset Password</h3>
+                    <button onClick={closeForgot} className="text-gray-500 hover:text-gray-800">✕</button>
+                  </div>
+
+                  {resetStage === 'request' ? (
+                    <form onSubmit={handleForgotRequest} className="space-y-3">
+                      <p className="text-sm text-gray-600">Enter your account email and we'll send an OTP to reset your password.</p>
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg outline-none"
+                      />
+                      {forgotMessage && <div className="text-sm text-green-700 bg-green-50 border-2 border-green-200 px-3 py-2 rounded">{forgotMessage}</div>}
+                      {forgotError && <div className="text-sm text-red-700 bg-red-50 border-2 border-red-200 px-3 py-2 rounded">{forgotError}</div>}
+                      <div className="flex gap-2">
+                        <button type="submit" disabled={forgotLoading} className="flex-1 bg-[#4B687A] text-white py-2 rounded">{forgotLoading ? 'Sending...' : 'Send OTP'}</button>
+                        <button type="button" onClick={closeForgot} className="flex-1 border border-gray-300 py-2 rounded">Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleResetSubmit} className="space-y-3">
+                      <p className="text-sm text-gray-600">Enter the OTP sent to your email and set a new password.</p>
+                      <input
+                        type="text"
+                        placeholder="OTP"
+                        value={forgotOtp}
+                        onChange={(e) => setForgotOtp(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg outline-none"
+                      />
+                      <input
+                        type="password"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg outline-none"
+                      />
+                      {forgotMessage && <div className="text-sm text-green-700 bg-green-50 border-2 border-green-200 px-3 py-2 rounded">{forgotMessage}</div>}
+                      {forgotError && <div className="text-sm text-red-700 bg-red-50 border-2 border-red-200 px-3 py-2 rounded">{forgotError}</div>}
+                      <div className="flex gap-2">
+                        <button type="submit" disabled={forgotLoading} className="flex-1 bg-[#4B687A] text-white py-2 rounded">{forgotLoading ? 'Resetting...' : 'Reset Password'}</button>
+                        <button type="button" onClick={closeForgot} className="flex-1 border border-gray-300 py-2 rounded">Cancel</button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Mobile Footer */}
             <div className="lg:hidden mt-4 sm:mt-6 text-center text-indigo-200 text-xs sm:text-sm">
