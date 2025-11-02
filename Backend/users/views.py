@@ -363,3 +363,50 @@ class TokenRefreshCookieView(TokenRefreshView):
 
         return response
 
+class ForgotPasswordAPIView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = Citizen.objects.filter(email=email).first() or Government_Authority.objects.filter(email=email).first() or Field_Worker.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "No user found with this email."}, status=status.HTTP_404_NOT_FOUND)
+        otp = EmailService.generate_otp()
+        otp_storage[email] = {
+            'otp': otp,
+            'data': {},
+            'user_type': 'password_reset'
+        }
+        if EmailService.send_otp_email(email, otp, "Password Reset"):
+            return Response({
+                "message": "OTP sent to email. Verify to reset password.",
+                "email": email
+            }, status=status.HTTP_200_OK)
+        else:
+            del otp_storage[email]
+            return Response({"error": "Failed to send OTP email."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class ResetPasswordAPIView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        otp_attempt = request.data.get('otp')
+        new_password = request.data.get('new_password')
+        
+        if not email or not otp_attempt or not new_password:
+            return Response({"error": "Email, OTP, and new password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if email not in otp_storage or otp_storage[email]['otp'] != otp_attempt:
+            return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = Citizen.objects.filter(email=email).first() or Government_Authority.objects.filter(email=email).first() or Field_Worker.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "No user found with this email."}, status=status.HTTP_404_NOT_FOUND)
+        
+        user.set_password(new_password)
+        user.save()
+        
+        del otp_storage[email]
+        
+        return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
+    
