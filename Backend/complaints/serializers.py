@@ -51,7 +51,7 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
         required=False,
         max_length=4
     )
-    assigned_to = serializers.PrimaryKeyRelatedField(
+    assigned_to_dept = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(),
         required=False,
         allow_null=True
@@ -63,8 +63,8 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Complaint
-        fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to','address',
-                  'pincode','latitude','longitude','location_type','status','assigned']
+        fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to_dept','address',
+                  'pincode','latitude','longitude','location_type','status','assigned_to_fieldworker']
         read_only_fields = ['posted_by', 'posted_at']
 
     def validate(self, data):

@@ -79,7 +79,7 @@ const PlusCircleIcon = ({ className = 'w-6 h-6' }) => (
 const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
     description: '',
-    category: '',
+    assigned_to_dept: '',
     address: '',
     pincode: '',
     latitude: '',
@@ -314,7 +314,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     return;
   }
 
-  if (!form.description || !form.category) {
+  if (!form.description || !form.assigned_to_dept) {
     return alert('Please fill in all required fields.');
   }
 
@@ -345,8 +345,8 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     }
 
     // Add department (category)
-    if (form.category) {
-      formData.append('assigned_to', form.category);
+    if (form.assigned_to_dept) {
+      formData.append('assigned_to_dept', form.assigned_to_dept);
     }
 
     // Add file if exists
@@ -371,7 +371,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       setForm({
         description: '',
         address: '',
-        category: '',
+        assigned_to_dept: '',
         pincode: '',
         latitude: '',
         longitude: '',
@@ -647,8 +647,8 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
           )}
 
           <select
-            name="category"
-            value={form.category}
+            name="assigned_to_dept"
+            value={form.assigned_to_dept}
             onChange={handleChange}
             disabled={departmentsLoading}
             className="w-full border border-gray-300 text-gray-500 focus:outline-none disabled:cursor-not-allowed bg-white"
