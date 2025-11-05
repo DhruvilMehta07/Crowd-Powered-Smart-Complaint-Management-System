@@ -9,7 +9,7 @@ import requests
 import json
 
 from CPCMS import settings
-from users.models import ParentUser, Department
+from users.models import ParentUser, Department,Field_Worker
 
     
 
@@ -44,11 +44,12 @@ class Complaint(models.Model):
 
     upvotes = models.ManyToManyField(ParentUser,through='Upvote',related_name='upvoted_complaints'
             ,blank=True)
-    assigned_to = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL)
+    assigned_to_dept = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL,related_name='department_complaints')
     images_count = models.PositiveIntegerField(default=0)
     upvotes_count = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, default='Pending')
-    assigned = models.CharField(max_length=30,default='None')
+    assigned_to_fieldworker = models.ForeignKey(Field_Worker, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_complaints')
+
     class Meta:
         ordering = ['-posted_at']
 
