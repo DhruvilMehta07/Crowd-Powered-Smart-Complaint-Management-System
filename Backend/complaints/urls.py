@@ -2,7 +2,8 @@ from django.urls import path
 
 from .views import (ComplaintListView,ComplaintCreateView,UpvoteComplaintView,
                     ComplaintDeleteView,ReverseGeocodeView,ComplaintSearchView,
-                    PastComplaintsView,GovernmentHomePageView,FieldWorkerHomePageView)
+                    PastComplaintsView,GovernmentHomePageView,FieldWorkerHomePageView,
+                    AssignComplaintView,AvailableFieldWorkersView)
 
 
 urlpatterns = [
@@ -15,4 +16,6 @@ urlpatterns = [
     path('past/',PastComplaintsView.as_view(),),
     path('govhome/',GovernmentHomePageView.as_view(), ),
     path('fieldhome/',FieldWorkerHomePageView.as_view(), ),
+    path('assign/<int:complaint_id>/',AssignComplaintView.as_view(), ),
+    path('available-workers/',AvailableFieldWorkersView.as_view(), ),
 ]
