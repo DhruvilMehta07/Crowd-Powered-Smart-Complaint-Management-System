@@ -18,4 +18,5 @@ urlpatterns = [
     path('fieldhome/',FieldWorkerHomePageView.as_view(), ),
     path('assign/<int:complaint_id>/',AssignComplaintView.as_view(), ),
     path('available-workers/',AvailableFieldWorkersView.as_view(), ),
+    path('available-workers/<int:complaint_id>/',AvailableFieldWorkersView.as_view(), ),
 ]
