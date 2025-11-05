@@ -208,7 +208,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
       <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block">
         <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
         <span className="text-gray-800">
-          {complaint.assigned_to ||
+          {complaint.assigned_to_dept ||
             complaint.assignedTo ||
             complaint.category ||
             'Not assigned'}
