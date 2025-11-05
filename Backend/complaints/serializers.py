@@ -1,5 +1,5 @@
 from users.serializers import UserLoginSerializer
-from users.models import Department
+from users.models import Department,Field_Worker
 
 import re
 
@@ -17,15 +17,15 @@ class ComplaintSerializer(serializers.ModelSerializer):
     images = ComplaintImageSerializer(many=True, read_only=True)
     upvotes_count = serializers.ReadOnlyField()
     is_upvoted = serializers.SerializerMethodField()
-    assigned_to = serializers.StringRelatedField()  
+    assigned_to_dept = serializers.StringRelatedField()  
     location_display = serializers.SerializerMethodField()
     status = serializers.CharField()
-    assigned = serializers.CharField()
+    assigned_to_fieldworker = serializers.CharField()
     class Meta:
         model = Complaint
         fields = ['id','posted_by','content','posted_at','images',
-                  'images_count','upvotes_count','is_upvoted','assigned_to','address','pincode',
-                  'latitude','longitude','location_type','location_display','status','assigned']
+                  'images_count','upvotes_count','is_upvoted','assigned_to_dept','address','pincode',
+                  'latitude','longitude','location_type','location_display','status','assigned_to_fieldworker']
         read_only_fields = ['posted_by', 'posted_at','location_display',]
 
     def get_is_upvoted(self, obj):
@@ -107,3 +107,20 @@ class UpvoteSerializer(serializers.ModelSerializer):
         model = Upvote
         fields = ['id', 'user', 'complaint', 'upvoted_at']
         read_only_fields = ['user', 'upvoted_at']
+
+class ComplaintAssignSerializer(serializers.ModelSerializer):
+    assigned_to_fieldworker = serializers.PrimaryKeyRelatedField(
+        queryset=Field_Worker.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    
+    class Meta:
+        model = Complaint
+        fields = ['id', 'assigned_to_fieldworker', 'status', ]
+       
+
+class FieldWorkerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Field_Worker
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
