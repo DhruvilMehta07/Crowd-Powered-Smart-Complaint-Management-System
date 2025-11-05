@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+  import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/axiosConfig';
 import axios from 'axios';
 
@@ -35,7 +35,7 @@ const ThreeDotsIcon = ({ className = 'w-5 h-5' }) => (
 
 
 
-const ComplaintCard = ({ complaint }) => {
+const ComplaintCard = ({ complaint, onAssignClick }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
     try {
@@ -72,11 +72,19 @@ const ComplaintCard = ({ complaint }) => {
         Address: {complaint.address}
       </p>
 
-      <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200">
-        <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
-        <span className="text-gray-800">
-          {complaint.assignedTo || complaint.assigned_to || complaint.category || 'Not assigned'}
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200">
+          <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
+          <span className="text-gray-800">
+            {complaint.assignedTo || complaint.assigned_to || complaint.category || 'Not assigned'}
+          </span>
+        </div>
+        <button
+          onClick={() => onAssignClick(complaint)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+        >
+          Assign to Field Worker
+        </button>
       </div>
     </div>
   );
@@ -84,11 +92,60 @@ const ComplaintCard = ({ complaint }) => {
 
 
 
+const AssignModal = ({ isOpen, onClose, onAssign, complaint, fieldWorkers }) => {
+  const [selectedWorker, setSelectedWorker] = useState('');
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg w-96">
+        <h2 className="text-xl font-bold mb-4">Assign Complaint</h2>
+        <p className="text-gray-600 mb-4">Select a field worker to assign this complaint:</p>
+        <select
+          value={selectedWorker}
+          onChange={(e) => setSelectedWorker(e.target.value)}
+          className="w-full p-2 border rounded-lg mb-4"
+        >
+          <option value="">Select a field worker</option>
+          {fieldWorkers.map((worker) => (
+            <option key={worker.id} value={worker.id}>
+              {worker.username}
+            </option>
+          ))}
+        </select>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (selectedWorker) {
+                onAssign(selectedWorker);
+              }
+            }}
+            disabled={!selectedWorker}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300"
+          >
+            Assign
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const GovAuthHomepage = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [fieldWorkers, setFieldWorkers] = useState([]);
 
   const [activeMenu, setActiveMenu] = useState('home');
 
@@ -125,9 +182,48 @@ const GovAuthHomepage = () => {
     }
   }, [fetchGovComplaints]);
 
+  const fetchFieldWorkers = useCallback(async (complaintId) => {
+  try {
+    //calling backend api
+    const res = await api.get(`/complaints/available-workers/${complaintId}/`);
+    setFieldWorkers(res.data || []);
+  } catch (err) {
+    console.error('Error loading field workers', err);
+    // Fallback to general field workers if specific endpoint fails
+    try {
+      const fallbackRes = await api.get('/users/fieldworkers/');
+      setFieldWorkers(fallbackRes.data || []);
+    } catch (error) {
+      console.error('Fallback field workers load failed', error);
+    }
+  }
+  }, []);
+
+  const handleAssignClick = async (complaint) => {
+  setSelectedComplaint(complaint);
+  await fetchFieldWorkers(complaint.id); // fetch workers for this specific complaint
+  setIsAssignModalOpen(true);
+  };  
+
+  const handleAssign = async (workerId) => {
+    try {
+      await api.post(`/complaints/assign/${selectedComplaint.id}/`, {
+        fieldworker_id: workerId  // Match the backend expected field name
+      });
+      // Refresh the complaints list
+      fetchGovComplaints();
+      setIsAssignModalOpen(false);
+      setSelectedComplaint(null);
+    } catch (err) {
+      console.error('Error assigning complaint', err);
+      setError('Failed to assign complaint.');
+    }
+  };
+
   useEffect(() => {
     fetchGovComplaints();
-  }, [fetchGovComplaints]);
+    fetchFieldWorkers();
+  }, [fetchGovComplaints, fetchFieldWorkers]);
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
@@ -180,11 +276,26 @@ const GovAuthHomepage = () => {
             )}
 
             {!loading && complaints.map((complaint) => (
-              <ComplaintCard key={complaint.id} complaint={complaint} />
+              <ComplaintCard 
+                key={complaint.id} 
+                complaint={complaint}
+                onAssignClick={handleAssignClick}
+              />
             ))}
           </div>
         </div>
       </div>
+
+      <AssignModal
+        isOpen={isAssignModalOpen}
+        onClose={() => {
+          setIsAssignModalOpen(false);
+          setSelectedComplaint(null);
+        }}
+        onAssign={handleAssign}
+        complaint={selectedComplaint}
+        fieldWorkers={fieldWorkers}
+      />
     </div>
   );
 };
