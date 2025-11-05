@@ -183,20 +183,17 @@ const GovAuthHomepage = () => {
   }, [fetchGovComplaints]);
 
   const fetchFieldWorkers = useCallback(async (complaintId) => {
-  try {
-    //calling backend api
-    const res = await api.get(`/complaints/available-workers/${complaintId}/`);
-    setFieldWorkers(res.data || []);
-  } catch (err) {
-    console.error('Error loading field workers', err);
-    // Fallback to general field workers if specific endpoint fails
     try {
-      const fallbackRes = await api.get('/users/fieldworkers/');
-      setFieldWorkers(fallbackRes.data || []);
-    } catch (error) {
-      console.error('Fallback field workers load failed', error);
+      const endpoint = complaintId
+        ? `/complaints/available-workers/${complaintId}/`
+        : '/complaints/available-workers/';
+
+      const res = await api.get(endpoint);
+      setFieldWorkers(res.data || []);
+    } catch (err) {
+      console.error('Error loading field workers', err);
+      setFieldWorkers([]);
     }
-  }
   }, []);
 
   const handleAssignClick = async (complaint) => {
