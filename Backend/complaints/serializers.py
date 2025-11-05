@@ -17,10 +17,10 @@ class ComplaintSerializer(serializers.ModelSerializer):
     images = ComplaintImageSerializer(many=True, read_only=True)
     upvotes_count = serializers.ReadOnlyField()
     is_upvoted = serializers.SerializerMethodField()
-    assigned_to_dept = serializers.StringRelatedField()  
+    assigned_to_dept = serializers.StringRelatedField()
     location_display = serializers.SerializerMethodField()
     status = serializers.CharField()
-    assigned_to_fieldworker = serializers.CharField()
+    assigned_to_fieldworker = serializers.SerializerMethodField()
     class Meta:
         model = Complaint
         fields = ['id','posted_by','content','posted_at','images',
@@ -36,6 +36,12 @@ class ComplaintSerializer(serializers.ModelSerializer):
     
     def get_location_display(self,obj):
         return obj.get_location_display()
+    
+    def get_assigned_to_fieldworker(self, obj):
+        worker = getattr(obj, 'assigned_to_fieldworker', None)
+        if worker:
+            return worker.username
+        return None
     
 
 class ComplaintCreateSerializer(serializers.ModelSerializer):

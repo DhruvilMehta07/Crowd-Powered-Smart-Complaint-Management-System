@@ -190,11 +190,17 @@ class ComplaintSearchView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     model = Complaint
     
-    def get(self,request):
-        query = self.request.GET.get('q')
-        return Complaint.objects.filter(
-            Q(title__icontains=query) | Q(description__icontains=query) | Q(address__icontains=query)
-        )
+    def get(self, request):
+        query = (request.query_params.get('q') or '').strip()
+        complaints = Complaint.objects.all()
+
+        if query:
+            complaints = complaints.filter(
+                Q(content__icontains=query) | Q(address__icontains=query)
+            )
+
+        serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PastComplaintsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -241,25 +247,17 @@ class FieldWorkerHomePageView(APIView):
         try:
             # Get the field worker user with department
             fieldworker = Field_Worker.objects.get(id=request.user.id)
-      
 
-            
-            
             complaints = Complaint.objects.filter(
-                status = 'Pending',
-                assigned_fieldworker=fieldworker.username, 
+                status='Pending',
+                assigned_to_fieldworker=fieldworker,
             )
-            if( not complaints ):
+            if not complaints.exists():
                 return Response(
-                    {"message": "No pending complaints assigned to your department."},
+                    {"message": "No pending complaints assigned to you."},
                     status=status.HTTP_200_OK
                 )
             serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
-            if(not serializer.data):
-                return Response(
-                    {"message": "No pending complaints assigned to your department."},
-                    status=status.HTTP_200_OK
-                )
             return Response(serializer.data, status=status.HTTP_200_OK)
             
         except Field_Worker.DoesNotExist:
@@ -272,33 +270,37 @@ class FieldWorkerHomePageView(APIView):
 class AvailableFieldWorkersView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
-    def get(self, request, complaint_id):
+    def get(self, request, complaint_id=None):
         try:
-            complaint = get_object_or_404(Complaint, id=complaint_id)
-            
-            # check if user is government authority from the same department
             gov_user = Government_Authority.objects.get(id=request.user.id)
-            
-            if not gov_user.assigned_department or complaint.assigned_to_dept != gov_user.assigned_department:
-                return Response(
-                    {"error": "You can only assign complaints from your department."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            # get available field workers from the same department
-            available_workers = Field_Worker.objects.filter(
-                assigned_to_dept=gov_user.assigned_department,
-                verified=True
-            )
-            
-            serializer = FieldWorkerSerializer(available_workers, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-            
         except Government_Authority.DoesNotExist:
             return Response(
                 {"error": "User is not a government authority."},
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        if not gov_user.assigned_department:
+            return Response(
+                {"error": "No department assigned to this user."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        complaint = None
+        if complaint_id is not None:
+            complaint = get_object_or_404(Complaint, id=complaint_id)
+            if complaint.assigned_to_dept != gov_user.assigned_department:
+                return Response(
+                    {"error": "You can only assign complaints from your department."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        available_workers = Field_Worker.objects.filter(
+            assigned_department=gov_user.assigned_department,
+            verified=True
+        )
+
+        serializer = FieldWorkerSerializer(available_workers, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class AssignComplaintView(APIView):
     permission_classes = [permissions.IsAuthenticated]
