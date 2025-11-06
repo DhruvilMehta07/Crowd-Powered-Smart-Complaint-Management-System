@@ -14,6 +14,9 @@ from pathlib import Path
 from datetime import timedelta
 import os
 import dj_database_url
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 
 from django.core.exceptions import ImproperlyConfigured
@@ -53,6 +56,9 @@ INSTALLED_APPS = [
 
     # simplejwt blacklist app (persisted in Postgres for lookup if redis server fails)
     'rest_framework_simplejwt.token_blacklist',
+
+    'cloudinary_storage',
+    'cloudinary',
 ]
 
 REST_FRAMEWORK = {
@@ -62,6 +68,15 @@ REST_FRAMEWORK = {
     ],
     # other defaults...
 }
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY') or os.getenv('CLOUDINARY_CLOUD_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET') or os.getenv('CLOUDINARY_CLOUD_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
@@ -184,6 +199,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

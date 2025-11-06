@@ -77,6 +77,17 @@ const ShareIcon = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
+const ImageIcon = ({ className = 'w-5 h-5' }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm6.5 3A2.5 2.5 0 117 10.5 2.5 2.5 0 019.5 8zM6 18h12l-3.75-5-2.75 3.667L9 13l-3 5z" />
+  </svg>
+);
+
 const Header = () => (
   <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
     <div className="flex-1 max-w-2xl mx-auto">
@@ -100,6 +111,36 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
   const [userHasUpvoted, setUserHasUpvoted] = useState(
     complaint.user_has_upvoted || false
   );
+  const [images, setImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  // Fetch images when component mounts
+  useEffect(() => {
+    const fetchComplaintImages = async () => {
+      // Check if images are already provided in complaint data
+      if (complaint.images && complaint.images.length > 0) {
+        setImages(complaint.images);
+        return;
+      }
+
+      // If no images in complaint data, fetch them from API
+      try {
+        setLoadingImages(true);
+        const response = await api.get(`/complaints/${complaint.id}/images/`);
+        setImages(response.data);
+      } catch (error) {
+        console.error('Error fetching complaint images:', error);
+      } finally {
+        setLoadingImages(false);
+      }
+    };
+
+    if (complaint.id) {
+      fetchComplaintImages();
+    }
+  }, [complaint.id, complaint.images]);
 
   const handleDeleteComplaint = async () => {
     if (!isAuthenticated) {
@@ -122,7 +163,12 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
       }
     }
   };
-  const det = localStorage.getItem('user_type');
+
+  const handleImageClick = (image) => {
+    setSelectedImage(image);
+    setShowImageModal(true);
+  };
+
   const handleUpvote = async () => {
     if (!isAuthenticated) {
       alert('Please login to upvote complaints.');
@@ -172,76 +218,163 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
     return count.toString();
   };
 
+  // Function to get full image URL
+  const getImageUrl = (imageData) => {
+    if (typeof imageData === 'string') {
+      return imageData;
+    }
+    if (imageData.image) {
+      // If it's a relative path, prepend your API base URL
+      if (imageData.image.startsWith('/')) {
+        return `${api.defaults.baseURL}${imageData.image}`;
+      }
+      return imageData.image;
+    }
+    return null;
+  };
+
   return (
-    <div className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-full p-1 text-indigo-600">
-            <UserIcon />
+    <>
+      <div className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full p-1 text-indigo-600">
+              <UserIcon />
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-lg text-gray-800">
+                {complaint.author ||
+                  complaint.posted_by?.username ||
+                  'Anonymous User'}
+              </p>
+              <p className="pl-5 text-sm text-gray-500">
+                {formatDate(complaint.posted_at || complaint.date)}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <p className="font-bold text-lg text-gray-800">
-              {complaint.author ||
-                complaint.posted_by?.username ||
-                'Anonymous User'}
-            </p>
-            <p className="pl-5 text-sm text-gray-500">
-              {formatDate(complaint.posted_at || complaint.date)}
-            </p>
+          {isAuthenticated && (
+            <button
+              onClick={handleDeleteComplaint}
+              className="text-red-600 hover:text-red-800 text-sm font-semibold transition-colors"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+
+        <p className="text-lg text-gray-800 mb-1">{complaint.content}</p>
+        <p className="text-gray-600 text-base leading-relaxed mb-4">
+          Address: {complaint.address}
+        </p>
+
+        {/* Display Images */}
+        {images.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon className="w-4 h-4 text-indigo-600" />
+              <span className="text-sm font-semibold text-gray-700">
+                Images ({images.length})
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {images.slice(0, 4).map((image, index) => (
+                <div
+                  key={image.id || index}
+                  className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => handleImageClick(image)}
+                >
+                  <img
+                    src={getImageUrl(image)}
+                    alt={`Complaint image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/150?text=Image+Not+Found';
+                    }}
+                  />
+                  {index === 3 && images.length > 4 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">
+                        +{images.length - 4} more
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {loadingImages && (
+          <div className="flex justify-center items-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+          </div>
+        )}
+
+        <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block">
+          <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
+          <span className="text-gray-800">
+            {complaint.assigned_to_dept ||
+              complaint.assignedTo ||
+              complaint.category ||
+              'Not assigned'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4 pt-4 border-t-2 border-indigo-100">
+          <button
+            onClick={handleUpvote}
+            disabled={isUpvoting}
+            className={`flex items-center gap-2 transition-all ${
+              isUpvoting
+                ? 'text-gray-400 cursor-not-allowed'
+                : userHasUpvoted
+                  ? 'text-indigo-600 hover:text-indigo-700'
+                  : 'text-gray-600 hover:text-indigo-600'
+            } hover:scale-105 transform font-semibold`}
+          >
+            <ArrowUpIcon
+              className={`w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-indigo-600' : ''}`}
+            />
+            <span>{formatUpvotes(localUpvotes)}</span>
+          </button>
+          <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
+            <ChatBubbleIcon />
+            <span>Comment</span>
+          </button>
+          <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
+            <ShareIcon />
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Image Modal */}
+      {showImageModal && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">Complaint Image</h3>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <img
+                src={getImageUrl(selectedImage)}
+                alt="Complaint detail"
+                className="max-w-full max-h-96 object-contain"
+                onError={(e) => {
+                  e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                }}
+              />
+            </div>
           </div>
         </div>
-        {isAuthenticated && (
-          <button
-            onClick={handleDeleteComplaint}
-            className="text-red-600 hover:text-red-800 text-sm font-semibold transition-colors"
-          >
-            Delete
-          </button>
-        )}
-      </div>
-
-      <p className="text-lg text-gray-800 mb-1">{complaint.content}</p>
-      <p className="text-gray-600 text-base leading-relaxed mb-4">
-        Address: {complaint.address}
-      </p>
-
-      <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block">
-        <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
-        <span className="text-gray-800">
-          {complaint.assigned_to_dept ||
-            complaint.assignedTo ||
-            complaint.category ||
-            'Not assigned'}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-4 pt-4 border-t-2 border-indigo-100">
-        <button
-          onClick={handleUpvote}
-          disabled={isUpvoting}
-          className={`flex items-center gap-2 transition-all ${
-            isUpvoting
-              ? 'text-gray-400 cursor-not-allowed'
-              : userHasUpvoted
-                ? 'text-indigo-600 hover:text-indigo-700'
-                : 'text-gray-600 hover:text-indigo-600'
-          } hover:scale-105 transform font-semibold`}
-        >
-          <ArrowUpIcon
-            className={`w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-indigo-600' : ''}`}
-          />
-          <span>{formatUpvotes(localUpvotes)}</span>
-        </button>
-        <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
-          <ChatBubbleIcon />
-          <span>Comment</span>
-        </button>
-        <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
-          <ShareIcon />
-          <span>Share</span>
-        </button>
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 
