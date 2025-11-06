@@ -69,11 +69,10 @@ REST_FRAMEWORK = {
     # other defaults...
 }
 
-
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY') or os.getenv('CLOUDINARY_CLOUD_API_KEY'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET') or os.getenv('CLOUDINARY_CLOUD_API_SECRET'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
@@ -246,3 +245,14 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 MAPMYINDIA_API_KEY = os.getenv('MAPMYINDIA_API_KEY')
+
+
+try:
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET']
+    )
+    print("Cloudinary configured successfully")
+except Exception as e:
+    print(f"Cloudinary configuration error: {e}")

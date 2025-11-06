@@ -10,7 +10,7 @@ import json
 
 from CPCMS import settings
 from users.models import ParentUser, Department,Field_Worker
-
+from cloudinary.models import CloudinaryField
     
 
 def validate_image_size(image):
@@ -162,10 +162,7 @@ class ComplaintImage(models.Model):
         on_delete=models.CASCADE,
         related_name='images'
     )
-    image = models.ImageField(
-        upload_to='complaint_images/',
-        validators=[validate_image_size]
-    )
+    image = CloudinaryField('image',folder='complaints/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
     order = models.PositiveIntegerField(default=0)
 

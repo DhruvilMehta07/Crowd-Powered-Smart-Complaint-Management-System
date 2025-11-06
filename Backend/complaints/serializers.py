@@ -8,9 +8,18 @@ from .models import Complaint,ComplaintImage,Upvote
 from rest_framework import serializers
 
 class ComplaintImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = ComplaintImage
-        fields = ['id', 'image','uploaded_at','order']
+        fields = ['id', 'image', 'image_url', 'uploaded_at', 'order']
+    
+    def get_image_url(self, obj):
+        # Return the full Cloudinary URL
+        if obj.image:
+            # This will return the full Cloudinary URL
+            return obj.image.url
+        return None
 
 class ComplaintSerializer(serializers.ModelSerializer):
     posted_by = UserLoginSerializer(read_only=True)
@@ -132,6 +141,14 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
 class ComplaintImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = ComplaintImage
-        fields = ['id', 'image','uploaded_at','order']
+        fields = ['id', 'image', 'image_url', 'uploaded_at', 'order']
+    
+    def get_image_url(self, obj):
+        # return the Cloudinary URL with transformations if needed
+        if obj.image:
+            return obj.image.url
+        return None
