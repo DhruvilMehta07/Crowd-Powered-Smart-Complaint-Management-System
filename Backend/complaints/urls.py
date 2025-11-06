@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (ComplaintListView,ComplaintCreateView,UpvoteComplaintView,
                     ComplaintDeleteView,ReverseGeocodeView,ComplaintSearchView,
                     PastComplaintsView,GovernmentHomePageView,FieldWorkerHomePageView,
-                    AssignComplaintView,AvailableFieldWorkersView)
+                    AssignComplaintView,AvailableFieldWorkersView,ComplaintImageView)
 
 
 urlpatterns = [
@@ -19,4 +19,5 @@ urlpatterns = [
     path('assign/<int:complaint_id>/',AssignComplaintView.as_view(), ),
     path('available-workers/',AvailableFieldWorkersView.as_view(), ),
     path('available-workers/<int:complaint_id>/',AvailableFieldWorkersView.as_view(), ),
+    path('<int:complaint_id>/images/', ComplaintImageView.as_view(), name='complaint-images'),
 ]
