@@ -218,20 +218,25 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
     return count.toString();
   };
 
-  // Function to get full image URL
   const getImageUrl = (imageData) => {
-    if (typeof imageData === 'string') {
-      return imageData;
-    }
-    if (imageData.image) {
-      // If it's a relative path, prepend your API base URL
-      if (imageData.image.startsWith('/')) {
-        return `${api.defaults.baseURL}${imageData.image}`;
-      }
-      return imageData.image;
-    }
-    return null;
-  };
+  // If imageData is a string (direct URL)
+  if (typeof imageData === 'string') {
+    return imageData;
+  }
+  
+  // If imageData is an object with image_url field (from updated serializer)
+  if (imageData.image_url) {
+    return imageData.image_url;
+  }
+  
+  // If imageData is an object with image field (legacy format)
+  if (imageData.image) {
+    // For Cloudinary, the image field should already be a full URL
+    return imageData.image;
+  }
+  
+  return null;
+};
 
   return (
     <>
