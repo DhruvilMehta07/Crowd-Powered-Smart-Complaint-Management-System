@@ -9,7 +9,8 @@ from django.db.models import Q
 
 from users.models import Government_Authority, Department,Field_Worker
 from .models import Complaint, ComplaintImage, Upvote
-from .serializers import ComplaintSerializer, ComplaintCreateSerializer, UpvoteSerializer,FieldWorkerSerializer
+from .serializers import (ComplaintSerializer, ComplaintCreateSerializer, 
+                          UpvoteSerializer,FieldWorkerSerializer,ComplaintImageSerializer)
 from CPCMS import settings
 
 class ComplaintListView(APIView):
@@ -357,3 +358,12 @@ class AssignComplaintView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+class ComplaintImageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, complaint_id):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+        images = ComplaintImage.objects.filter(complaint=complaint).order_by('order')
+        
+        serializer = ComplaintImageSerializer(images, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

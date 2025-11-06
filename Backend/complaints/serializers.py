@@ -130,3 +130,8 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field_Worker
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
+
+class ComplaintImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ComplaintImage
+        fields = ['id', 'image','uploaded_at','order']
