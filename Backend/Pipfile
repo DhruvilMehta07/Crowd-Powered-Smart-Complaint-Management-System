@@ -13,6 +13,7 @@ rest-framework-simplejwt = "*"
 django-cors-headers = "*"
 dj-database-url = "==2.0.0"
 requests = "*"
+django-cloudinary-storage = "*"
 
 [dev-packages]
 pytest = "*"

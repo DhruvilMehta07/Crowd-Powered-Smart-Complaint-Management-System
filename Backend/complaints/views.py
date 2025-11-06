@@ -364,6 +364,10 @@ class ComplaintImageView(APIView):
     def get(self, request, complaint_id):
         complaint = get_object_or_404(Complaint, id=complaint_id)
         images = ComplaintImage.objects.filter(complaint=complaint).order_by('order')
-        
-        serializer = ComplaintImageSerializer(images, many=True)
+
+        serializer = ComplaintImageSerializer(
+            images,
+            many=True,
+            context={'request': request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
