@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 
@@ -715,6 +715,22 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 export default function Sidebar({}) {
   const navigate = useNavigate();
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
+ 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (isRaiseModalOpen) {
+        document.body.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+      }
+    }
+
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('modal-open');
+      }
+    };
+  }, [isRaiseModalOpen]);
   const location = useLocation();
   const pathname = location?.location?.pathname || location.pathname || '/';
   const token =
@@ -902,10 +918,16 @@ export default function Sidebar({}) {
       <aside className="w-80 p-4 hidden md:block border-r-3 border-indigo-400 h-screen sticky top-0 overflow-auto">
         {routing()}
 
-        <RaiseComplaintModal
-          isOpen={isRaiseModalOpen}
-          onClose={handleCloseRaiseComplaint}
-        />
+        {isRaiseModalOpen &&
+          ReactDOM.createPortal(
+            <div className="complaint-modal-portal">
+              <RaiseComplaintModal
+                isOpen={isRaiseModalOpen}
+                onClose={handleCloseRaiseComplaint}
+              />
+            </div>,
+            document.body
+          )}
       </aside>
     </>
   );
