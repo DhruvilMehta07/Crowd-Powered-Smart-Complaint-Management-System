@@ -1,9 +1,9 @@
-from users.serializers import UserLoginSerializer
+from users.serializers import UserLoginSerializer,FieldWorkerSerializer
 from users.models import Department,Field_Worker
 
 import re
 
-from .models import Complaint,ComplaintImage,Upvote,Fake_Confidence
+from .models import Complaint,ComplaintImage,Upvote,Fake_Confidence,ResolutionImage,Notification
 
 from rest_framework import serializers
 
@@ -20,6 +20,21 @@ class ComplaintImageSerializer(serializers.ModelSerializer):
             # This will return the full Cloudinary URL
             return obj.image.url
         return None
+
+class ResolutionImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    submitted_by = FieldWorkerSerializer(read_only=True)
+
+    class Meta:
+        model = ResolutionImage
+        fields = ['id', 'image', 'image_url', 'uploaded_at', 'approved', 'submitted_by']
+        read_only_fields = ['id', 'uploaded_at']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+    
 
 class ComplaintSerializer(serializers.ModelSerializer):
     posted_by = UserLoginSerializer(read_only=True)
