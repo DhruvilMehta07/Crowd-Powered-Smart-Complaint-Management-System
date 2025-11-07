@@ -466,6 +466,21 @@ const Homepage = () => {
     };
   }, []);
 
+  
+  const fetchComplaints = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/complaints/');
+      setComplaints(response.data);
+    } catch (err) {
+      console.error('Error fetching complaints:', err);
+      setError('Failed to load complaints. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
   const searchComplaints = useCallback(async (q) => {
     if (!q) {
       return fetchComplaints();
@@ -482,21 +497,6 @@ const Homepage = () => {
       setLoading(false);
     }
   }, [fetchComplaints]);
-
-  const fetchComplaints = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get('/complaints/');
-      setComplaints(response.data);
-    } catch (err) {
-      console.error('Error fetching complaints:', err);
-      setError('Failed to load complaints. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const handleUpvote = async (
     complaintId,
     expectedUpvotedStatus,
