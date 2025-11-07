@@ -204,8 +204,8 @@ class Upvote(models.Model):
 
 
 class Fake_Confidence(models.Model):
-    CITIZEN_WEIGHT = 0.01
-    FIELD_WORKER_WEIGHT = 1.0
+    CITIZEN_WEIGHT = 1
+    FIELD_WORKER_WEIGHT = 100.0
 
     complaint = models.ForeignKey(
         Complaint,

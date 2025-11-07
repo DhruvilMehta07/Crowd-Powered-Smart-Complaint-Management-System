@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from "react";
-import api from "../axiosConfig";
+import api from '../utils/axiosConfig';
+
+
+const ReportIcon = ({ className = "w-5 h-5" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+    className={className}
+  >
+    <path d="M3.75 2.75A.75.75 0 014.5 2h10a.75.75 0 01.6 1.2l-2.25 3L15.1 9.8a.75.75 0 01-.6 1.2H5.25v6.25a.75.75 0 01-1.5 0v-14.5z" />
+  </svg>
+);
+
 
 export default function PastComplaints() {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
+
+    
   const [error, setError] = useState("");
+  const [reportingId, setReportingId] = useState(null);
+  const [reportedIds, setReportedIds] = useState([]);
+  const [showReportToast, setShowReportToast] = useState(false);
 
   const fetchPastComplaints = async () => {
     try {
@@ -53,12 +71,20 @@ export default function PastComplaints() {
 
   const handleMarkFake = async (complaintId) => {
     try {
+      setReportingId(complaintId);
       await api.post(`/complaints/${complaintId}/fake-confidence/`);
+      // mark locally so UI reflects reported without waiting for full refetch
+      setReportedIds((prev) => (prev.includes(complaintId) ? prev : [...prev, complaintId]));
       // Refresh the complaints to get updated fake confidence data
-      fetchPastComplaints();
+      await fetchPastComplaints();
+      // show transient success popup
+      setShowReportToast(true);
+      setTimeout(() => setShowReportToast(false), 2200);
     } catch (err) {
       console.error("Error marking complaint as fake:", err);
       alert("Failed to mark complaint as fake. Please try again.");
+    } finally {
+      setReportingId(null);
     }
   };
 
@@ -104,6 +130,13 @@ export default function PastComplaints() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {showReportToast && (
+        <div className="fixed top-5 right-5 z-50">
+          <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+            Reported successfully
+          </div>
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Past Complaints</h1>
         <button
@@ -136,7 +169,7 @@ export default function PastComplaints() {
                     {formatDate(complaint.created_at)}
                   </span>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-4">
                   <button
                     onClick={() => handleUpvote(complaint.id)}
                     className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"
@@ -144,13 +177,29 @@ export default function PastComplaints() {
                     <span>👍</span>
                     <span>{complaint.upvotes_count}</span>
                   </button>
-                  <button
-                    onClick={() => handleMarkFake(complaint.id)}
-                    className="text-gray-600 hover:text-red-600 transition-colors"
-                    title="Mark as fake"
-                  >
-                    🚫
-                  </button>
+
+                  {(() => {
+                    const isReported = reportedIds.includes(complaint.id) || (complaint.fake_confidence && complaint.fake_confidence > 0);
+                    const isReportingNow = reportingId === complaint.id;
+                    return (
+                      <button
+                        onClick={() => handleMarkFake(complaint.id)}
+                        disabled={isReportingNow || isReported}
+                        className={`flex items-center gap-2 transition-all ${
+                          isReportingNow
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : isReported
+                              ? 'text-red-600 hover:text-red-700'
+                              : 'text-gray-600 hover:text-red-600'
+                        } hover:scale-105 transform font-semibold`}
+                        title="Mark as fake"
+                      >
+                        <ReportIcon className={`w-5 h-5 ${isReportingNow ? 'animate-pulse' : ''} ${isReported ? 'text-red-600' : ''}`} />
+                        <span className="text-sm">{isReported ? 'Reported' : 'Report'}</span>
+                      </button>
+                    );
+                  })()}
+
                   <button
                     onClick={() => handleDeleteComplaint(complaint.id)}
                     className="text-gray-600 hover:text-red-600 transition-colors"
