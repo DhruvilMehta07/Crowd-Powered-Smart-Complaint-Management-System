@@ -274,7 +274,7 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
           <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
           <span className="text-gray-800">
             {complaint.assignedTo ||
-              complaint.assigned_to ||
+              complaint.assigned_to_fieldworker ||
               complaint.category ||
               'Not assigned'}
           </span>

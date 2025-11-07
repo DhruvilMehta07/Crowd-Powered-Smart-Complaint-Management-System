@@ -8,11 +8,12 @@ import re, requests, json
 from django.db.models import Q
 
 from users.models import Government_Authority, Department,Field_Worker
-from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence
+from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence,ResolutionImage,Notification
 from .serializers import (ComplaintSerializer, ComplaintCreateSerializer, 
                           UpvoteSerializer,FieldWorkerSerializer,ComplaintImageSerializer,
-                          FakeConfidenceSerializer)
+                          FakeConfidenceSerializer,ResolutionImageSerializer)
 from CPCMS import settings
+from django.utils import timezone
 
 class ComplaintListView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -251,7 +252,7 @@ class FieldWorkerHomePageView(APIView):
             fieldworker = Field_Worker.objects.get(id=request.user.id)
 
             complaints = Complaint.objects.filter(
-                status='Pending',
+                status__in=['In Progress','Pending'],
                 assigned_to_fieldworker=fieldworker,
             )
             if not complaints.exists():
@@ -423,3 +424,64 @@ class FakeConfidenceView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+
+class SubmitResolutionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, complaint_id):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+
+        try:
+            fw = Field_Worker.objects.get(id=request.user.id)
+        except Field_Worker.DoesNotExist:
+            return Response({"error": "Only field workers can submit resolution images."}, status=status.HTTP_403_FORBIDDEN)
+
+        if complaint.assigned_to_fieldworker is None or complaint.assigned_to_fieldworker.id != fw.id:
+            return Response({"error": "You are not assigned to this complaint."}, status=status.HTTP_403_FORBIDDEN)
+
+        image = request.data.get('image')
+        if not image:
+            return Response({"error": "Image is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        resolution = ResolutionImage.objects.create(complaint=complaint, image=image, submitted_by=fw)
+
+        serializer = ResolutionImageSerializer(resolution, context={'request': request})
+        return Response({"message": "Resolution submitted, awaiting citizen approval.", "resolution": serializer.data}, status=status.HTTP_201_CREATED)
+
+
+class ApproveResolutionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, complaint_id, resolution_id=None):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+
+        if not complaint.posted_by or complaint.posted_by.id != request.user.id:
+            return Response({"error": "Only the complaint owner can approve the resolution."}, status=status.HTTP_403_FORBIDDEN)
+
+    
+        if resolution_id:
+            resolution = get_object_or_404(ResolutionImage, id=resolution_id, complaint=complaint)
+        else:
+            resolution = complaint.resolution_images.order_by('-submitted_at').first()
+            if not resolution:
+                return Response({"error": "No resolution to approve."}, status=status.HTTP_404_NOT_FOUND)
+
+        resolution.approved = True
+        resolution.approved_at = timezone.now()
+        resolution.save(update_fields=['approved', 'approved_at'])
+
+        complaint.status = 'Completed'
+        complaint.save(update_fields=['status'])
+
+        fw=resolution.submitted_by
+        if fw:
+             Notification.objects.create(
+                user=fw,
+                message=f"Your resolution for complaint #{complaint.id} was approved by the citizen. Complaint marked completed.",
+                link=f"/complaints/{complaint.id}/",
+            )
+
+        return Response({"message": "Resolution approved. Complaint completed.", "complaint_id": complaint.id}, status=status.HTTP_200_OK)
+

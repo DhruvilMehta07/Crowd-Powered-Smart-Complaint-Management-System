@@ -10,7 +10,8 @@ import requests
 import json
 
 from CPCMS import settings
-from users.models import ParentUser, Department,Field_Worker
+from users.models import ParentUser, Department,Field_Worker,Citizen
+from notifications.models import Notification
 from cloudinary.models import CloudinaryField
     
 
@@ -189,6 +190,39 @@ class ComplaintImage(models.Model):
 
     def __str__(self):
         return f"Image for Complaint ID {self.complaint.id} uploaded at {self.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+class ResolutionImage(models.Model):
+    complaint=models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name='resolution_images'
+    )
+    uploaded_at=models.DateTimeField(auto_now_add=True)
+    image=CloudinaryField('image',folder='resolutions/')
+    submitted_by=models.ForeignKey(Field_Worker,on_delete=models.CASCADE)
+    approved=models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"Resolution Image for Complaint ID {self.complaint.id} uploaded at {self.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')} by {self.submitted_by.username}"
+    
+    def clean(self):
+        if not Field_Worker.objects.filter(pk=self.submitted_by.pk).exists():
+            raise ValidationError("Only Field Workers can submit resolution images.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+        self.complaint.status='Pending Approval'
+        self.complaint.save(update_fields=['status'])
+        complaint_owner=Citizen.objects.filter(pk=self.complaint.posted_by.pk).first()
+        if complaint_owner:
+            Notification.objects.create(
+                user=complaint_owner,
+                message=f"A resolution has been submitted for your complaint #{self.complaint.id}. Please review and approve.",
+            )
 
 class Upvote(models.Model):
     user = models.ForeignKey(ParentUser, on_delete=models.CASCADE)

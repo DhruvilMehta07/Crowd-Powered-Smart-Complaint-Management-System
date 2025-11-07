@@ -144,7 +144,7 @@ const ComplaintCard = ({ complaint }) => {
       )}
 
       <div className="text-sm text-gray-700 mb-4 bg-white px-3 py-2 rounded-lg inline-block border border-indigo-200">
-        <span className="font-semibold">Assigned to:</span> {complaint.assigned_to?.name || complaint.assigned_to || 'Unassigned'}
+        <span className="font-semibold">Assigned to:</span> {complaint.assigned_to_fieldworker?.name || complaint.assigned_to_fieldworker || 'Unassigned'}
       </div>
 
       {showImageModal && selectedImageIndex !== null && (

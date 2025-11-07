@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     #installed startapps
     'users',
     'complaints',
+    'notifications',
 
     #api apps
     'rest_framework',
