@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+
+body.modal-open > *:not(.complaint-modal-portal) {
+	filter: blur(6px);
+	transition: filter 160ms ease-in-out;
+}
+
+.complaint-modal-portal {
+	position: relative;
+	z-index: 9999;
+}

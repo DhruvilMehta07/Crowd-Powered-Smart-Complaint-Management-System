@@ -219,24 +219,24 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
   };
 
   const getImageUrl = (imageData) => {
-  // If imageData is a string (direct URL)
-  if (typeof imageData === 'string') {
-    return imageData;
-  }
-  
-  // If imageData is an object with image_url field (from updated serializer)
-  if (imageData.image_url) {
-    return imageData.image_url;
-  }
-  
-  // If imageData is an object with image field (legacy format)
-  if (imageData.image) {
-    // For Cloudinary, the image field should already be a full URL
-    return imageData.image;
-  }
-  
-  return null;
-};
+    // If imageData is a string (direct URL)
+    if (typeof imageData === 'string') {
+      return imageData;
+    }
+
+    // If imageData is an object with image_url field (from updated serializer)
+    if (imageData.image_url) {
+      return imageData.image_url;
+    }
+
+    // If imageData is an object with image field (legacy format)
+    if (imageData.image) {
+      // For Cloudinary, the image field should already be a full URL
+      return imageData.image;
+    }
+
+    return null;
+  };
 
   return (
     <>
@@ -275,12 +275,6 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
         {/* Display Images */}
         {images.length > 0 && (
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ImageIcon className="w-4 h-4 text-indigo-600" />
-              <span className="text-sm font-semibold text-gray-700">
-                Images ({images.length})
-              </span>
-            </div>
             <div className="grid grid-cols-2 gap-2">
               {images.slice(0, 4).map((image, index) => (
                 <div
@@ -293,7 +287,8 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                     alt={`Complaint image ${index + 1}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/150?text=Image+Not+Found';
+                      e.target.src =
+                        'https://via.placeholder.com/150?text=Image+Not+Found';
                     }}
                   />
                   {index === 3 && images.length > 4 && (
@@ -355,9 +350,15 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
 
       {/* Image Modal */}
       {showImageModal && selectedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto">
-            <div className="flex justify-between items-center p-4 border-b">
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4">
               <h3 className="text-lg font-semibold">Complaint Image</h3>
               <button
                 onClick={() => setShowImageModal(false)}
@@ -372,7 +373,8 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                 alt="Complaint detail"
                 className="max-w-full max-h-96 object-contain"
                 onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                  e.target.src =
+                    'https://via.placeholder.com/400x300?text=Image+Not+Found';
                 }}
               />
             </div>
@@ -573,7 +575,7 @@ const Homepage = () => {
       </div>
 
       {isRaiseOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-indigo-200">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
               Raise a Complaint
