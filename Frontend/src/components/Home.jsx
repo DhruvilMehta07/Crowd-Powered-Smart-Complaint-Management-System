@@ -51,6 +51,17 @@ const ArrowUpIcon = ({ className = 'w-5 h-5', filled = false }) => (
   </svg>
 );
 
+const ReportIcon = ({ className = "w-5 h-5" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+    className={className}
+  >
+    <path d="M3.75 2.75A.75.75 0 014.5 2h10a.75.75 0 01.6 1.2l-2.25 3L15.1 9.8a.75.75 0 01-.6 1.2H5.25v6.25a.75.75 0 01-1.5 0v-14.5z" />
+  </svg>
+);
+
 const ChatBubbleIcon = ({ className = 'w-5 h-5' }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -111,7 +122,7 @@ const Header = ({ query, setQuery, onSearch }) => (
   </header>
 );
 
-const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
+const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onReport }) => {
   const [isUpvoting, setIsUpvoting] = useState(false);
   const [localUpvotes, setLocalUpvotes] = useState(
     complaint.upvote_count || complaint.upvotes || 0
@@ -123,6 +134,8 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
   const [loadingImages, setLoadingImages] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [localReported, setLocalReported] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
 
   // Fetch images when component mounts
   useEffect(() => {
@@ -352,7 +365,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
           </span>
         </div>
 
-        <div className="flex items-center gap-4 pt-4 border-t-2 border-indigo-100">
+  <div className="flex items-center gap-10 pt-4 border-t-2 border-indigo-100">
           <button
             onClick={handleUpvote}
             disabled={isUpvoting}
@@ -369,14 +382,48 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
             />
             <span>{formatUpvotes(localUpvotes)}</span>
           </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
-            <ChatBubbleIcon />
-            <span>Comment</span>
+
+          <button
+            onClick={async () => {
+              if (!isAuthenticated) {
+                alert('Please login to report complaints.');
+                return;
+              }
+              if (!onReport) return;
+
+              // optimistic UI for reporting: mirror upvote button behavior
+              if (isReporting || localReported) return;
+              const prevReporting = isReporting;
+              setIsReporting(true);
+              try {
+                await onReport(complaint.id);
+                // mark reported locally
+                setLocalReported(true);
+              } catch (err) {
+                console.error('Error reporting complaint', err);
+                // keep the small failure alert for visibility
+                alert('Failed to report complaint. Please try again.');
+              } finally {
+                setIsReporting(prevReporting);
+              }
+            }}
+            disabled={isReporting || localReported}
+            className={`flex items-center gap-2 transition-all ${
+              isReporting
+                ? 'text-gray-400 cursor-not-allowed'
+                : localReported
+                  ? 'text-red-600 hover:text-red-700'
+                  : 'text-gray-600 hover:text-red-600'
+            } hover:scale-105 transform font-semibold`}
+            title="Report complaint"
+          >
+            <ReportIcon className={`w-5 h-5 ${isReporting ? 'animate-pulse' : ''} ${localReported ? 'text-red-600' : ''}`} />
+            <span className="text-sm">Report</span>
           </button>
-          <button className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-all hover:scale-105 transform font-semibold">
-            <ShareIcon />
-            <span>Share</span>
-          </button>
+
+          {localReported && (
+            <span className="ml-2 text-sm text-red-600 font-semibold">Reported</span>
+          )}
         </div>
       </div>
 
@@ -429,9 +476,13 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
           </div>
         </div>
       )}
+
+      {/* per-card toast removed; homepage-level toast is used instead */}
     </>
   );
 };
+
+// Toast rendering for report success is inside each ComplaintCard; render popup element
 
 const Homepage = () => {
   const navigate = useNavigate();
@@ -442,6 +493,7 @@ const Homepage = () => {
   const [username, setUsername] = useState('');
   const [isRaiseOpen, setIsRaiseOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [showReportToast, setShowReportToast] = useState(false);
 
   useEffect(() => {
     const checkAuthStatus = () => {
@@ -541,6 +593,22 @@ const Homepage = () => {
     }
   };
 
+  const handleReport = async (complaintId) => {
+    if (!isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+    try {
+      await api.post(`/complaints/${complaintId}/fake-confidence/`);
+      // refresh to get updated fake confidence values
+      await fetchComplaints();
+      setShowReportToast(true);
+      setTimeout(() => setShowReportToast(false), 2200);
+    } catch (err) {
+      console.error('Error reporting complaint:', err);
+      throw err;
+    }
+  };
+
   const onLoginClick = useCallback(() => {
     navigate('/auth');
   }, [navigate]);
@@ -585,6 +653,14 @@ const Homepage = () => {
     <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
   <Header query={query} setQuery={setQuery} onSearch={() => searchComplaints(query)} />
 
+      {showReportToast && (
+        <div className="fixed top-5 right-5 z-50">
+          <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+            Reported successfully
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex">
         <div className="flex-1 flex justify-center px-1 py-1 ">
           <div className="w-full max-w-2xl lg:max-w-4xl space-y-1">
@@ -615,6 +691,7 @@ const Homepage = () => {
                       complaint={complaint}
                       onUpvote={handleUpvote}
                       onDelete={handleDeleteComplaint}
+                      onReport={handleReport}
                       isAuthenticated={isAuthenticated}
                     />
                   ))

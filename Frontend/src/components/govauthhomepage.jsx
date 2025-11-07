@@ -1,30 +1,62 @@
-  import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/axiosConfig';
 import axios from 'axios';
 
 // --- Icon Components (Keeping all your existing icons) ---
 
 const SearchIcon = ({ className = 'w-6 h-6' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <circle cx="11" cy="11" r="8"></circle>
     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
   </svg>
 );
 
 const FilterIcon = ({ className = 'w-5 h-5' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
-    <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z" clipRule="evenodd" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
 const UserIcon = ({ className = 'w-12 h-12' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" clipRule="evenodd" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
+      clipRule="evenodd"
+    />
   </svg>
 );
 
 const ThreeDotsIcon = ({ className = 'w-5 h-5' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className={className}
+  >
     <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
   </svg>
 );
@@ -33,14 +65,15 @@ const ThreeDotsIcon = ({ className = 'w-5 h-5' }) => (
 
 /* Removed upvote/comment/share icons and logic as requested. */
 
-
-
 const ComplaintCard = ({ complaint, onAssignClick }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
     try {
       const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-      return new Date(complaint.posted_at || dateString).toLocaleDateString('en-GB', options);
+      return new Date(complaint.posted_at || dateString).toLocaleDateString(
+        'en-GB',
+        options
+      );
     } catch (error) {
       return 'Invalid date';
     }
@@ -104,7 +137,9 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
             <p className="font-bold text-lg text-gray-800">
-              {complaint.author || complaint.posted_by?.username || 'Anonymous User'}
+              {complaint.author ||
+                complaint.posted_by?.username ||
+                'Anonymous User'}
             </p>
             <p className="text-sm text-gray-500 sm:pl-0">
               {formatDate(complaint.posted_at || complaint.date)}
@@ -121,6 +156,26 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
         Address: {complaint.address}
       </p>
 
+      {complaint.fake_confidence !== undefined && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium text-red-600">Fake Probability</span>
+            <span className="text-sm text-gray-600">
+              {complaint.fake_confidence}%
+            </span>
+          </div>
+
+          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div
+              className="bg-red-600 h-full transition-all duration-500"
+              style={{
+                width: `${Math.min(100, Number(complaint.fake_confidence))}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {images.length > 0 && (
         <div className="mb-4">
           <div className="grid grid-cols-2 gap-2">
@@ -128,17 +183,25 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
               <div
                 key={image.id || index}
                 className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => { setSelectedImageIndex(index); setShowImageModal(true); }}
+                onClick={() => {
+                  setSelectedImageIndex(index);
+                  setShowImageModal(true);
+                }}
               >
                 <img
                   src={getImageUrl(image)}
                   alt={`Complaint image ${index + 1}`}
                   className="w-full h-full object-cover"
-                  onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=Image+Not+Found'; }}
+                  onError={(e) => {
+                    e.target.src =
+                      'https://via.placeholder.com/150?text=Image+Not+Found';
+                  }}
                 />
                 {index === 3 && images.length > 4 && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">+{images.length - 4} more</span>
+                    <span className="text-white font-bold text-sm">
+                      +{images.length - 4} more
+                    </span>
                   </div>
                 )}
               </div>
@@ -154,16 +217,53 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
       )}
 
       {showImageModal && selectedImageIndex !== null && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20" onClick={() => setShowImageModal(false)}>
-          <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto relative" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center p-4">
               <h3 className="text-lg font-semibold">Complaint Image</h3>
-              <button onClick={() => setShowImageModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
             </div>
             <div className="p-4 flex items-center justify-center">
-              <button onClick={() => setSelectedImageIndex((i) => (i - 1 + images.length) % images.length)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 mr-4" aria-label="Previous image">‹</button>
-              <img src={getImageUrl(images[selectedImageIndex])} alt="Complaint detail" className="max-w-full max-h-96 object-contain" onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found'; }} />
-              <button onClick={() => setSelectedImageIndex((i) => (i + 1) % images.length)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 ml-4" aria-label="Next image">›</button>
+              <button
+                onClick={() =>
+                  setSelectedImageIndex(
+                    (i) => (i - 1 + images.length) % images.length
+                  )
+                }
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 mr-4"
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+              <img
+                src={getImageUrl(images[selectedImageIndex])}
+                alt="Complaint detail"
+                className="max-w-full max-h-96 object-contain"
+                onError={(e) => {
+                  e.target.src =
+                    'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                }}
+              />
+              <button
+                onClick={() =>
+                  setSelectedImageIndex((i) => (i + 1) % images.length)
+                }
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 ml-4"
+                aria-label="Next image"
+              >
+                ›
+              </button>
             </div>
           </div>
         </div>
@@ -173,7 +273,10 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
         <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200">
           <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
           <span className="text-gray-800">
-            {complaint.assignedTo || complaint.assigned_to || complaint.category || 'Not assigned'}
+            {complaint.assignedTo ||
+              complaint.assigned_to ||
+              complaint.category ||
+              'Not assigned'}
           </span>
         </div>
         <button
@@ -187,9 +290,13 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
   );
 };
 
-
-
-const AssignModal = ({ isOpen, onClose, onAssign, complaint, fieldWorkers }) => {
+const AssignModal = ({
+  isOpen,
+  onClose,
+  onAssign,
+  complaint,
+  fieldWorkers,
+}) => {
   const [selectedWorker, setSelectedWorker] = useState('');
 
   if (!isOpen) return null;
@@ -198,7 +305,9 @@ const AssignModal = ({ isOpen, onClose, onAssign, complaint, fieldWorkers }) => 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg w-96">
         <h2 className="text-xl font-bold mb-4">Assign Complaint</h2>
-        <p className="text-gray-600 mb-4">Select a field worker to assign this complaint:</p>
+        <p className="text-gray-600 mb-4">
+          Select a field worker to assign this complaint:
+        </p>
         <select
           value={selectedWorker}
           onChange={(e) => setSelectedWorker(e.target.value)}
@@ -246,12 +355,11 @@ const GovAuthHomepage = () => {
 
   const [activeMenu, setActiveMenu] = useState('home');
 
-
   const fetchGovComplaints = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/complaints/govhome/')
+      const res = await api.get('/complaints/govhome/');
 
       setComplaints(res.data || []);
     } catch (err) {
@@ -262,22 +370,27 @@ const GovAuthHomepage = () => {
     }
   }, []);
 
-  const searchComplaints = useCallback(async (q) => {
-    if (!q) {
-      return fetchGovComplaints();
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await api.get(`/complaints/search/?q=${encodeURIComponent(q)}`);
-      setComplaints(res.data || []);
-    } catch (err) {
-      console.error('Search error', err);
-      setError('Search failed.');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchGovComplaints]);
+  const searchComplaints = useCallback(
+    async (q) => {
+      if (!q) {
+        return fetchGovComplaints();
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.get(
+          `/complaints/search/?q=${encodeURIComponent(q)}`
+        );
+        setComplaints(res.data || []);
+      } catch (err) {
+        console.error('Search error', err);
+        setError('Search failed.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchGovComplaints]
+  );
 
   const fetchFieldWorkers = useCallback(async (complaintId) => {
     try {
@@ -294,15 +407,15 @@ const GovAuthHomepage = () => {
   }, []);
 
   const handleAssignClick = async (complaint) => {
-  setSelectedComplaint(complaint);
-  await fetchFieldWorkers(complaint.id); // fetch workers for this specific complaint
-  setIsAssignModalOpen(true);
-  };  
+    setSelectedComplaint(complaint);
+    await fetchFieldWorkers(complaint.id); // fetch workers for this specific complaint
+    setIsAssignModalOpen(true);
+  };
 
   const handleAssign = async (workerId) => {
     try {
       await api.post(`/complaints/assign/${selectedComplaint.id}/`, {
-        fieldworker_id: workerId  // Match the backend expected field name
+        fieldworker_id: workerId, // Match the backend expected field name
       });
       // Refresh the complaints list
       fetchGovComplaints();
@@ -364,18 +477,23 @@ const GovAuthHomepage = () => {
 
             {!loading && complaints.length === 0 && (
               <div className="text-center py-12 bg-white rounded-xl border-2 border-indigo-200 shadow-lg">
-                <p className="text-gray-700 text-lg font-semibold">No complaints found.</p>
-                <p className="text-gray-500 mt-2">Try adjusting your search or check back later.</p>
+                <p className="text-gray-700 text-lg font-semibold">
+                  No complaints found.
+                </p>
+                <p className="text-gray-500 mt-2">
+                  Try adjusting your search or check back later.
+                </p>
               </div>
             )}
 
-            {!loading && complaints.map((complaint) => (
-              <ComplaintCard 
-                key={complaint.id} 
-                complaint={complaint}
-                onAssignClick={handleAssignClick}
-              />
-            ))}
+            {!loading &&
+              complaints.map((complaint) => (
+                <ComplaintCard
+                  key={complaint.id}
+                  complaint={complaint}
+                  onAssignClick={handleAssignClick}
+                />
+              ))}
           </div>
         </div>
       </div>
