@@ -3,7 +3,7 @@ from users.models import Department,Field_Worker
 
 import re
 
-from .models import Complaint,ComplaintImage,Upvote
+from .models import Complaint,ComplaintImage,Upvote,Fake_Confidence
 
 from rest_framework import serializers
 
@@ -30,12 +30,13 @@ class ComplaintSerializer(serializers.ModelSerializer):
     location_display = serializers.SerializerMethodField()
     status = serializers.CharField()
     assigned_to_fieldworker = serializers.SerializerMethodField()
+    fake_confidence = serializers.FloatField(read_only=True)
     class Meta:
         model = Complaint
         fields = ['id','posted_by','content','posted_at','images',
                   'images_count','upvotes_count','is_upvoted','assigned_to_dept','address','pincode',
-                  'latitude','longitude','location_type','location_display','status','assigned_to_fieldworker']
-        read_only_fields = ['posted_by', 'posted_at','location_display',]
+                  'latitude','longitude','location_type','location_display','status','assigned_to_fieldworker','fake_confidence']
+        read_only_fields = ['posted_by', 'posted_at','location_display','fake_confidence']
 
     def get_is_upvoted(self, obj):
         request = self.context.get('request')
@@ -123,6 +124,16 @@ class UpvoteSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'complaint', 'upvoted_at']
         read_only_fields = ['user', 'upvoted_at']
 
+
+class FakeConfidenceSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    weight = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = Fake_Confidence
+        fields = ['id', 'complaint', 'user', 'weight', 'created_at']
+        read_only_fields = ['id', 'complaint', 'user', 'weight', 'created_at']
+
 class ComplaintAssignSerializer(serializers.ModelSerializer):
     assigned_to_fieldworker = serializers.PrimaryKeyRelatedField(
         queryset=Field_Worker.objects.all(),
@@ -139,16 +150,3 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field_Worker
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
-
-class ComplaintImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = ComplaintImage
-        fields = ['id', 'image', 'image_url', 'uploaded_at', 'order']
-    
-    def get_image_url(self, obj):
-        # return the Cloudinary URL with transformations if needed
-        if obj.image:
-            return obj.image.url
-        return None

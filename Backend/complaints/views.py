@@ -8,9 +8,10 @@ import re, requests, json
 from django.db.models import Q
 
 from users.models import Government_Authority, Department,Field_Worker
-from .models import Complaint, ComplaintImage, Upvote
+from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence
 from .serializers import (ComplaintSerializer, ComplaintCreateSerializer, 
-                          UpvoteSerializer,FieldWorkerSerializer,ComplaintImageSerializer)
+                          UpvoteSerializer,FieldWorkerSerializer,ComplaintImageSerializer,
+                          FakeConfidenceSerializer)
 from CPCMS import settings
 
 class ComplaintListView(APIView):
@@ -371,3 +372,54 @@ class ComplaintImageView(APIView):
             context={'request': request}
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FakeConfidenceView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, complaint_id):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+        fake_entry, created = Fake_Confidence.objects.get_or_create(
+            complaint=complaint,
+            user=request.user
+        )
+
+        complaint.refresh_from_db(fields=['fake_confidence'])
+        serializer = FakeConfidenceSerializer(fake_entry)
+
+        if created:
+            message = "Fake confidence recorded."
+            status_code = status.HTTP_201_CREATED
+        else:
+            message = "Fake confidence already recorded for this complaint."
+            status_code = status.HTTP_200_OK
+
+        return Response(
+            {
+                "message": message,
+                "fake_confidence": complaint.fake_confidence,
+                "entry": serializer.data
+            },
+            status=status_code
+        )
+
+    def delete(self, request, complaint_id):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+        try:
+            fake_entry = Fake_Confidence.objects.get(complaint=complaint, user=request.user)
+        except Fake_Confidence.DoesNotExist:
+            return Response(
+                {"error": "No fake confidence recorded for this complaint."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        fake_entry.delete()
+        complaint.refresh_from_db(fields=['fake_confidence'])
+
+        return Response(
+            {
+                "message": "Fake confidence removed.",
+                "fake_confidence": complaint.fake_confidence
+            },
+            status=status.HTTP_200_OK
+        )

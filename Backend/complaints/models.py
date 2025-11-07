@@ -3,6 +3,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
+from django.db.models import Sum
 
 import re
 import requests
@@ -43,7 +44,8 @@ class Complaint(models.Model):
     location_type = models.CharField(max_length=20,choices=Location_Choice,default='manual',null=True,blank=True)
 
     upvotes = models.ManyToManyField(ParentUser,through='Upvote',related_name='upvoted_complaints'
-            ,blank=True)
+        ,blank=True)
+    fake_confidence = models.FloatField(default=0.0)
     assigned_to_dept = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL,related_name='department_complaints')
     images_count = models.PositiveIntegerField(default=0)
     upvotes_count = models.PositiveIntegerField(default=0)
@@ -155,6 +157,12 @@ class Complaint(models.Model):
     def get_image_count(self):
         return self.images.count()
     
+    def update_fake_confidence(self):
+        total = self.fake_confidences.aggregate(total=Sum('weight'))['total'] or 0.0
+        Complaint.objects.filter(pk=self.pk).update(fake_confidence=total)
+        self.fake_confidence = total
+        return total
+    
 
 class ComplaintImage(models.Model):
     complaint = models.ForeignKey(
@@ -193,3 +201,44 @@ class Upvote(models.Model):
 
     def __str__(self):
         return f"{self.user.username} upvoted Complaint ID {self.complaint.id} at {self.upvoted_at.strftime('%Y-%m-%d %H:%M:%S')}"  
+
+
+class Fake_Confidence(models.Model):
+    CITIZEN_WEIGHT = 0.01
+    FIELD_WORKER_WEIGHT = 1.0
+
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name='fake_confidences'
+    )
+    user = models.ForeignKey(
+        ParentUser,
+        on_delete=models.CASCADE,
+        related_name='fake_confidence_votes'
+    )
+    weight = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('complaint', 'user')
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.weight = self.resolve_weight_for_user(self.user)
+        super().save(*args, **kwargs)
+        self.complaint.update_fake_confidence()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        self.complaint.update_fake_confidence()
+
+    @staticmethod
+    def resolve_weight_for_user(user):
+        if Field_Worker.objects.filter(pk=user.pk).exists():
+            return Fake_Confidence.FIELD_WORKER_WEIGHT
+        return Fake_Confidence.CITIZEN_WEIGHT
+
+    def __str__(self):
+        return f"{self.user.username} flagged Complaint ID {self.complaint.id} ({self.weight})"
