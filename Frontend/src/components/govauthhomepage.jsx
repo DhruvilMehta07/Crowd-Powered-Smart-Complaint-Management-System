@@ -158,21 +158,10 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
 
       {complaint.fake_confidence !== undefined && (
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-red-600">Fake Probability</span>
-            <span className="text-sm text-gray-600">
-              {complaint.fake_confidence}%
-            </span>
-          </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-            <div
-              className="bg-red-600 h-full transition-all duration-500"
-              style={{
-                width: `${Math.min(100, Number(complaint.fake_confidence))}%`,
-              }}
-            />
-          </div>
+          <p className="text-sm">
+            <span className="font-medium text-red-600">No. of Reports:</span>{' '}
+            <span className="text-black">{complaint.fake_confidence}</span>
+          </p>
         </div>
       )}
 
@@ -302,9 +291,9 @@ const AssignModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20">
       <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Assign Complaint</h2>
+        <h2 className="text-xl text-center font-bold mb-4">Assign Complaint</h2>
         <p className="text-gray-600 mb-4">
           Select a field worker to assign this complaint:
         </p>
