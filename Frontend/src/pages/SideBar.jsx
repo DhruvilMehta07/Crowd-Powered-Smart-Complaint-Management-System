@@ -85,7 +85,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     latitude: '',
     longitude: '',
     location_type: 'manual',
-    file: null,
+    files: [],
   });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState([]);
@@ -282,7 +282,10 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   };
 
   const handleFileChange = (e) => {
-    setForm((prev) => ({ ...prev, file: e.target.files[0] }));
+    const selected = Array.from(e.target.files || []);
+    // Only keep images and limit to 4 (backend enforces max 4 but we can help in UI)
+    const imagesOnly = selected.filter((f) => f.type && f.type.startsWith('image/'));
+    setForm((prev) => ({ ...prev, files: imagesOnly.slice(0, 4) }));
   };
 
   const handleLocationMethodChange = (method) => {
@@ -349,9 +352,12 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       formData.append('assigned_to_dept', form.assigned_to_dept);
     }
 
-    // Add file if exists
-    if (form.file) {
-      formData.append('images', form.file);
+    // Add files if any
+    if (form.files && form.files.length > 0) {
+      // Append each selected file with the same field name 'images' so DRF parses them as a list
+      form.files.forEach((f) => {
+        formData.append('images', f);
+      });
     }
 
     // Debug: Log what we're sending
@@ -376,7 +382,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
         latitude: '',
         longitude: '',
         location_type: 'manual',
-        file: null,
+        files: [],
       });
       setLocationError('');
       onClose();
@@ -684,12 +690,17 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
               />
             </svg>
             <span className="text-gray-500 text-sm">
-              {form.file ? form.file.name : 'attach image or video...'}
+              {form.files && form.files.length > 0
+                ? form.files.length === 1
+                  ? form.files[0].name
+                  : `${form.files.length} images selected`
+                : 'attach up to 4 images...'}
             </span>
             <input
               id="file-upload"
               type="file"
-              accept="image/, video/"
+              accept="image/*"
+              multiple
               onChange={handleFileChange}
               className="hidden"
             />

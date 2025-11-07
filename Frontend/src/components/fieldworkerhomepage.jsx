@@ -49,6 +49,55 @@ const ComplaintCard = ({ complaint }) => {
     }
   };
 
+  const [images, setImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+
+  const getImageUrl = (imageData) => {
+    if (!imageData) return null;
+    if (typeof imageData === 'string') return imageData;
+    if (imageData.image_url) return imageData.image_url;
+    if (imageData.image) return imageData.image;
+    return null;
+  };
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      if (complaint.images && complaint.images.length > 0) {
+        setImages(complaint.images);
+        return;
+      }
+      try {
+        setLoadingImages(true);
+        const res = await api.get(`/complaints/${complaint.id}/images/`);
+        setImages(res.data || []);
+      } catch (err) {
+        console.error('Error fetching complaint images', err);
+      } finally {
+        setLoadingImages(false);
+      }
+    };
+
+    if (complaint.id) fetchImages();
+  }, [complaint.id, complaint.images]);
+
+  // keyboard navigation for modal
+  useEffect(() => {
+    if (!showImageModal) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        setSelectedImageIndex((i) => (i - 1 + images.length) % images.length);
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImageIndex((i) => (i + 1) % images.length);
+      } else if (e.key === 'Escape') {
+        setShowImageModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showImageModal, images.length]);
+
   return (
     <div className="bg-blue-50 p-6 rounded-xl border-2 border-indigo-200 hover:shadow-xl hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
@@ -68,9 +117,51 @@ const ComplaintCard = ({ complaint }) => {
 
       <p className="text-gray-800 text-base leading-relaxed mb-4">{complaint.content}</p>
 
+      {images.length > 0 && (
+        <div className="mb-4">
+          <div className="grid grid-cols-2 gap-2">
+            {images.slice(0, 4).map((image, index) => (
+              <div
+                key={image.id || index}
+                className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => { setSelectedImageIndex(index); setShowImageModal(true); }}
+              >
+                <img
+                  src={getImageUrl(image)}
+                  alt={`Complaint image ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=Image+Not+Found'; }}
+                />
+                {index === 3 && images.length > 4 && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">+{images.length - 4} more</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="text-sm text-gray-700 mb-4 bg-white px-3 py-2 rounded-lg inline-block border border-indigo-200">
         <span className="font-semibold">Assigned to:</span> {complaint.assigned_to?.name || complaint.assigned_to || 'Unassigned'}
       </div>
+
+      {showImageModal && selectedImageIndex !== null && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20" onClick={() => setShowImageModal(false)}>
+          <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto relative" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4">
+              <h3 className="text-lg font-semibold">Complaint Image</h3>
+              <button onClick={() => setShowImageModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+            <div className="p-4 flex items-center justify-center">
+              <button onClick={() => setSelectedImageIndex((i) => (i - 1 + images.length) % images.length)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 mr-4" aria-label="Previous image">‹</button>
+              <img src={getImageUrl(images[selectedImageIndex])} alt="Complaint detail" className="max-w-full max-h-96 object-contain" onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found'; }} />
+              <button onClick={() => setSelectedImageIndex((i) => (i + 1) % images.length)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 ml-4" aria-label="Next image">›</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-4 pt-4 border-t-2 border-indigo-200">
         <button className="flex items-center gap-2 text-gray-700 hover:text-indigo-600 hover:scale-110 transition-all duration-200">
@@ -167,8 +258,13 @@ const FieldWorkerHomepage = () => {
                 <p className="text-gray-500 mt-2">Try adjusting your search or check back later.</p>
               </div>
             )}
-
-            
+            {!loading && complaints.length > 0 && (
+              <div className="space-y-6">
+                {complaints.map((complaint) => (
+                  <ComplaintCard key={complaint.id} complaint={complaint} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

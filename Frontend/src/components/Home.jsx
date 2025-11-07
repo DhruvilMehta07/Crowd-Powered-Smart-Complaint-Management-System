@@ -88,7 +88,7 @@ const ImageIcon = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
-const Header = () => (
+const Header = ({ query, setQuery, onSearch }) => (
   <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
     <div className="flex-1 max-w-2xl mx-auto">
       <div className="relative">
@@ -96,6 +96,14 @@ const Header = () => (
         <input
           type="search"
           placeholder="Search for complaints, people, or keywords"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onSearch();
+            }
+          }}
           className="w-full pl-12 pr-4 py-3 border-2 border-indigo-200 rounded-full bg-indigo-50/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
         />
       </div>
@@ -114,7 +122,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
   const [images, setImages] = useState([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
   // Fetch images when component mounts
   useEffect(() => {
@@ -164,10 +172,34 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
     }
   };
 
-  const handleImageClick = (image) => {
-    setSelectedImage(image);
+  const handleImageClick = (index) => {
+    setSelectedImageIndex(index);
     setShowImageModal(true);
   };
+
+  // keyboard navigation for image modal
+  useEffect(() => {
+    if (!showImageModal) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        setSelectedImageIndex((prev) => {
+          if (prev === null) return 0;
+          return (prev - 1 + images.length) % images.length;
+        });
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImageIndex((prev) => {
+          if (prev === null) return 0;
+          return (prev + 1) % images.length;
+        });
+      } else if (e.key === 'Escape') {
+        setShowImageModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showImageModal, images.length]);
 
   const handleUpvote = async () => {
     if (!isAuthenticated) {
@@ -280,7 +312,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                 <div
                   key={image.id || index}
                   className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => handleImageClick(image)}
+                  onClick={() => handleImageClick(index)}
                 >
                   <img
                     src={getImageUrl(image)}
@@ -349,13 +381,13 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
       </div>
 
       {/* Image Modal */}
-      {showImageModal && selectedImage && (
+      {showImageModal && selectedImageIndex !== null && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
           onClick={() => setShowImageModal(false)}
         >
           <div
-            className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto"
+            className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-4">
@@ -367,9 +399,17 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                 ×
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-4 flex items-center justify-center">
+              <button
+                onClick={() => setSelectedImageIndex((i) => (i - 1 + images.length) % images.length)}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 mr-4"
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+
               <img
-                src={getImageUrl(selectedImage)}
+                src={getImageUrl(images[selectedImageIndex])}
                 alt="Complaint detail"
                 className="max-w-full max-h-96 object-contain"
                 onError={(e) => {
@@ -377,6 +417,14 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete }) => {
                     'https://via.placeholder.com/400x300?text=Image+Not+Found';
                 }}
               />
+
+              <button
+                onClick={() => setSelectedImageIndex((i) => (i + 1) % images.length)}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 ml-4"
+                aria-label="Next image"
+              >
+                ›
+              </button>
             </div>
           </div>
         </div>
@@ -393,6 +441,7 @@ const Homepage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [isRaiseOpen, setIsRaiseOpen] = useState(false);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     const checkAuthStatus = () => {
@@ -416,6 +465,23 @@ const Homepage = () => {
       window.removeEventListener('storage', checkAuthStatus);
     };
   }, []);
+
+  const searchComplaints = useCallback(async (q) => {
+    if (!q) {
+      return fetchComplaints();
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get(`/complaints/search/?q=${encodeURIComponent(q)}`);
+      setComplaints(response.data || []);
+    } catch (err) {
+      console.error('Search error', err);
+      setError('Search failed.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchComplaints]);
 
   const fetchComplaints = useCallback(async () => {
     try {
@@ -517,7 +583,7 @@ const Homepage = () => {
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
-      <Header />
+  <Header query={query} setQuery={setQuery} onSearch={() => searchComplaints(query)} />
 
       <div className="flex-1 flex">
         <div className="flex-1 flex justify-center px-1 py-1 ">

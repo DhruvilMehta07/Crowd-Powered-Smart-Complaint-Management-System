@@ -46,6 +46,55 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
     }
   };
 
+  const [images, setImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+
+  const getImageUrl = (imageData) => {
+    if (!imageData) return null;
+    if (typeof imageData === 'string') return imageData;
+    if (imageData.image_url) return imageData.image_url;
+    if (imageData.image) return imageData.image;
+    return null;
+  };
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      if (complaint.images && complaint.images.length > 0) {
+        setImages(complaint.images);
+        return;
+      }
+      try {
+        setLoadingImages(true);
+        const res = await api.get(`/complaints/${complaint.id}/images/`);
+        setImages(res.data || []);
+      } catch (err) {
+        console.error('Error fetching complaint images', err);
+      } finally {
+        setLoadingImages(false);
+      }
+    };
+
+    if (complaint.id) fetchImages();
+  }, [complaint.id, complaint.images]);
+
+  // keyboard navigation for modal
+  useEffect(() => {
+    if (!showImageModal) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        setSelectedImageIndex((i) => (i - 1 + images.length) % images.length);
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImageIndex((i) => (i + 1) % images.length);
+      } else if (e.key === 'Escape') {
+        setShowImageModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showImageModal, images.length]);
+
   return (
     <div className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
       <div className="flex items-center justify-between mb-4">
@@ -71,6 +120,54 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
       <p className="text-gray-600 text-base leading-relaxed mb-4">
         Address: {complaint.address}
       </p>
+
+      {images.length > 0 && (
+        <div className="mb-4">
+          <div className="grid grid-cols-2 gap-2">
+            {images.slice(0, 4).map((image, index) => (
+              <div
+                key={image.id || index}
+                className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => { setSelectedImageIndex(index); setShowImageModal(true); }}
+              >
+                <img
+                  src={getImageUrl(image)}
+                  alt={`Complaint image ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=Image+Not+Found'; }}
+                />
+                {index === 3 && images.length > 4 && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">+{images.length - 4} more</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loadingImages && (
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+        </div>
+      )}
+
+      {showImageModal && selectedImageIndex !== null && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20" onClick={() => setShowImageModal(false)}>
+          <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto relative" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4">
+              <h3 className="text-lg font-semibold">Complaint Image</h3>
+              <button onClick={() => setShowImageModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+            <div className="p-4 flex items-center justify-center">
+              <button onClick={() => setSelectedImageIndex((i) => (i - 1 + images.length) % images.length)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 mr-4" aria-label="Previous image">‹</button>
+              <img src={getImageUrl(images[selectedImageIndex])} alt="Complaint detail" className="max-w-full max-h-96 object-contain" onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found'; }} />
+              <button onClick={() => setSelectedImageIndex((i) => (i + 1) % images.length)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 ml-4" aria-label="Next image">›</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200">
