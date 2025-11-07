@@ -51,16 +51,7 @@ const ArrowUpIcon = ({ className = 'w-5 h-5', filled = false }) => (
   </svg>
 );
 
-const ReportIcon = ({ className = "w-5 h-5" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="currentColor"
-    viewBox="0 0 20 20"
-    className={className}
-  >
-    <path d="M3.75 2.75A.75.75 0 014.5 2h10a.75.75 0 01.6 1.2l-2.25 3L15.1 9.8a.75.75 0 01-.6 1.2H5.25v6.25a.75.75 0 01-1.5 0v-14.5z" />
-  </svg>
-);
+// Report uses a simple text button (no icon) — styled below where used
 
 const ChatBubbleIcon = ({ className = 'w-5 h-5' }) => (
   <svg
@@ -122,20 +113,27 @@ const Header = ({ query, setQuery, onSearch }) => (
   </header>
 );
 
-const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onReport }) => {
+const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onReport, reported = false }) => {
   const [isUpvoting, setIsUpvoting] = useState(false);
   const [localUpvotes, setLocalUpvotes] = useState(
-    complaint.upvote_count || complaint.upvotes || 0
+    // prefer serializer-provided `upvotes_count`, fall back to older fields
+    complaint.upvotes_count ?? complaint.upvote_count ?? (complaint.upvotes || 0)
   );
   const [userHasUpvoted, setUserHasUpvoted] = useState(
-    complaint.user_has_upvoted || false
+    // prefer serializer-provided `is_upvoted`, fall back to older fields
+    complaint.is_upvoted ?? complaint.user_has_upvoted ?? false
   );
   const [images, setImages] = useState([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [localReported, setLocalReported] = useState(false);
+  const [localReported, setLocalReported] = useState(reported);
   const [isReporting, setIsReporting] = useState(false);
+
+  // Keep localReported in sync if parent reported prop changes (e.g. persisted state)
+  useEffect(() => {
+    setLocalReported(Boolean(reported));
+  }, [reported]);
 
   // Fetch images when component mounts
   useEffect(() => {
@@ -391,34 +389,30 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onRepor
               }
               if (!onReport) return;
 
-              // optimistic UI for reporting: mirror upvote button behavior
               if (isReporting || localReported) return;
-              const prevReporting = isReporting;
               setIsReporting(true);
               try {
                 await onReport(complaint.id);
-                // mark reported locally
+                // parent will update persisted reportedIds; keep local too for immediate feedback
                 setLocalReported(true);
               } catch (err) {
                 console.error('Error reporting complaint', err);
-                // keep the small failure alert for visibility
                 alert('Failed to report complaint. Please try again.');
               } finally {
-                setIsReporting(prevReporting);
+                setIsReporting(false);
               }
             }}
             disabled={isReporting || localReported}
-            className={`flex items-center gap-2 transition-all ${
+            className={`px-3 py-1 rounded-md border transition-all text-sm font-semibold ${
               isReporting
-                ? 'text-gray-400 cursor-not-allowed'
+                ? 'bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-80'
                 : localReported
-                  ? 'text-red-600 hover:text-red-700'
-                  : 'text-gray-600 hover:text-red-600'
-            } hover:scale-105 transform font-semibold`}
-            title="Report complaint"
+                  ? 'bg-red-50 text-red-600 border-red-200 cursor-default'
+                  : 'bg-transparent text-gray-700 border-gray-200 hover:bg-red-50 hover:text-red-600'
+            }`}
+            title="Report as fake"
           >
-            <ReportIcon className={`w-5 h-5 ${isReporting ? 'animate-pulse' : ''} ${localReported ? 'text-red-600' : ''}`} />
-            <span className="text-sm">Report</span>
+            {isReporting ? 'Reporting...' : 'Report as Fake'}
           </button>
 
           {localReported && (
@@ -494,6 +488,17 @@ const Homepage = () => {
   const [isRaiseOpen, setIsRaiseOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [showReportToast, setShowReportToast] = useState(false);
+  // persist reported complaint ids for this user in localStorage so the "Report" button
+  // stays disabled after reporting (survives reloads)
+  const [reportedIds, setReportedIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem('reportedComplaints');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const checkAuthStatus = () => {
@@ -562,12 +567,31 @@ const Homepage = () => {
           complaint.id === complaintId
             ? {
                 ...complaint,
-                upvote_count:
-                  response.data.upvote_count ||
-                  response.data.upvotes ||
+                // prefer canonical serializer name `upvotes_count`; accept other shapes
+                upvotes_count:
+                  response.data.upvotes_count ??
+                  response.data.upvote_count ??
+                  response.data.upvotes ??
+                  response.data.likes_count ??
                   expectedUpvotes,
+                // keep old field for compatibility
+                upvote_count:
+                  response.data.upvotes_count ??
+                  response.data.upvote_count ??
+                  response.data.upvotes ??
+                  response.data.likes_count ??
+                  expectedUpvotes,
+                // user upvote boolean - prefer `is_upvoted` but accept older name
+                is_upvoted:
+                  response.data.is_upvoted !== undefined
+                    ? response.data.is_upvoted
+                    : response.data.user_has_upvoted !== undefined
+                    ? response.data.user_has_upvoted
+                    : expectedUpvotedStatus,
                 user_has_upvoted:
-                  response.data.user_has_upvoted !== undefined
+                  response.data.is_upvoted !== undefined
+                    ? response.data.is_upvoted
+                    : response.data.user_has_upvoted !== undefined
                     ? response.data.user_has_upvoted
                     : expectedUpvotedStatus,
               }
@@ -603,6 +627,16 @@ const Homepage = () => {
       await fetchComplaints();
       setShowReportToast(true);
       setTimeout(() => setShowReportToast(false), 2200);
+      // persist reported id locally so the same user cannot click report again
+      setReportedIds((prev) => {
+        try {
+          const next = prev.includes(complaintId) ? prev : [...prev, complaintId];
+          localStorage.setItem('reportedComplaints', JSON.stringify(next));
+          return next;
+        } catch (e) {
+          return prev;
+        }
+      });
     } catch (err) {
       console.error('Error reporting complaint:', err);
       throw err;
@@ -693,6 +727,7 @@ const Homepage = () => {
                       onDelete={handleDeleteComplaint}
                       onReport={handleReport}
                       isAuthenticated={isAuthenticated}
+                      reported={reportedIds.includes(complaint.id)}
                     />
                   ))
                 ) : (

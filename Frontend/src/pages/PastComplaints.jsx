@@ -2,16 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from '../utils/axiosConfig';
 
 
-const ReportIcon = ({ className = "w-5 h-5" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="currentColor"
-    viewBox="0 0 20 20"
-    className={className}
-  >
-    <path d="M3.75 2.75A.75.75 0 014.5 2h10a.75.75 0 01.6 1.2l-2.25 3L15.1 9.8a.75.75 0 01-.6 1.2H5.25v6.25a.75.75 0 01-1.5 0v-14.5z" />
-  </svg>
-);
+// Report will be a text button (no icon) for clarity
 
 
 export default function PastComplaints() {
@@ -21,7 +12,15 @@ export default function PastComplaints() {
     
   const [error, setError] = useState("");
   const [reportingId, setReportingId] = useState(null);
-  const [reportedIds, setReportedIds] = useState([]);
+  const [reportedIds, setReportedIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem('reportedComplaints');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [showReportToast, setShowReportToast] = useState(false);
 
   const fetchPastComplaints = async () => {
@@ -73,8 +72,16 @@ export default function PastComplaints() {
     try {
       setReportingId(complaintId);
       await api.post(`/complaints/${complaintId}/fake-confidence/`);
-      // mark locally so UI reflects reported without waiting for full refetch
-      setReportedIds((prev) => (prev.includes(complaintId) ? prev : [...prev, complaintId]));
+      // persist reported id locally so this user cannot report again
+      setReportedIds((prev) => {
+        try {
+          const next = prev.includes(complaintId) ? prev : [...prev, complaintId];
+          localStorage.setItem('reportedComplaints', JSON.stringify(next));
+          return next;
+        } catch (e) {
+          return prev;
+        }
+      });
       // Refresh the complaints to get updated fake confidence data
       await fetchPastComplaints();
       // show transient success popup
@@ -185,17 +192,16 @@ export default function PastComplaints() {
                       <button
                         onClick={() => handleMarkFake(complaint.id)}
                         disabled={isReportingNow || isReported}
-                        className={`flex items-center gap-2 transition-all ${
+                        className={`px-3 py-1 rounded-md border text-sm font-semibold transition-all ${
                           isReportingNow
-                            ? 'text-gray-400 cursor-not-allowed'
+                            ? 'bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-80'
                             : isReported
-                              ? 'text-red-600 hover:text-red-700'
-                              : 'text-gray-600 hover:text-red-600'
-                        } hover:scale-105 transform font-semibold`}
+                              ? 'bg-red-50 text-red-600 border-red-200 cursor-default'
+                              : 'bg-transparent text-gray-700 border-gray-200 hover:bg-red-50 hover:text-red-600'
+                        }`}
                         title="Mark as fake"
                       >
-                        <ReportIcon className={`w-5 h-5 ${isReportingNow ? 'animate-pulse' : ''} ${isReported ? 'text-red-600' : ''}`} />
-                        <span className="text-sm">{isReported ? 'Reported' : 'Report'}</span>
+                        {isReportingNow ? 'Reporting...' : isReported ? 'Reported' : 'Report as Fake'}
                       </button>
                     );
                   })()}
