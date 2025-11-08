@@ -52,7 +52,15 @@ class Complaint(models.Model):
     upvotes_count = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, default='Pending')
     assigned_to_fieldworker = models.ForeignKey(Field_Worker, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_complaints')
-
+    current_resolution = models.ForeignKey(
+        'Resolution',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='current_for_complaint'
+    )
+    resolution_approved_at = models.DateTimeField(blank=True, null=True)
+    resolution_deadline = models.DateTimeField(blank=True, null=True, help_text="Deadline for resolution submission")
     class Meta:
         ordering = ['-posted_at']
 
@@ -191,38 +199,6 @@ class ComplaintImage(models.Model):
     def __str__(self):
         return f"Image for Complaint ID {self.complaint.id} uploaded at {self.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')}"
     
-class ResolutionImage(models.Model):
-    complaint=models.ForeignKey(
-        Complaint,
-        on_delete=models.CASCADE,
-        related_name='resolution_images'
-    )
-    uploaded_at=models.DateTimeField(auto_now_add=True)
-    image=CloudinaryField('image',folder='resolutions/')
-    submitted_by=models.ForeignKey(Field_Worker,on_delete=models.CASCADE)
-    approved=models.BooleanField(default=False)
-
-    class Meta:
-        ordering = ['-uploaded_at']
-
-    def __str__(self):
-        return f"Resolution Image for Complaint ID {self.complaint.id} uploaded at {self.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')} by {self.submitted_by.username}"
-    
-    def clean(self):
-        if not Field_Worker.objects.filter(pk=self.submitted_by.pk).exists():
-            raise ValidationError("Only Field Workers can submit resolution images.")
-
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-        self.complaint.status='Pending Approval'
-        self.complaint.save(update_fields=['status'])
-        complaint_owner=Citizen.objects.filter(pk=self.complaint.posted_by.pk).first()
-        if complaint_owner:
-            Notification.objects.create(
-                user=complaint_owner,
-                message=f"A resolution has been submitted for your complaint #{self.complaint.id}. Please review and approve.",
-            )
 
 class Upvote(models.Model):
     user = models.ForeignKey(ParentUser, on_delete=models.CASCADE)
@@ -276,3 +252,64 @@ class Fake_Confidence(models.Model):
 
     def __str__(self):
         return f"{self.user.username} flagged Complaint ID {self.complaint.id} ({self.weight})"
+
+
+class Resolution(models.Model):
+    complaint = models.ForeignKey(
+        Complaint,on_delete=models.CASCADE,related_name='resolutions'
+    )
+    field_worker = models.ForeignKey(
+        Field_Worker,on_delete=models.CASCADE,related_name='resolution_submitted_by'
+    )
+    description = models.TextField(help_text="Description of the resolution work done")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default='pending_approval')
+    citizen_feedback = models.TextField(blank=True, null=True)
+    citizen_responded_at = models.DateTimeField(blank=True, null=True)
+    auto_approve_at = models.DateTimeField(blank=True, null=True, help_text="Auto-approve after this time if no citizen response")
+    
+    class Meta:
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"Resolution for Complaint ID {self.complaint.id} by {self.field_worker.username} at {self.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+class ResolutionImage(models.Model):
+    resolution = models.ForeignKey(
+        Resolution,
+        on_delete=models.CASCADE,
+        related_name='images', null=True, blank=True
+    )
+    image = CloudinaryField('image', folder='resolutions/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Resolution Image for Resolution ID {self.resolution.id} uploaded at {self.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+    def clean(self):
+        if self.resolution.images.count() >= 5 and not self.pk:
+            raise ValidationError("A resolution can have a maximum of 5 images.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+        
+        # Update complaint status to pending approval when resolution image is added
+        complaint = self.resolution.complaint
+        if complaint.status != 'Pending Approval':
+            complaint.status = 'Pending Approval'
+            complaint.current_resolution = self.resolution
+            complaint.save(update_fields=['status', 'current_resolution'])
+        
+        # Notify citizen
+        complaint_owner = Citizen.objects.filter(pk=complaint.posted_by.pk).first()
+        if complaint_owner:
+            Notification.objects.create(
+                user=complaint_owner,
+                message=f"A resolution has been submitted for your complaint #{complaint.id}. Please review and approve.",
+                link=f"/complaints/{complaint.id}/resolution/"
+            )

@@ -1,0 +1,18 @@
+# requirements.txt - AI Analysis Section
+# =============================================
+# LangChain & LLM Components
+langchain>=0.1.0
+langchain-community>=0.0.1
+ollama>=0.1.0
+
+# Computer Vision & Image Processing
+opencv-python>=4.8.0
+pillow>=10.0.0
+ultralytics>=8.0.0  # For YOLO
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Additional Utilities
+scipy>=1.10.0
+scikit-image>=0.21.0

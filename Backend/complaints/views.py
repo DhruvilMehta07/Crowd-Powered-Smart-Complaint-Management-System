@@ -8,12 +8,14 @@ import re, requests, json
 from django.db.models import Q
 
 from users.models import Government_Authority, Department,Field_Worker
-from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence,ResolutionImage,Notification
+from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence,Notification,Resolution
 from .serializers import (ComplaintSerializer, ComplaintCreateSerializer, 
                           UpvoteSerializer,FieldWorkerSerializer,ComplaintImageSerializer,
-                          FakeConfidenceSerializer,ResolutionImageSerializer)
+                          FakeConfidenceSerializer,
+                          ResolutionSerializer,CitizenResolutionResponseSerializer,ResolutionCreateSerializer)
 from CPCMS import settings
 from django.utils import timezone
+from datetime import timedelta
 
 class ComplaintListView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -426,6 +428,7 @@ class FakeConfidenceView(APIView):
         )
 
 
+
 class SubmitResolutionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -434,54 +437,216 @@ class SubmitResolutionView(APIView):
         complaint = get_object_or_404(Complaint, id=complaint_id)
 
         try:
-            fw = Field_Worker.objects.get(id=request.user.id)
+            field_worker = Field_Worker.objects.get(id=request.user.id)
         except Field_Worker.DoesNotExist:
-            return Response({"error": "Only field workers can submit resolution images."}, status=status.HTTP_403_FORBIDDEN)
-
-        if complaint.assigned_to_fieldworker is None or complaint.assigned_to_fieldworker.id != fw.id:
-            return Response({"error": "You are not assigned to this complaint."}, status=status.HTTP_403_FORBIDDEN)
-
-        image = request.data.get('image')
-        if not image:
-            return Response({"error": "Image is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        resolution = ResolutionImage.objects.create(complaint=complaint, image=image, submitted_by=fw)
-
-        serializer = ResolutionImageSerializer(resolution, context={'request': request})
-        return Response({"message": "Resolution submitted, awaiting citizen approval.", "resolution": serializer.data}, status=status.HTTP_201_CREATED)
-
-
-class ApproveResolutionView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, complaint_id, resolution_id=None):
-        complaint = get_object_or_404(Complaint, id=complaint_id)
-
-        if not complaint.posted_by or complaint.posted_by.id != request.user.id:
-            return Response({"error": "Only the complaint owner can approve the resolution."}, status=status.HTTP_403_FORBIDDEN)
-
-    
-        if resolution_id:
-            resolution = get_object_or_404(ResolutionImage, id=resolution_id, complaint=complaint)
-        else:
-            resolution = complaint.resolution_images.order_by('-submitted_at').first()
-            if not resolution:
-                return Response({"error": "No resolution to approve."}, status=status.HTTP_404_NOT_FOUND)
-
-        resolution.approved = True
-        resolution.approved_at = timezone.now()
-        resolution.save(update_fields=['approved', 'approved_at'])
-
-        complaint.status = 'Completed'
-        complaint.save(update_fields=['status'])
-
-        fw=resolution.submitted_by
-        if fw:
-             Notification.objects.create(
-                user=fw,
-                message=f"Your resolution for complaint #{complaint.id} was approved by the citizen. Complaint marked completed.",
-                link=f"/complaints/{complaint.id}/",
+            return Response(
+                {"error": "Only field workers can submit resolutions."},
+                status=status.HTTP_403_FORBIDDEN
             )
 
-        return Response({"message": "Resolution approved. Complaint completed.", "complaint_id": complaint.id}, status=status.HTTP_200_OK)
+        # Check if field worker is assigned to this complaint
+        if complaint.assigned_to_fieldworker != field_worker:
+            return Response(
+                {"error": "You are not assigned to this complaint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
+        # Check if there's already a pending resolution
+        if complaint.resolutions.filter(status='pending_approval').exists():
+            return Response(
+                {"error": "A resolution is already pending approval for this complaint."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = ResolutionCreateSerializer(
+            data=request.data,
+            context={
+                'complaint': complaint,
+                'field_worker': field_worker
+            }
+        )
+        
+        if serializer.is_valid():
+            resolution = serializer.save()
+            
+            # Update complaint status and set current resolution
+            complaint.status = 'Pending Approval'
+            complaint.current_resolution = resolution
+            complaint.save()
+            
+            # Notify citizen
+            if complaint.posted_by:
+                Notification.objects.create(
+                    user=complaint.posted_by,
+                    message=f"A resolution has been submitted for your complaint #{complaint.id}. Please review within 3 days.",
+                    link=f"/complaints/{complaint.id}/resolution/"
+                )
+            
+            # Notify government authority
+            if complaint.assigned_to_dept:
+                gov_users = Government_Authority.objects.filter(
+                    assigned_department=complaint.assigned_to_dept
+                )
+                for gov_user in gov_users:
+                    Notification.objects.create(
+                        user=gov_user,
+                        message=f"Field worker {field_worker.username} submitted a resolution for complaint #{complaint.id}.",
+                        link=f"/complaints/{complaint.id}/"
+                    )
+            
+            response_serializer = ResolutionSerializer(resolution)
+            return Response({
+                "message": "Resolution submitted successfully. Waiting for citizen approval.",
+                "resolution": response_serializer.data
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CitizenResolutionResponseView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, complaint_id, resolution_id):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+        resolution = get_object_or_404(Resolution, id=resolution_id, complaint=complaint)
+
+        # Check if user is the complaint owner
+        if not complaint.posted_by or complaint.posted_by.id != request.user.id:
+            return Response(
+                {"error": "Only the complaint owner can respond to resolutions."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Check if resolution is still pending
+        if resolution.status != 'pending_approval':
+            return Response(
+                {"error": "This resolution has already been processed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = CitizenResolutionResponseSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        approved = serializer.validated_data['approved']
+        feedback = serializer.validated_data.get('feedback', '')
+
+        resolution.citizen_feedback = feedback
+        resolution.citizen_responded_at = timezone.now()
+
+        if approved:
+            # Citizen approved the resolution
+            resolution.status = 'approved'
+            complaint.status = 'Completed'
+            complaint.resolution_approved_at = timezone.now()
+            
+            # Notify field worker
+            Notification.objects.create(
+                user=resolution.field_worker,
+                message=f"Your resolution for complaint #{complaint.id} was approved by the citizen!",
+                link=f"/complaints/{complaint.id}/"
+            )
+            
+            message = "Resolution approved. Complaint marked as completed."
+            
+        else:
+            # Citizen rejected the resolution
+            resolution.status = 'rejected'
+            complaint.status = 'Escalated'
+            complaint.assigned_to_fieldworker = None  # Unassign field worker
+            complaint.current_resolution = None
+            
+            # Notify government authority
+            if complaint.assigned_to_dept:
+                gov_users = Government_Authority.objects.filter(
+                    assigned_department=complaint.assigned_to_dept
+                )
+                for gov_user in gov_users:
+                    Notification.objects.create(
+                        user=gov_user,
+                        message=f"Resolution for complaint #{complaint.id} was rejected by citizen. Please reassign.",
+                        link=f"/complaints/{complaint.id}/"
+                    )
+            
+            message = "Resolution rejected. Complaint escalated to government authority for reassignment."
+
+        resolution.save()
+        complaint.save()
+
+        return Response({
+            "message": message,
+            "complaint_status": complaint.status
+        }, status=status.HTTP_200_OK)
+
+class AutoApproveResolutionsView(APIView):
+    """View to auto-approve resolutions after 3 days (can be called via cron job)"""
+    permission_classes = [permissions.IsAdminUser]  # Only admin can trigger manually
+
+    def post(self, request):
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Find resolutions that are pending and past auto-approval time
+        expired_resolutions = Resolution.objects.filter(
+            status='pending_approval',
+            auto_approve_at__lte=now
+        )
+        
+        auto_approved_count = 0
+        
+        for resolution in expired_resolutions:
+            resolution.status = 'auto_approved'
+            resolution.citizen_feedback = "Auto-approved after 3 days of no response."
+            resolution.citizen_responded_at = now
+            resolution.save()
+            
+            # Update complaint
+            complaint = resolution.complaint
+            complaint.status = 'Completed'
+            complaint.resolution_approved_at = now
+            complaint.save()
+            
+            # Notify field worker
+            Notification.objects.create(
+                user=resolution.field_worker,
+                message=f"Your resolution for complaint #{complaint.id} was auto-approved (3 days no response from citizen).",
+                link=f"/complaints/{complaint.id}/"
+            )
+            
+            auto_approved_count += 1
+        
+        return Response({
+            "message": f"Auto-approved {auto_approved_count} resolutions.",
+            "auto_approved_count": auto_approved_count
+        }, status=status.HTTP_200_OK)
+
+class ComplaintResolutionView(APIView):
+    """Get resolution details for a complaint"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, complaint_id):
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+        dept = complaint.assigned_to_dept
+        gov_auth = Government_Authority.objects.filter(assigned_department=dept)
+        # Check if user has permission to view this complaint's resolutions
+        user_can_view = (
+            complaint.posted_by == request.user or  # Complaint owner
+            complaint.assigned_to_fieldworker == request.user or  # Assigned field worker
+            request.user in gov_auth # Department gov user
+        )
+        if(complaint.status=='Resolved'):
+            user_can_view=True
+        
+        if not user_can_view:
+            return Response(
+                {"error": "You don't have permission to view resolutions for this complaint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        resolutions = complaint.resolutions.all()
+        serializer = ResolutionSerializer(resolutions, many=True)
+        
+        return Response({
+            "complaint_id": complaint.id,
+            "complaint_status": complaint.status,
+            "resolutions": serializer.data
+        }, status=status.HTTP_200_OK)
