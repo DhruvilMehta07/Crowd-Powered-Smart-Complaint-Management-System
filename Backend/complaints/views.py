@@ -231,8 +231,9 @@ class GovernmentHomePageView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+    
             complaints = Complaint.objects.filter(
-                status='Pending', 
+                status__in=['Pending', 'Escalated'], 
                 assigned_to_dept=user_department
             )
             

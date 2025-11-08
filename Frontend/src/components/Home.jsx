@@ -113,11 +113,20 @@ const Header = ({ query, setQuery, onSearch }) => (
   </header>
 );
 
-const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onReport, reported = false }) => {
+const ComplaintCard = ({
+  complaint,
+  onUpvote,
+  isAuthenticated,
+  onDelete,
+  onReport,
+  reported = false,
+}) => {
   const [isUpvoting, setIsUpvoting] = useState(false);
   const [localUpvotes, setLocalUpvotes] = useState(
     // prefer serializer-provided `upvotes_count`, fall back to older fields
-    complaint.upvotes_count ?? complaint.upvote_count ?? (complaint.upvotes || 0)
+    complaint.upvotes_count ??
+      complaint.upvote_count ??
+      (complaint.upvotes || 0)
   );
   const [userHasUpvoted, setUserHasUpvoted] = useState(
     // prefer serializer-provided `is_upvoted`, fall back to older fields
@@ -363,7 +372,7 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onRepor
           </span>
         </div>
 
-  <div className="flex items-center gap-10 pt-4 border-t-2 border-indigo-100">
+        <div className="flex items-center gap-10 pt-4 border-t-2 border-indigo-100">
           <button
             onClick={handleUpvote}
             disabled={isUpvoting}
@@ -416,7 +425,9 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onRepor
           </button>
 
           {localReported && (
-            <span className="ml-2 text-sm text-red-600 font-semibold">Reported</span>
+            <span className="ml-2 text-sm text-red-600 font-semibold">
+              Reported
+            </span>
           )}
         </div>
       </div>
@@ -442,7 +453,11 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onRepor
             </div>
             <div className="p-4 flex items-center justify-center">
               <button
-                onClick={() => setSelectedImageIndex((i) => (i - 1 + images.length) % images.length)}
+                onClick={() =>
+                  setSelectedImageIndex(
+                    (i) => (i - 1 + images.length) % images.length
+                  )
+                }
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 mr-4"
                 aria-label="Previous image"
               >
@@ -460,7 +475,9 @@ const ComplaintCard = ({ complaint, onUpvote, isAuthenticated, onDelete, onRepor
               />
 
               <button
-                onClick={() => setSelectedImageIndex((i) => (i + 1) % images.length)}
+                onClick={() =>
+                  setSelectedImageIndex((i) => (i + 1) % images.length)
+                }
                 className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 ml-4"
                 aria-label="Next image"
               >
@@ -523,7 +540,6 @@ const Homepage = () => {
     };
   }, []);
 
-  
   const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
@@ -537,23 +553,28 @@ const Homepage = () => {
       setLoading(false);
     }
   }, []);
-  
-  const searchComplaints = useCallback(async (q) => {
-    if (!q) {
-      return fetchComplaints();
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get(`/complaints/search/?q=${encodeURIComponent(q)}`);
-      setComplaints(response.data || []);
-    } catch (err) {
-      console.error('Search error', err);
-      setError('Search failed.');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchComplaints]);
+
+  const searchComplaints = useCallback(
+    async (q) => {
+      if (!q) {
+        return fetchComplaints();
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get(
+          `/complaints/search/?q=${encodeURIComponent(q)}`
+        );
+        setComplaints(response.data || []);
+      } catch (err) {
+        console.error('Search error', err);
+        setError('Search failed.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchComplaints]
+  );
   const handleUpvote = async (
     complaintId,
     expectedUpvotedStatus,
@@ -586,14 +607,14 @@ const Homepage = () => {
                   response.data.is_upvoted !== undefined
                     ? response.data.is_upvoted
                     : response.data.user_has_upvoted !== undefined
-                    ? response.data.user_has_upvoted
-                    : expectedUpvotedStatus,
+                      ? response.data.user_has_upvoted
+                      : expectedUpvotedStatus,
                 user_has_upvoted:
                   response.data.is_upvoted !== undefined
                     ? response.data.is_upvoted
                     : response.data.user_has_upvoted !== undefined
-                    ? response.data.user_has_upvoted
-                    : expectedUpvotedStatus,
+                      ? response.data.user_has_upvoted
+                      : expectedUpvotedStatus,
               }
             : complaint
         )
@@ -630,7 +651,9 @@ const Homepage = () => {
       // persist reported id locally so the same user cannot click report again
       setReportedIds((prev) => {
         try {
-          const next = prev.includes(complaintId) ? prev : [...prev, complaintId];
+          const next = prev.includes(complaintId)
+            ? prev
+            : [...prev, complaintId];
           localStorage.setItem('reportedComplaints', JSON.stringify(next));
           return next;
         } catch (e) {
@@ -685,7 +708,11 @@ const Homepage = () => {
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
-  <Header query={query} setQuery={setQuery} onSearch={() => searchComplaints(query)} />
+      <Header
+        query={query}
+        setQuery={setQuery}
+        onSearch={() => searchComplaints(query)}
+      />
 
       {showReportToast && (
         <div className="fixed top-5 right-5 z-50">
