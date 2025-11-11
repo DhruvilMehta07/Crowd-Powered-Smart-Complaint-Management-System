@@ -390,39 +390,40 @@ const ComplaintCard = ({
             <span>{formatUpvotes(localUpvotes)}</span>
           </button>
 
-          <button
-            onClick={async () => {
-              if (!isAuthenticated) {
-                alert('Please login to report complaints.');
-                return;
-              }
-              if (!onReport) return;
+          {/* Don't render Report button if this user already reported this complaint */}
+          {!localReported && (
+            <button
+              onClick={async () => {
+                if (!isAuthenticated) {
+                  alert('Please login to report complaints.');
+                  return;
+                }
+                if (!onReport) return;
 
-              if (isReporting || localReported) return;
-              setIsReporting(true);
-              try {
-                await onReport(complaint.id);
-                // parent will update persisted reportedIds; keep local too for immediate feedback
-                setLocalReported(true);
-              } catch (err) {
-                console.error('Error reporting complaint', err);
-                alert('Failed to report complaint. Please try again.');
-              } finally {
-                setIsReporting(false);
-              }
-            }}
-            disabled={isReporting || localReported}
-            className={`px-3 py-1 rounded-md border transition-all text-sm font-semibold ${
-              isReporting
-                ? 'bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-80'
-                : localReported
-                  ? 'bg-red-50 text-red-600 border-red-200 cursor-default'
+                if (isReporting) return;
+                setIsReporting(true);
+                try {
+                  await onReport(complaint.id);
+                  // parent will update persisted reportedIds; keep local too for immediate feedback
+                  setLocalReported(true);
+                } catch (err) {
+                  console.error('Error reporting complaint', err);
+                  alert('Failed to report complaint. Please try again.');
+                } finally {
+                  setIsReporting(false);
+                }
+              }}
+              disabled={isReporting}
+              className={`px-3 py-1 rounded-md border transition-all text-sm font-semibold ${
+                isReporting
+                  ? 'bg-red-100 text-red-500 border-red-200 cursor-not-allowed opacity-80'
                   : 'bg-transparent text-gray-700 border-gray-200 hover:bg-red-50 hover:text-red-600'
-            }`}
-            title="Report as fake"
-          >
-            {isReporting ? 'Reporting...' : 'Report as Fake'}
-          </button>
+              }`}
+              title="Report as fake"
+            >
+              {isReporting ? 'Reporting...' : 'Report as Fake'}
+            </button>
+          )}
 
           {localReported && (
             <span className="ml-2 text-sm text-red-600 font-semibold">
