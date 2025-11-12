@@ -469,7 +469,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
           {/* location method selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
-              location method
+              Location method
             </label>
             <div className="flex gap-2">
               <button
@@ -478,7 +478,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                 disabled={isGettingLocation}
                 className={`flex-1 py-2 px-3 rounded-lg border transition ${
                   form.location_type === 'gps'
-                    ? 'bg-blue-100 border-blue-500 text-blue-700'
+                    ? 'bg-[#4B687A] text-white'
                     : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
                 } ${isGettingLocation ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
@@ -489,7 +489,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                 onClick={() => handleLocationMethodChange('manual')}
                 className={`flex-1 py-2 px-3 rounded-lg border transition ${
                   form.location_type === 'manual'
-                    ? 'bg-blue-100 border-blue-500 text-blue-700'
+                    ? 'bg-[#4B687A] text-white'
                     : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
                 }`}
               >
@@ -505,19 +505,19 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
           {/* location input based on method */}
           {form.location_type === 'gps' ? (
             <div className="space-y-3">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800 font-medium mb-2">
+              <div className="bg-[#4B687A] rounded-lg p-3">
+                <p className="text-sm text-white font-medium mb-2">
                   📍 GPS Location Detected
                 </p>
                 {form.latitude && form.longitude ? (
-                  <div className="text-xs text-blue-700 space-y-2">
+                  <div className="text-xs text-white space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="font-medium">Latitude:</span>{' '}
                         {form.latitude}
                       </div>
                       <div>
-                        <span className="font-medium">Longitude:</span>{' '}
+                        <span className="font-medium">Longitude:</span>{''}
                         {form.longitude}
                       </div>
                     </div>
@@ -526,8 +526,8 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                     {form.address &&
                       form.address !==
                         'Fetching address from MapmyIndia...' && (
-                        <div className="mt-3 p-2 bg-white rounded border border-green-200">
-                          <div className="font-medium text-green-700 mb-1">
+                        <div className="mt-3 p-2 bg-white rounded border border-gray-200">
+                          <div className="font-medium text-black mb-1">
                             Address Found:
                           </div>
                           <div className="text-gray-700 text-sm">
@@ -535,9 +535,9 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                           </div>
 
                           {form.pincode && (
-                            <div className="flex items-center mt-2 p-1 bg-green-50 rounded">
+                            <div className="flex items-center mt-2 p-1 bg-gray-100 rounded">
                               <svg
-                                className="w-4 h-4 text-green-600 mr-1"
+                                className="w-4 h-4 text-gray-800 mr-1"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -555,7 +555,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                 />
                               </svg>
-                              <span className="text-green-700 font-medium">
+                              <span className="text-gray-800 font-medium">
                                 Pincode: {form.pincode}
                               </span>
                             </div>
@@ -566,8 +566,8 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                     {/* Show loading state */}
                     {form.address === 'Fetching address from MapmyIndia...' && (
                       <div className="flex items-center justify-center p-3">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                        <span className="ml-2 text-blue-600">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                        <span className="ml-2 text-white">
                           Fetching address details...
                         </span>
                       </div>
@@ -592,7 +592,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                                 }));
                               }
                             }}
-                            className="text-blue-600 hover:text-blue-800 underline"
+                            className="text-white hover:text-gray-300 underline"
                           >
                             Edit address
                           </button>
@@ -645,7 +645,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                 required
               />
               {form.pincode && (
-                <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded px-3 py-1">
+                <div className="text-sm text-gray-800 bg-gray-100 rounded px-3 py-1 font-medium">
                   extracted pincode: <strong>{form.pincode}</strong>
                 </div>
               )}
@@ -713,7 +713,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
               departmentsLoading ||
               (form.location_type === 'gps' && !form.latitude)
             }
-            className="bg-[#4B687A] w-full text-white py-3 rounded-lg hover:bg-[#4B687AB5] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="bg-[#4B687A] w-full text-white py-3 rounded-lg hover:bg-[#3C5260] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {loading ? 'submitting...' : 'submit complaint'}
           </button>
@@ -770,11 +770,12 @@ export default function Sidebar({}) {
       'flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium transition-all duration-200';
 
     if (pathname === path) {
-      return `${base} bg-blue-700 text-white shadow-md hover:shadow-lg hover:bg-blue-800`;
+      // active background: #4B687A, active hover: #3C5260
+      return `${base} bg-[#4B687A] text-white shadow-md hover:shadow-lg hover:bg-[#3C5260]`;
     }
 
     // Soft glowing shadow on hover for inactive links
-    return `${base} text-gray-700 hover:bg-blue-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px]`;
+    return `${base} text-gray-700 hover:bg-[#EFEFEF] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px]`;
   };
 
   const CitizenSidebar = () => {
@@ -782,9 +783,9 @@ export default function Sidebar({}) {
       <div className="sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15">
         <button
           onClick={handleOpenRaiseComplaint}
-          className="flex items-center gap-3 bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl hover:bg-blue-900 transition-colors duration-300 mb-6"
+          className="flex items-center gap-3 bg-[#4B687A] text-white font-semibold py-3 px-4 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 mb-6"
         >
-          <PlusCircleIcon className="w-6 h-7" />
+          <PlusCircleIcon className="w-6 h-9" />
           Raise Complaint
         </button>
 
@@ -926,7 +927,7 @@ export default function Sidebar({}) {
 
   return (
     <>
-      <aside className="w-80 p-4 hidden md:block border-r-3 border-indigo-400 h-screen sticky top-0 overflow-auto">
+      <aside className="bg-white w-80 p-4 hidden md:block border-r-3 border-gray-400 h-screen sticky top-0 overflow-auto">
         {routing()}
 
         {isRaiseModalOpen &&

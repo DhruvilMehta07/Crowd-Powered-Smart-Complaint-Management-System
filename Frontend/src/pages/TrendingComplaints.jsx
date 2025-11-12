@@ -107,27 +107,27 @@ export default function TrendingComplaints({
               <LogoutIcon className="w-4 h-4" />
               Logout
             </button>
-          ) : (
+            ) : (
             <button
               onClick={handleLogin}
-              className="bg-blue-700 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-800 transition-colors duration-300 shadow-lg"
+              className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
             >
               Login / SignUp
             </button>
           )}
         </div>
-        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-indigo-400">
-          <h3 className="font-bold text-xl text-center mb-4 text-indigo-900">
+        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
+          <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
             Work in Progress
           </h3>
           <div className="space-y-4">
             {trendingComplaints.map((item, index) => (
               <div
                 key={index}
-                className="text-sm hover:bg-indigo-50 p-3 rounded-lg transition-all cursor-pointer"
+                className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
               >
                 <p className="text-gray-700">{item.text}</p>
-                <p className="font-bold text-indigo-600 mt-1">{item.upvotes}</p>
+                <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
               </div>
             ))}
           </div>
@@ -184,17 +184,17 @@ export default function TrendingComplaints({
               <LogoutIcon className="w-4 h-4" />
               Logout
             </button>
-          ) : (
-            <button
-              onClick={handleLogin}
-              className="bg-blue-700 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-800 transition-colors duration-300 shadow-lg"
-            >
-              Login / SignUp
-            </button>
-          )}
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
+              >
+                Login / SignUp
+              </button>
+            )}
         </div>
-        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-indigo-400">
-          <h3 className="font-bold text-xl text-center mb-4 text-indigo-900">
+        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
+          <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
             Trending Complaints
           </h3>
           <div className="space-y-4">
@@ -208,10 +208,10 @@ export default function TrendingComplaints({
               trendingComplaints.map((item) => (
                 <div
                   key={item.id}
-                  className="text-sm hover:bg-indigo-50 p-3 rounded-lg transition-all cursor-pointer"
+                  className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
                 >
                   <p className="text-gray-700">{item.text}</p>
-                  <p className="font-bold text-indigo-600 mt-1">{item.upvotes}</p>
+                  <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
                 </div>
               ))
             )}
@@ -236,7 +236,7 @@ export default function TrendingComplaints({
   };
 
   return (
-    <aside className="w-80 p-4 bg-white hidden md:block border-l-3 border-indigo-400 h-screen sticky top-0 overflow-auto">
+    <aside className="w-80 p-4 bg-white hidden md:block border-l-3 border-gray-400 h-screen sticky top-0 overflow-auto">
       {Routing()}
     </aside>
   );

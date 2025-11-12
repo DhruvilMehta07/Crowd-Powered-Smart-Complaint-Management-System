@@ -359,7 +359,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
 
   // JSX Layout from your styled (second) file
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#4B687A] via-[#4B687A] to-[#91AABA] flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#3B4C57] via-[#4B687A] to-[#A1B3BD] flex items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
       <div className="absolute top-0 right-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-[#4B687A] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
