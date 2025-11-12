@@ -35,11 +35,11 @@ const FilterIcon = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
-const UserIcon = ({ className = 'w-12 h-12' }) => (
+const UserIcon = ({ className = 'w-12 h-12', color = '#4B687A' }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
-    fill="currentColor"
+    fill={color}
     className={className}
   >
     <path
@@ -50,20 +50,6 @@ const UserIcon = ({ className = 'w-12 h-12' }) => (
   </svg>
 );
 
-const ThreeDotsIcon = ({ className = 'w-5 h-5' }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-    className={className}
-  >
-    <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
-  </svg>
-);
-
-// New/Modified Icons based on the second snippet
-
-/* Removed upvote/comment/share icons and logic as requested. */
 
 const ComplaintCard = ({ complaint, onAssignClick }) => {
   const formatDate = (dateString) => {
@@ -129,7 +115,7 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
   }, [showImageModal, images.length]);
 
   return (
-    <div className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
+    <div className="bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full p-1 text-indigo-600">
@@ -146,9 +132,7 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
             </p>
           </div>
         </div>
-        <button className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-all duration-200">
-          <ThreeDotsIcon />
-        </button>
+      
       </div>
 
       <p className="text-lg text-gray-800 mb-1">{complaint.content}</p>
@@ -259,8 +243,8 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
       )}
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200">
-          <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
+        <div className="text-sm text-gray-600 mb-4 bg-gray-100 px-3 py-2 rounded-lg inline-block border border-gray-200">
+          <span className="font-semibold text-black">Assigned to:</span>{' '}
           <span className="text-gray-800">
             {complaint.assignedTo ||
               complaint.assigned_to_fieldworker ||
@@ -270,7 +254,7 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
         </div>
         <button
           onClick={() => onAssignClick(complaint)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+          className="bg-[#4B687A] text-white px-4 py-2 rounded-lg hover:bg-[#3A4F5E] transition-colors duration-200"
         >
           Assign to Field Worker
         </button>
@@ -422,11 +406,11 @@ const GovAuthHomepage = () => {
   }, [fetchGovComplaints, fetchFieldWorkers]);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
-      <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
+    <div className="font-inter min-h-screen flex flex-col">
+      <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
         <div className="flex-1 max-w-2xl mx-auto">
           <div className="relative">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="search"
               placeholder="Search complaints"
@@ -438,14 +422,9 @@ const GovAuthHomepage = () => {
                   searchComplaints(query);
                 }
               }}
-              className="w-full pl-12 pr-4 py-3 border-2 border-indigo-300 rounded-full bg-blue-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-indigo-400 transition-all"
+              className="w-full pl-12 pr-4 py-3 border-2 border-gray-400 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 hover:border-[#4B687A] transition-all"
             />
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="p-3 rounded-full hover:bg-indigo-100 hover:shadow-md transition-all duration-200">
-            <FilterIcon className="w-6 h-6 text-indigo-600" />
-          </button>
         </div>
       </header>
 

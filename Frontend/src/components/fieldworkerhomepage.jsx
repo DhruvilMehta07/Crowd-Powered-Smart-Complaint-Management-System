@@ -58,16 +58,6 @@ const ImageUploadIcon = ({ className = 'w-10 h-10' }) => (
   </svg>
 );
 
-const ThreeDotsIcon = ({ className = 'w-5 h-5' }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-    className={className}
-  >
-    <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
-  </svg>
-);
 const ComplaintCard = ({ complaint }) => {
   const formatDate = (dateString) => {
     const d = dateString || complaint.posted_at || complaint.date;
@@ -129,10 +119,10 @@ const ComplaintCard = ({ complaint }) => {
   }, [showImageModal, images.length]);
 
   return (
-    <div className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
+  <div className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-full p-1 text-indigo-600">
+          <div className="rounded-full p-1 text-[#4B687A]">
             <UserIcon className="w-10 h-10" />
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
@@ -146,9 +136,6 @@ const ComplaintCard = ({ complaint }) => {
             </p>
           </div>
         </div>
-        <button className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-all duration-200">
-          <ThreeDotsIcon />
-        </button>
       </div>
 
       <p className="text-lg text-gray-800 mb-1">{complaint.content}</p>
@@ -192,7 +179,7 @@ const ComplaintCard = ({ complaint }) => {
 
       {loadingImages && (
         <div className="flex justify-center items-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#4B687A]"></div>
         </div>
       )}
 
@@ -250,8 +237,8 @@ const ComplaintCard = ({ complaint }) => {
       )}
 
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-sm text-gray-600 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200">
-          <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
+        <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg inline-block border border-gray-200">
+          <span className="font-semibold text-[#4B687A]">Assigned to:</span>{' '}
           <span className="text-gray-800">
             {complaint.assigned_to_fieldworker || 'Unassigned'}
           </span>
@@ -345,7 +332,7 @@ const SubmitResolutionButton = ({ complaintId }) => {
     <div>
       <button
         onClick={open}
-        className="bg-blue-700 text-white px-3 py-1 rounded-md hover:bg-blue-900 transition-colors"
+        className="bg-[#4B687A] text-white px-3 py-1 rounded-md hover:bg-[#3C5260] transition-colors"
       >
         Submit Resolution
       </button>
@@ -356,7 +343,7 @@ const SubmitResolutionButton = ({ complaintId }) => {
           onClick={close}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-indigo-200"
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start mb-4">
@@ -373,7 +360,7 @@ const SubmitResolutionButton = ({ complaintId }) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter resolution details"
-              className="w-full border border-gray-300 rounded-lg p-3 h-25 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-4"
+              className="w-full border border-gray-300 rounded-lg p-3 h-25 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4B687A] mb-4"
             />
 
             <div className="mb-6">
@@ -388,9 +375,9 @@ const SubmitResolutionButton = ({ complaintId }) => {
 
               <label
                 htmlFor={`file-input-${complaintId}`}
-                className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-indigo-200 rounded-xl p-6 text-center hover:bg-indigo-50 transition-colors h-30"
+                className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-[#4B687A]/10 transition-colors h-30"
               >
-                <ImageUploadIcon className="w-50 h-50 text-indigo-500" />
+                <ImageUploadIcon className="w-50 h-50 text-[#4B687A]" />
                 <span className="mt-2 text-sm font-medium text-gray-700">
                   Click to upload or drag and drop
                 </span>
@@ -423,7 +410,7 @@ const SubmitResolutionButton = ({ complaintId }) => {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg"
+                className="flex-1 bg-gradient-to-r from-gray-600 to-[#4B687A] hover:from-gray-700 hover:to-[#4B687A] text-white font-semibold py-3 rounded-lg transition-all shadow-lg"
               >
                 {submitting ? 'Submitting...' : 'Submit'}
               </button>
@@ -486,11 +473,11 @@ const FieldWorkerHomepage = () => {
   }, [fetchFieldComplaints]);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
-      <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
+    <div className="bg-gradient-to-br from-gray-50 via-[#4B687A]/10 to-gray-50 font-inter min-h-screen flex flex-col">
+      <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
         <div className="flex-1 max-w-2xl mx-auto w-full">
           <div className="relative">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="search"
               placeholder="Search complaints"
@@ -502,15 +489,15 @@ const FieldWorkerHomepage = () => {
                   searchComplaints(query);
                 }
               }}
-              className="w-full pl-12 pr-4 py-3 border-2 border-indigo-300 rounded-full bg-blue-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-indigo-400 transition-all duration-200"
+              className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 hover:border-[#4B687A] transition-all duration-200"
             />
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="p-3 rounded-full hover:bg-indigo-100 hover:shadow-md transition-all duration-200">
-            <FilterIcon className="w-6 h-6 text-indigo-600" />
+        {/* <div className="flex items-center gap-4">
+          <button className="p-3 rounded-full hover:bg-[#4B687A]/10 hover:shadow-md transition-all duration-200">
+            <FilterIcon className="w-6 h-6 text-[#4B687A]" />
           </button>
-        </div>
+        </div> */}
       </header>
 
       <div className="flex-1 flex">
@@ -518,7 +505,7 @@ const FieldWorkerHomepage = () => {
           <div className="w-full max-w-2xl lg:max-w-4xl space-y-1">
             {loading && (
               <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#4B687A]"></div>
               </div>
             )}
 
@@ -529,7 +516,7 @@ const FieldWorkerHomepage = () => {
             )}
 
             {!loading && complaints.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-xl border-2 border-indigo-200 shadow-lg">
+              <div className="text-center py-12 bg-white rounded-xl border-2 border-gray-200 shadow-lg">
                 <p className="text-gray-700 text-lg font-semibold">
                   No complaints found.
                 </p>
