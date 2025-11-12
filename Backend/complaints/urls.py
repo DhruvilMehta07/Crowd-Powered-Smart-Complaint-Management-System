@@ -5,7 +5,7 @@ from .views import (ComplaintListView,ComplaintCreateView,UpvoteComplaintView,
                     PastComplaintsView,GovernmentHomePageView,FieldWorkerHomePageView,
                     AssignComplaintView,AvailableFieldWorkersView,ComplaintImageView,
                     FakeConfidenceView,SubmitResolutionView,CitizenResolutionResponseView,
-                    AutoApproveResolutionsView,ComplaintResolutionView)
+                    AutoApproveResolutionsView,ComplaintResolutionView,TrendingComplaintsView)
 
 
 urlpatterns = [
@@ -15,6 +15,7 @@ urlpatterns = [
     path('<int:complaint_id>/delete/', ComplaintDeleteView.as_view(), name='complaint-delete'),
     path('reverse-geocode/',ReverseGeocodeView.as_view(),),
     path('search/',ComplaintSearchView.as_view()),
+    path('trending/', TrendingComplaintsView.as_view(), name='complaint-trending'),
     path('past/',PastComplaintsView.as_view(),),
     path('govhome/',GovernmentHomePageView.as_view(), ),
     path('fieldhome/',FieldWorkerHomePageView.as_view(), ),
