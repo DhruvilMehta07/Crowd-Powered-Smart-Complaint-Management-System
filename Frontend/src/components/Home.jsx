@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 import TrendingComplaints from '../pages/TrendingComplaints';
@@ -136,6 +136,7 @@ const ComplaintCard = ({
   const [loadingImages, setLoadingImages] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [fullImagesLoaded, setFullImagesLoaded] = useState(false);
   const [localReported, setLocalReported] = useState(reported);
   const [isReporting, setIsReporting] = useState(false);
 
@@ -144,31 +145,31 @@ const ComplaintCard = ({
     setLocalReported(Boolean(reported));
   }, [reported]);
 
-  // Fetch images when component mounts
+  // Use thumbnail if available to avoid fetching full image list on mount.
+  // Full images are fetched lazily when opening the modal.
   useEffect(() => {
-    const fetchComplaintImages = async () => {
-      // Check if images are already provided in complaint data
+    const initImages = () => {
+      // If the serializer provided full images, use them
       if (complaint.images && complaint.images.length > 0) {
         setImages(complaint.images);
+        setFullImagesLoaded(true);
         return;
       }
 
-      // If no images in complaint data, fetch them from API
-      try {
-        setLoadingImages(true);
-        const response = await api.get(`/complaints/${complaint.id}/images/`);
-        setImages(response.data);
-      } catch (error) {
-        console.error('Error fetching complaint images:', error);
-      } finally {
-        setLoadingImages(false);
+      // If a thumbnail_url is available, use that as a single preview image
+      if (complaint.thumbnail_url) {
+        setImages([{ image_url: complaint.thumbnail_url }]);
+        setFullImagesLoaded(false);
+        return;
       }
+
+      // No images or thumbnail available
+      setImages([]);
+      setFullImagesLoaded(false);
     };
 
-    if (complaint.id) {
-      fetchComplaintImages();
-    }
-  }, [complaint.id, complaint.images]);
+    initImages();
+  }, [complaint.id, complaint.images, complaint.thumbnail_url]);
 
   const handleDeleteComplaint = async () => {
     if (!isAuthenticated) {
@@ -193,8 +194,27 @@ const ComplaintCard = ({
   };
 
   const handleImageClick = (index) => {
-    setSelectedImageIndex(index);
-    setShowImageModal(true);
+    const openModalWithImages = async () => {
+      // If we only have a thumbnail, fetch full images before opening the modal
+      if (!fullImagesLoaded && complaint.id) {
+        try {
+          setLoadingImages(true);
+          const response = await api.get(`/complaints/${complaint.id}/images/`);
+          setImages(response.data);
+          setFullImagesLoaded(true);
+          // map index remains valid; if thumbnail was single image, index 0 maps to first
+        } catch (error) {
+          console.error('Error fetching complaint images:', error);
+        } finally {
+          setLoadingImages(false);
+        }
+      }
+
+      setSelectedImageIndex(index);
+      setShowImageModal(true);
+    };
+
+    openModalWithImages();
   };
 
   // keyboard navigation for image modal
@@ -279,6 +299,11 @@ const ComplaintCard = ({
     // If imageData is an object with image_url field (from updated serializer)
     if (imageData.image_url) {
       return imageData.image_url;
+    }
+
+    // If object has thumbnail_url provided by serializer
+    if (imageData.thumbnail_url) {
+      return imageData.thumbnail_url;
     }
 
     // If imageData is an object with image field (legacy format)
@@ -506,6 +531,7 @@ const Homepage = () => {
   const [isRaiseOpen, setIsRaiseOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [showReportToast, setShowReportToast] = useState(false);
+  const isFetchingRef = useRef(false);
   // persist reported complaint ids for this user in localStorage so the "Report" button
   // stays disabled after reporting (survives reloads)
   const [reportedIds, setReportedIds] = useState(() => {
@@ -542,6 +568,9 @@ const Homepage = () => {
   }, []);
 
   const fetchComplaints = useCallback(async () => {
+  // prevent duplicate concurrent fetches (e.g., React StrictMode double-invoke in dev)
+  if (isFetchingRef.current) return;
+  isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
@@ -552,6 +581,7 @@ const Homepage = () => {
       setError('Failed to load complaints. Please try again later.');
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 

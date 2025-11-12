@@ -62,6 +62,10 @@ class Complaint(models.Model):
     resolution_approved_at = models.DateTimeField(blank=True, null=True)
     resolution_deadline = models.DateTimeField(blank=True, null=True, help_text="Deadline for resolution submission")
     class Meta:
+        indexes = [
+            models.Index(fields=['posted_by'], name='idx_complaint_posted_by'),
+            models.Index(fields=['upvotes_count'], name='idx_complaint_upvotes_count'),
+        ]
         ordering = ['-posted_at']
 
     def __str__(self):
@@ -206,6 +210,10 @@ class Upvote(models.Model):
     upvoted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=['complaint', 'user'], name='idx_upvote_complaint_user'),
+            models.Index(fields=['complaint'], name='idx_upvote_complaint'),
+        ]
         unique_together = ('user', 'complaint')
         ordering = ['-upvoted_at']
 

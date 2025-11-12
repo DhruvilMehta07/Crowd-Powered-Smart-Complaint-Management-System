@@ -12,7 +12,7 @@ class CitizenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Citizen
         fields = '__all__'
-
+        extra_kwargs = {'password': {'write_only': True}}
     # Encrypting Password
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
@@ -38,6 +38,7 @@ class GovernmentAuthoritySerializer(serializers.ModelSerializer):
     class Meta:
         model = Government_Authority
         fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
@@ -59,6 +60,7 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field_Worker
         fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
@@ -70,5 +72,5 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
 
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
-    password = serializers.CharField()
+    password = serializers.CharField(write_only=True)
 
