@@ -39,9 +39,9 @@ class ResolutionImageSerializer(serializers.ModelSerializer):
 
 class ComplaintSerializer(serializers.ModelSerializer):
     posted_by = UserLoginSerializer(read_only=True)
-    images = ComplaintImageSerializer(many=True, read_only=True)
-    upvotes_count = serializers.ReadOnlyField()
+    upvotes_count = serializers.SerializerMethodField()
     is_upvoted = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
     assigned_to_dept = serializers.StringRelatedField()
     location_display = serializers.SerializerMethodField()
     status = serializers.CharField()
@@ -51,17 +51,35 @@ class ComplaintSerializer(serializers.ModelSerializer):
     has_pending_resolution = serializers.SerializerMethodField()
     class Meta:
         model = Complaint
-        fields = ['id','posted_by','content','posted_at','images',
+        fields = ['id','posted_by','content','posted_at','thumbnail_url',
                   'images_count','upvotes_count','is_upvoted','assigned_to_dept','address','pincode',
                   'latitude','longitude','location_type','location_display','status',
                   'assigned_to_fieldworker','fake_confidence','current_resolution','has_pending_resolution']
         read_only_fields = ['posted_by', 'posted_at','location_display','fake_confidence']
 
+    def get_upvotes_count(self, obj):
+        annotated = getattr(obj, 'computed_upvotes_count', None)
+        if annotated is not None:
+            return int(annotated)
+        return getattr(obj, 'upvotes_count', 0)
+
     def get_is_upvoted(self, obj):
+        annotated_value = getattr(obj, 'is_upvoted', None)
+        if annotated_value is not None:
+            return bool(annotated_value)
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.upvotes.filter(id=request.user.id).exists()
         return False
+    
+    def get_thumbnail_url(self, obj):
+        try:
+            first_image = next(iter(obj.images.all()))
+        except StopIteration:
+            first_image = None
+        if first_image and getattr(first_image, 'image', None):
+            return first_image.image.url
+        return None
     
     def get_location_display(self,obj):
         return obj.get_location_display()
@@ -83,7 +101,7 @@ class ComplaintSerializer(serializers.ModelSerializer):
     
     def get_has_pending_resolution(self, obj):
         return obj.resolutions.filter(status='pending_approval').exists()
-    
+
 
 class ComplaintCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
