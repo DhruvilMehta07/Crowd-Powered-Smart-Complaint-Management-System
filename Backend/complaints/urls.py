@@ -5,7 +5,7 @@ from .views import (ComplaintListView,ComplaintCreateView,UpvoteComplaintView,
                     PastComplaintsView,GovernmentHomePageView,FieldWorkerHomePageView,
                     AssignComplaintView,AvailableFieldWorkersView,ComplaintImageView,
                     FakeConfidenceView,SubmitResolutionView,CitizenResolutionResponseView,
-                    AutoApproveResolutionsView,ComplaintResolutionView)
+                    AutoApproveResolutionsView,ComplaintResolutionView,TrendingComplaintsView)
 
 
 app_name = 'complaints' 
@@ -16,6 +16,7 @@ urlpatterns = [
     path('create/', ComplaintCreateView.as_view(), name='complaint-create'),
     path('<int:complaint_id>/upvote/', UpvoteComplaintView.as_view(), name='complaint-upvote'),
     path('<int:complaint_id>/delete/', ComplaintDeleteView.as_view(), name='complaint-delete'),
+
     path('reverse-geocode/',ReverseGeocodeView.as_view(),name='reverse-geocode'),
     path('search/',ComplaintSearchView.as_view(),name='complaint-search'),
     path('past/',PastComplaintsView.as_view(),name='past-complaints'),
@@ -24,6 +25,7 @@ urlpatterns = [
     path('assign/<int:complaint_id>/',AssignComplaintView.as_view(),name= 'complaint-assign'),
     path('available-workers/',AvailableFieldWorkersView.as_view(), name='available-workers'),
     path('available-workers/<int:complaint_id>/',AvailableFieldWorkersView.as_view(), name='available-worker'),
+
     path('<int:complaint_id>/images/', ComplaintImageView.as_view(), name='complaint-images'),
     path('<int:complaint_id>/fake-confidence/', FakeConfidenceView.as_view(), name='complaint-fake-confidence'),
     path('<int:complaint_id>/submit-resolution/', SubmitResolutionView.as_view(), name='resolution-submit'),

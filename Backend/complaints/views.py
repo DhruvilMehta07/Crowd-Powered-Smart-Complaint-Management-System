@@ -5,7 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 from django.shortcuts import get_object_or_404
 import re, requests, json
-from django.db.models import Q
+from django.db.models import Q, Count, Exists, OuterRef, Value, BooleanField
 
 from users.models import Government_Authority, Department,Field_Worker
 from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence,Notification,Resolution
@@ -17,12 +17,47 @@ from CPCMS import settings
 from django.utils import timezone
 from datetime import timedelta
 
+# Helper to build an optimized annotated queryset for complaints listings
+def base_complaint_queryset(request):
+    user = getattr(request, 'user', None)
+    qs = (Complaint.objects
+          .select_related('posted_by', 'assigned_to_dept', 'assigned_to_fieldworker', 'current_resolution')
+          .prefetch_related('images'))
+
+    qs = qs.annotate(computed_upvotes_count=Count('upvotes', distinct=True))
+
+    if user and getattr(user, 'is_authenticated', False):
+        qs = qs.annotate(
+            is_upvoted=Exists(
+                Upvote.objects.filter(complaint=OuterRef('pk'), user=user)
+            )
+        )
+    else:
+        qs = qs.annotate(is_upvoted=Value(False, output_field=BooleanField()))
+
+    return qs
+
+
+class TrendingComplaintsView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        try:
+            limit = int(request.query_params.get('limit', 3))
+            if limit < 1:
+                limit = 3
+        except ValueError:
+            limit = 3
+
+        qs = base_complaint_queryset(request).order_by('-computed_upvotes_count', '-id')[:limit]
+        serializer = ComplaintSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 class ComplaintListView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request):
-        complaints = Complaint.objects.all()
-
+        complaints = base_complaint_queryset(request)
         serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -205,7 +240,7 @@ class ComplaintSearchView(APIView):
     
     def get(self, request):
         query = (request.query_params.get('q') or '').strip()
-        complaints = Complaint.objects.all()
+        complaints = base_complaint_queryset(request)
 
         if query:
             complaints = complaints.filter(
@@ -219,7 +254,7 @@ class PastComplaintsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        complaints = Complaint.objects.filter(posted_by=request.user)
+        complaints = base_complaint_queryset(request).filter(posted_by=request.user)
 
         serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -240,7 +275,7 @@ class GovernmentHomePageView(APIView):
                 )
             
     
-            complaints = Complaint.objects.filter(
+            complaints = base_complaint_queryset(request).filter(
                 status__in=['Pending', 'Escalated'], 
                 assigned_to_dept=user_department
             )
@@ -262,7 +297,7 @@ class FieldWorkerHomePageView(APIView):
             # Get the field worker user with department
             fieldworker = Field_Worker.objects.get(id=request.user.id)
 
-            complaints = Complaint.objects.filter(
+            complaints = base_complaint_queryset(request).filter(
                 status__in=['In Progress','Pending'],
                 assigned_to_fieldworker=fieldworker,
             )
@@ -659,3 +694,5 @@ class ComplaintResolutionView(APIView):
             "complaint_status": complaint.status,
             "resolutions": serializer.data
         }, status=status.HTTP_200_OK)
+
+

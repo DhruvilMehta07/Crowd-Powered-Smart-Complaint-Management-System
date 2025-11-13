@@ -35,7 +35,6 @@ const UserCircleIcon = ({ className = 'w-6 h-6' }) => (
 
 export default function TrendingComplaints({
   showViewMore = true,
-
   username,
   onLogoutClick,
   onLoginClick,
@@ -68,31 +67,53 @@ export default function TrendingComplaints({
   const handleLogin = onLoginClick || fallbackOnLogin;
   const handleLogout = onLogoutClick || fallbackOnLogout;
 
-  const [trendingComplaints, setTrendingComplaints] = useState([]);
+  // Fetch trending once at the parent to avoid duplicate calls (StrictMode safe)
+  const [trending, setTrending] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchTrendingComplaints = async () => {
+    let mounted = true;
+    let controller = new AbortController();
+
+    const fetchTrending = async () => {
       try {
-        const response = await api.get('/complaints/');
-        const complaints = response.data;
-        // Sort complaints by upvotes count in descending order and take top 3
-        const sortedComplaints = complaints
-          .sort((a, b) => (b.upvotes_count || 0) - (a.upvotes_count || 0))
-          .slice(0, 3)
-          .map(complaint => ({
-            text: complaint.content,
-            upvotes: `${complaint.upvotes_count || 0} Upvotes`,
-          }));
-        setTrendingComplaints(sortedComplaints);
-      } catch (error) {
-        console.error('Error fetching trending complaints:', error);
+        setIsLoading(true);
+        const response = await api.get('/complaints/trending/?limit=3', {
+          signal: controller.signal,
+        });
+        const complaints = response.data || [];
+        const items = complaints.map((c) => ({
+          id: c.id,
+          text: c.content,
+          upvotes: `${c.upvotes_count || 0} Upvotes`,
+        }));
+        if (mounted) {
+          setTrending(items);
+          setError(null);
+        }
+      } catch (err) {
+        if (mounted && err.name !== 'CanceledError' && err.name !== 'AbortError') {
+          console.error('Error fetching trending complaints:', err);
+          setError('Failed to load trending complaints');
+        }
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
-    fetchTrendingComplaints();
-    // Refresh trending complaints every 5 minutes
-    const interval = setInterval(fetchTrendingComplaints, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    fetchTrending();
+    const interval = setInterval(() => {
+      // rotate controller to avoid reusing aborted signal
+      controller.abort();
+      controller = new AbortController();
+      fetchTrending();
+    }, 5 * 60 * 1000);
+    return () => {
+      mounted = false;
+      controller.abort();
+      clearInterval(interval);
+    };
   }, []);
 
   const GovAuthRightbar = () => {
@@ -107,72 +128,46 @@ export default function TrendingComplaints({
               <LogoutIcon className="w-4 h-4" />
               Logout
             </button>
-          ) : (
+            ) : (
             <button
               onClick={handleLogin}
-              className="bg-blue-700 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-800 transition-colors duration-300 shadow-lg"
+              className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
             >
               Login / SignUp
             </button>
           )}
         </div>
-        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-indigo-400">
-          <h3 className="font-bold text-xl text-center mb-4 text-indigo-900">
-            Work in Progress
-          </h3>
-          <div className="space-y-4">
-            {trendingComplaints.map((item, index) => (
-              <div
-                key={index}
-                className="text-sm hover:bg-indigo-50 p-3 rounded-lg transition-all cursor-pointer"
-              >
-                <p className="text-gray-700">{item.text}</p>
-                <p className="font-bold text-indigo-600 mt-1">{item.upvotes}</p>
-              </div>
-            ))}
+
+        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
+            <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
+              Trending Complaints
+            </h3>
+            <div className="space-y-4">
+              {isLoading ? (
+                <div className="text-center text-gray-600">Loading...</div>
+              ) : error ? (
+                <div className="text-center text-red-600">{error}</div>
+              ) : trending.length === 0 ? (
+                <div className="text-center text-gray-600">No complaints yet</div>
+              ) : (
+                trending.map((item) => (
+                  <div
+                    key={item.id}
+                    className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
+                  >
+                    <p className="text-gray-700">{item.text}</p>
+                    <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+
       </div>
     );
   };
 
   const CitizenRightbar = () => {
-    const [trendingComplaints, setTrendingComplaints] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-      const fetchTrendingComplaints = async () => {
-        try {
-          setIsLoading(true);
-          const response = await api.get('/complaints/');
-          const complaints = response.data;
-          
-          // Sort complaints by upvotes count and take top 3
-          const sortedComplaints = complaints
-            .sort((a, b) => (b.upvotes_count || 0) - (a.upvotes_count || 0))
-            .slice(0, 3)
-            .map(complaint => ({
-              id: complaint.id,
-              text: complaint.content,
-              upvotes: `${complaint.upvotes_count || 0} Upvotes`,
-            }));
-          
-          setTrendingComplaints(sortedComplaints);
-          setError(null);
-        } catch (err) {
-          console.error('Error fetching trending complaints:', err);
-          setError('Failed to load trending complaints');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchTrendingComplaints();
-      const interval = setInterval(fetchTrendingComplaints, 5 * 60 * 1000);
-      return () => clearInterval(interval);
-    }, []);
-
     return (
       <div className="sticky top-5 flex flex-col h-[calc(100vh-6rem)] mx-auto">
         <div className="flex items-center mx-auto">
@@ -184,17 +179,17 @@ export default function TrendingComplaints({
               <LogoutIcon className="w-4 h-4" />
               Logout
             </button>
-          ) : (
-            <button
-              onClick={handleLogin}
-              className="bg-blue-700 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-800 transition-colors duration-300 shadow-lg"
-            >
-              Login / SignUp
-            </button>
-          )}
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
+              >
+                Login / SignUp
+              </button>
+            )}
         </div>
-        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-indigo-400">
-          <h3 className="font-bold text-xl text-center mb-4 text-indigo-900">
+        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
+          <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
             Trending Complaints
           </h3>
           <div className="space-y-4">
@@ -202,16 +197,16 @@ export default function TrendingComplaints({
               <div className="text-center text-gray-600">Loading...</div>
             ) : error ? (
               <div className="text-center text-red-600">{error}</div>
-            ) : trendingComplaints.length === 0 ? (
+            ) : trending.length === 0 ? (
               <div className="text-center text-gray-600">No complaints yet</div>
             ) : (
-              trendingComplaints.map((item) => (
+              trending.map((item) => (
                 <div
                   key={item.id}
-                  className="text-sm hover:bg-indigo-50 p-3 rounded-lg transition-all cursor-pointer"
+                  className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
                 >
                   <p className="text-gray-700">{item.text}</p>
-                  <p className="font-bold text-indigo-600 mt-1">{item.upvotes}</p>
+                  <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
                 </div>
               ))
             )}
@@ -236,7 +231,7 @@ export default function TrendingComplaints({
   };
 
   return (
-    <aside className="w-80 p-4 bg-white hidden md:block border-l-3 border-indigo-400 h-screen sticky top-0 overflow-auto">
+    <aside className="w-80 p-4 bg-white hidden md:block border-l-3 border-gray-400 h-screen sticky top-0 overflow-auto">
       {Routing()}
     </aside>
   );

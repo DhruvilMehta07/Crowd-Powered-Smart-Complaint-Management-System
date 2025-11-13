@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 import TrendingComplaints from '../pages/TrendingComplaints';
@@ -91,10 +91,10 @@ const ImageIcon = ({ className = 'w-5 h-5' }) => (
 );
 
 const Header = ({ query, setQuery, onSearch }) => (
-  <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
+  <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
     <div className="flex-1 max-w-2xl mx-auto">
       <div className="relative">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="search"
           placeholder="Search for complaints, people, or keywords"
@@ -106,7 +106,7 @@ const Header = ({ query, setQuery, onSearch }) => (
               onSearch();
             }
           }}
-          className="w-full pl-12 pr-4 py-3 border-2 border-indigo-200 rounded-full bg-indigo-50/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 transition-all"
         />
       </div>
     </div>
@@ -136,6 +136,7 @@ const ComplaintCard = ({
   const [loadingImages, setLoadingImages] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [fullImagesLoaded, setFullImagesLoaded] = useState(false);
   const [localReported, setLocalReported] = useState(reported);
   const [isReporting, setIsReporting] = useState(false);
 
@@ -144,31 +145,31 @@ const ComplaintCard = ({
     setLocalReported(Boolean(reported));
   }, [reported]);
 
-  // Fetch images when component mounts
+  // Use thumbnail if available to avoid fetching full image list on mount.
+  // Full images are fetched lazily when opening the modal.
   useEffect(() => {
-    const fetchComplaintImages = async () => {
-      // Check if images are already provided in complaint data
+    const initImages = () => {
+      // If the serializer provided full images, use them
       if (complaint.images && complaint.images.length > 0) {
         setImages(complaint.images);
+        setFullImagesLoaded(true);
         return;
       }
 
-      // If no images in complaint data, fetch them from API
-      try {
-        setLoadingImages(true);
-        const response = await api.get(`/complaints/${complaint.id}/images/`);
-        setImages(response.data);
-      } catch (error) {
-        console.error('Error fetching complaint images:', error);
-      } finally {
-        setLoadingImages(false);
+      // If a thumbnail_url is available, use that as a single preview image
+      if (complaint.thumbnail_url) {
+        setImages([{ image_url: complaint.thumbnail_url }]);
+        setFullImagesLoaded(false);
+        return;
       }
+
+      // No images or thumbnail available
+      setImages([]);
+      setFullImagesLoaded(false);
     };
 
-    if (complaint.id) {
-      fetchComplaintImages();
-    }
-  }, [complaint.id, complaint.images]);
+    initImages();
+  }, [complaint.id, complaint.images, complaint.thumbnail_url]);
 
   const handleDeleteComplaint = async () => {
     if (!isAuthenticated) {
@@ -193,8 +194,27 @@ const ComplaintCard = ({
   };
 
   const handleImageClick = (index) => {
-    setSelectedImageIndex(index);
-    setShowImageModal(true);
+    const openModalWithImages = async () => {
+      // If we only have a thumbnail, fetch full images before opening the modal
+      if (!fullImagesLoaded && complaint.id) {
+        try {
+          setLoadingImages(true);
+          const response = await api.get(`/complaints/${complaint.id}/images/`);
+          setImages(response.data);
+          setFullImagesLoaded(true);
+          // map index remains valid; if thumbnail was single image, index 0 maps to first
+        } catch (error) {
+          console.error('Error fetching complaint images:', error);
+        } finally {
+          setLoadingImages(false);
+        }
+      }
+
+      setSelectedImageIndex(index);
+      setShowImageModal(true);
+    };
+
+    openModalWithImages();
   };
 
   // keyboard navigation for image modal
@@ -281,6 +301,11 @@ const ComplaintCard = ({
       return imageData.image_url;
     }
 
+    // If object has thumbnail_url provided by serializer
+    if (imageData.thumbnail_url) {
+      return imageData.thumbnail_url;
+    }
+
     // If imageData is an object with image field (legacy format)
     if (imageData.image) {
       // For Cloudinary, the image field should already be a full URL
@@ -292,10 +317,10 @@ const ComplaintCard = ({
 
   return (
     <>
-      <div className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
+  <div className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-full p-1 text-indigo-600">
+            <div className="rounded-full p-1 text-[#4B687A]">
               <UserIcon />
             </div>
             <div className="flex items-center gap-2">
@@ -358,12 +383,12 @@ const ComplaintCard = ({
 
         {loadingImages && (
           <div className="flex justify-center items-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#4B687A]"></div>
           </div>
         )}
 
-        <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block">
-          <span className="font-semibold text-indigo-700">Assigned to:</span>{' '}
+        <div className="text-sm text-gray-600 mb-4 bg-gray-50 px-3 py-2 rounded-lg inline-block">
+          <span className="font-semibold text-[#4B687A]">Assigned to:</span>{' '}
           <span className="text-gray-800">
             {complaint.assigned_to_dept ||
               complaint.assignedTo ||
@@ -372,7 +397,7 @@ const ComplaintCard = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-10 pt-4 border-t-2 border-indigo-100">
+  <div className="flex items-center gap-10 pt-4 border-t-2 border-gray-100">
           <button
             onClick={handleUpvote}
             disabled={isUpvoting}
@@ -380,12 +405,12 @@ const ComplaintCard = ({
               isUpvoting
                 ? 'text-gray-400 cursor-not-allowed'
                 : userHasUpvoted
-                  ? 'text-indigo-600 hover:text-indigo-700'
-                  : 'text-gray-600 hover:text-indigo-600'
+            ? 'text-[#4B687A] hover:text-[#3C5260]'
+              : 'text-gray-600 hover:text-[#4B687A]'
             } hover:scale-105 transform font-semibold`}
           >
             <ArrowUpIcon
-              className={`w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-indigo-600' : ''}`}
+              className={`w-5 h-5 ${isUpvoting ? 'animate-pulse' : ''} ${userHasUpvoted ? 'text-[#4B687A]' : ''}`}
             />
             <span>{formatUpvotes(localUpvotes)}</span>
           </button>
@@ -506,6 +531,7 @@ const Homepage = () => {
   const [isRaiseOpen, setIsRaiseOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [showReportToast, setShowReportToast] = useState(false);
+  const isFetchingRef = useRef(false);
   // persist reported complaint ids for this user in localStorage so the "Report" button
   // stays disabled after reporting (survives reloads)
   const [reportedIds, setReportedIds] = useState(() => {
@@ -542,6 +568,9 @@ const Homepage = () => {
   }, []);
 
   const fetchComplaints = useCallback(async () => {
+  // prevent duplicate concurrent fetches (e.g., React StrictMode double-invoke in dev)
+  if (isFetchingRef.current) return;
+  isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
@@ -552,6 +581,7 @@ const Homepage = () => {
       setError('Failed to load complaints. Please try again later.');
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 
@@ -708,7 +738,7 @@ const Homepage = () => {
   }, [fetchComplaints]);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 font-inter min-h-screen flex flex-col">
+  <div className="bg-gradient-to-br from-gray-50 via-[#4B687A]/10 to-gray-50 font-inter min-h-screen flex flex-col">
       <Header
         query={query}
         setQuery={setQuery}
@@ -728,7 +758,7 @@ const Homepage = () => {
           <div className="w-full max-w-2xl lg:max-w-4xl space-y-1">
             {loading && (
               <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#4B687A]"></div>
               </div>
             )}
 
@@ -759,7 +789,7 @@ const Homepage = () => {
                     />
                   ))
                 ) : (
-                  <div className="text-center py-12 bg-white rounded-xl border-2 border-indigo-200 shadow-lg">
+                  <div className="text-center py-12 bg-white rounded-xl border-2 border-gray-200 shadow-lg">
                     <p className="text-gray-700 text-lg font-semibold">
                       No complaints found.
                     </p>
@@ -768,7 +798,7 @@ const Homepage = () => {
                     </p>
                     <button
                       onClick={openRaiseComplaint}
-                      className="mt-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-all shadow-lg"
+                      className="mt-4 bg-gradient-to-r from-gray-600 to-[#4B687A] hover:from-gray-700 hover:to-[#4B687A] text-white font-semibold py-2 px-6 rounded-lg transition-all shadow-lg"
                     >
                       Raise First Complaint
                     </button>
@@ -801,7 +831,7 @@ const Homepage = () => {
                   closeRaiseComplaint();
                   alert('Complaint raised successfully!');
                 }}
-                className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg"
+                className="flex-1 bg-gradient-to-r from-indigo-600 to-[#4B687A] hover:from-indigo-700 hover:to-[#4B687A] text-white font-semibold py-3 rounded-lg transition-all shadow-lg"
               >
                 Submit
               </button>
