@@ -1,0 +1,38 @@
+services:
+  test:
+    build: .
+    command: pytest --cov=. --cov-report=html --cov-report=term-missing
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=your_project.settings_test
+    profiles: ["test"]
+
+  web:
+    build: .
+    command: python /code/manage.py runserver 0.0.0.0:7000
+    volumes:
+      - .:/code
+    ports:
+      - 7000:7000
+    depends_on:
+      - redis
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+volumes:
+  redis_data:

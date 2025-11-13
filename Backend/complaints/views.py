@@ -82,16 +82,23 @@ class UpvoteComplaintView(APIView):
         upvote, created = Upvote.objects.get_or_create(user=request.user, complaint=complaint)
 
         if not created:
+            # Remove upvote
             upvote.delete()
-            return Response({'detail': 'Upvote removed.'}, status=status.HTTP_200_OK)
-
+            # Recalculate the count from the database
+            complaint.upvotes_count = complaint.upvotes.count()
+            complaint.save(update_fields=['upvotes_count'])
+            return Response(
+                {'detail': 'Upvote removed.', 'likes_count': complaint.upvotes_count}, 
+                status=status.HTTP_200_OK
+            )
         else:
-            message = 'Complaint upvoted.'
-
-        complaint.upvotes_count = complaint.upvotes.count()
-        complaint.save(update_fields=['upvotes_count'])
-
-        return Response({"message":message,"likes_count":complaint.upvotes_count})
+            # Add upvote
+            complaint.upvotes_count = complaint.upvotes.count()
+            complaint.save(update_fields=['upvotes_count'])
+            return Response(
+                {"message": 'Complaint upvoted.', "likes_count": complaint.upvotes_count},
+                status=status.HTTP_200_OK
+            )
 
 
 class ComplaintDeleteView(APIView):
@@ -119,6 +126,7 @@ class ReverseGeocodeView(APIView):
         return getattr(settings, 'MAPMYINDIA_API_KEY', '')
 
     def _validate_coords(self, latitude, longitude):
+        
         if latitude is None or longitude is None or latitude == '' or longitude == '':
             return False
         return True
