@@ -49,6 +49,8 @@ RUN pip install \
 # Copy project files
 COPY . /code/
 
-# Optional: Add any additional commands you need
-# For example, if you need to run collectstatic or migrations:
-# RUN python manage.py collectstatic --noinput
+
+# additional test dependencies
+RUN pip install pytest pytest-django pytest-cov
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
