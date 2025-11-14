@@ -76,6 +76,13 @@ const PlusCircleIcon = ({ className = 'w-6 h-6' }) => (
   </svg>
 );
 
+const UserIcon = ({ className = 'w-6 h-6' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
+    <path d="M4 20c0-3.314 2.686-6 6-6h4c3.314 0 6 2.686 6 6v1H4v-1z" />
+  </svg>
+);
+
 const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
     description: '',
@@ -798,6 +805,12 @@ export default function Sidebar({}) {
               </Link>
             </li>
             <li>
+              <Link to="/profile" className={getLinkClass('/profile')}>
+                <UserIcon className="w-6 h-6" />
+                Profile
+              </Link>
+            </li>
+            <li>
               <Link
                 to="/notifications"
                 className={getLinkClass('/notifications')}
@@ -839,6 +852,12 @@ export default function Sidebar({}) {
               </Link>
             </li>
             <li>
+              <Link to="/profile" className={getLinkClass('/profile')}>
+                <UserIcon className="w-6 h-6" />
+                Profile
+              </Link>
+            </li>
+            <li>
               <Link
                 to="/notifications"
                 className={getLinkClass('/notifications')}
@@ -877,6 +896,12 @@ export default function Sidebar({}) {
               <Link to="/" className={getLinkClass('/')}>
                 <HomeIcon className="w-6 h-6" />
                 Home
+              </Link>
+            </li>
+            <li>
+              <Link to="/profile" className={getLinkClass('/profile')}>
+                <UserIcon className="w-6 h-6" />
+                Profile
               </Link>
             </li>
             <li>

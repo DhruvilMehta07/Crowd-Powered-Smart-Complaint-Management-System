@@ -8,6 +8,7 @@ import Home from './components/Home';
 import Notifications from './pages/Notifications';
 import PastComplaints from './pages/PastComplaints';
 import Help from './pages/Help';
+import Profile from './pages/Profile';
 import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
@@ -86,6 +87,7 @@ function App() {
   <div className="flex-1 flex flex-col overflow-auto scrollbar-hide">
         <Routes>
           <Route index element={<Home />} />
+          <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="past-complaints" element={<PastComplaints />} />
           <Route path="help" element={<Help />} />
@@ -104,6 +106,7 @@ function App() {
   <div className="flex-1 flex flex-col overflow-auto scrollbar-hide">
         <Routes>
           <Route index element={<GovAuthHomepage/>} />
+          <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="past-complaints" element={<PastComplaints />} />
           <Route path="help" element={<Help />} />
@@ -125,6 +128,7 @@ function App() {
   <div className="flex-1 flex flex-col overflow-auto scrollbar-hide">
         <Routes>
           <Route index element={<FieldWorkerHomepage />} />
+          <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="help" element={<Help />} />
           
