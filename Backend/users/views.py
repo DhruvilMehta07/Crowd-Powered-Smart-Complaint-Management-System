@@ -18,7 +18,7 @@ from django.core.cache import caches
 import re,requests,json
 
 from .models import Citizen, Government_Authority, Field_Worker, Department
-from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer
+from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer,CitizenProfileSerializer
 from .EmailService import EmailService
 
 from django.utils.decorators import method_decorator
@@ -410,3 +410,109 @@ class ResetPasswordAPIView(APIView):
         
         return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
     
+
+class CitizenProfileAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get_user_as_citizen(self, user):
+        if isinstance(user, Citizen):
+            return user
+        try:
+            return Citizen.objects.get(pk=user.pk)
+        except Citizen.DoesNotExist:
+            return None
+    
+    def get(self, request):
+        citizen=self.get_user_as_citizen(request.user)
+        serializer = CitizenProfileSerializer(citizen, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        citizen=self.get_user_as_citizen(request.user)
+        serializer = CitizenProfileSerializer(citizen, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        citizen=self.get_user_as_citizen(request.user)
+        serializer = CitizenProfileSerializer(citizen, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+otp_cache = caches['otps']
+OTP_TTL_SECONDS = 5 * 60 
+
+class PasswordResetRequestAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        email = getattr(request.user, 'email', None)
+        if not email:
+            return Response({"detail": "No email associated with user."}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp = EmailService.generate_otp()
+        key = f"otp:password_reset:{email}:{request.user.id}"
+
+        try:
+            otp_cache.set(key, otp, timeout=OTP_TTL_SECONDS)
+        except Exception:
+            pass
+
+        sent = False
+        try:
+            sent = EmailService.send_otp_for_password_reset(email, otp)
+        except Exception:
+            sent = False
+
+        if sent:
+            return Response({"detail": "OTP sent to your email."}, status=status.HTTP_200_OK)
+
+        try:
+            otp_cache.delete(key)
+        except Exception:
+            pass
+        return Response({"detail": "Failed to send OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+class PasswordResetVerifyAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        otp_attempt = request.data.get('otp')
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not otp_attempt or not new_password or not current_password:
+            return Response({"detail": "otp, current_password and new_password required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        if not user.check_password(current_password):
+            return Response({"detail": "Current password is incorrect."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        email = getattr(user, 'email', None)
+        if not email:
+            return Response({"detail": "No email on user."}, status=status.HTTP_400_BAD_REQUEST)
+
+        key = f"otp:password_reset:{email}:{user.id}"
+        try:
+            stored = otp_cache.get(key)
+        except Exception:
+            stored = None
+
+        if not stored or str(stored) != str(otp_attempt):
+            return Response({"detail": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        try:
+            otp_cache.delete(key)
+        except Exception:
+            pass
+
+        return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)

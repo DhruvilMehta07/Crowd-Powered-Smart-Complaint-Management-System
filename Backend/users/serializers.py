@@ -25,6 +25,16 @@ class CitizenSerializer(serializers.ModelSerializer):
         if len(value) < 6:
             raise serializers.ValidationError("Password must be at least 6 characters long.")
         return value
+    
+class CitizenProfileSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField()
+    class Meta:
+        model = Citizen
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined']
+        read_only_fields = ['id', 'username', 'email', 'date_joined']
+        extra_kwargs = {'password': {'write_only': True}}
+    def get_phone_number(self, obj):
+        return getattr(obj, 'phone_number', None)
 
 class GovernmentAuthoritySerializer(serializers.ModelSerializer):
     # serialize department as ID + name
