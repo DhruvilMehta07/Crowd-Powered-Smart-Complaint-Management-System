@@ -49,7 +49,12 @@ class TrendingComplaintsView(APIView):
         except ValueError:
             limit = 3
 
-        qs = base_complaint_queryset(request).order_by('-computed_upvotes_count', '-id')[:limit]
+        qs = (
+            base_complaint_queryset(request)
+            .exclude(status='resolved')
+            .order_by('-computed_upvotes_count', '-id')[:limit]
+        )
+
         serializer = ComplaintSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -57,8 +62,45 @@ class ComplaintListView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get(self, request):
-        complaints = base_complaint_queryset(request)
-        serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
+        qs = base_complaint_queryset(request).exclude(status='resolved')
+
+        # filtering
+       
+        department_id = request.query_params.get('department')
+        pincode = request.query_params.get('pincode')
+
+        if department_id:
+            qs = qs.filter(assigned_to_dept_id=department_id)
+
+        if pincode:
+            qs = qs.filter(pincode=pincode)
+
+       
+        #sorting
+        sort_by = request.query_params.get('sort_by', 'latest')  # default
+        order = request.query_params.get('order', 'desc')        # asc/desc
+
+        # map user-friendly sort keys → actual DB fields
+        sort_fields = {
+            'latest': 'posted_at',                  # default
+            'upvotes': 'computed_upvotes_count',
+            'oldest': 'posted_at',
+        }
+
+        if sort_by in sort_fields:
+            field = sort_fields[sort_by]
+        else:
+            field = 'posted_at'  # fallback
+
+        # ASC/DESC logic
+        if order == 'asc':
+            qs = qs.order_by(field)
+        else:
+            qs = qs.order_by(f'-{field}')
+        
+        # serialize&return
+       
+        serializer = ComplaintSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ComplaintCreateView(APIView):
@@ -696,3 +738,31 @@ class ComplaintResolutionView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class TopFieldworkersView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        #total fieldworkers
+        total_fieldworkers = Field_Worker.objects.count()
+
+        #compute how many to return
+        top_n = max(total_fieldworkers // 10, 3)
+
+        #annotate with total assigned complaints
+        qs = (
+            Field_Worker.objects
+            .annotate(total_assigned=Count('assigned_complaints'))
+            .order_by('-total_assigned', 'id')[:top_n]
+        )
+
+        #prepare response
+        data = [
+            {
+                "id": fw.id,
+                "name": getattr(fw, 'name', getattr(fw, 'username', 'Unknown')),
+                "total_assigned_complaints": fw.total_assigned
+            }
+            for fw in qs
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
