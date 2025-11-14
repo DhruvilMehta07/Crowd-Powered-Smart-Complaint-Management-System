@@ -321,3 +321,4 @@ class ResolutionImage(models.Model):
                 message=f"A resolution has been submitted for your complaint #{complaint.id}. Please review and approve.",
                 link=f"/complaints/{complaint.id}/resolution/"
             )
+
