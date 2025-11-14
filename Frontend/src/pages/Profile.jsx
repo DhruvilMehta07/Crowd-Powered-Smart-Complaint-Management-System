@@ -12,6 +12,13 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMessage, setPwMessage] = useState('');
+  // Email OTP flow state
+  const [useEmailOtp, setUseEmailOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [otpVerifyLoading, setOtpVerifyLoading] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -45,7 +52,7 @@ export default function Profile() {
 
     setPwLoading(true);
     try {
-      // Attempt to call backend change/reset endpoint. Adjust path if your backend requires different fields.
+      // This endpoint is for unauthenticated resets; for logged-in users we prefer OTP flow below.
       const payload = {
         current_password: currentPassword,
         new_password: newPassword,
@@ -67,6 +74,70 @@ export default function Profile() {
       setPwMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setPwLoading(false);
+    }
+  };
+
+  // Send OTP to user's email (authenticated endpoint)
+  const sendOtpToEmail = async () => {
+    setOtpMessage('');
+    setOtpSending(true);
+    try {
+      const res = await api.post('/users/password-reset/request/');
+      if (res.status === 200) {
+        setOtpSent(true);
+        setOtpMessage(res.data?.detail || 'OTP sent to your email.');
+      } else {
+        setOtpMessage('Failed to send OTP.');
+      }
+    } catch (err) {
+      console.error('Send OTP error', err);
+      const msg = err.response?.data?.detail || err.response?.data || err.message;
+      setOtpMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  // Verify OTP + current password + new password
+  const verifyOtpAndChangePassword = async (e) => {
+    e.preventDefault();
+    setOtpMessage('');
+
+    if (!otpValue || !currentPassword || !newPassword || !confirmPassword) {
+      setOtpMessage('Please fill OTP, current password, and new password fields.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setOtpMessage('New password and confirm password do not match.');
+      return;
+    }
+
+    setOtpVerifyLoading(true);
+    try {
+      const payload = {
+        otp: otpValue,
+        current_password: currentPassword,
+        new_password: newPassword,
+      };
+
+      const res = await api.post('/users/password-reset/verify/', payload);
+      if (res.status === 200) {
+        setOtpMessage(res.data?.detail || 'Password updated successfully.');
+        // reset fields
+        setOtpValue('');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setOtpSent(false);
+      } else {
+        setOtpMessage('Password update response: ' + (res.data?.detail || res.statusText));
+      }
+    } catch (err) {
+      console.error('Verify OTP error', err);
+      const msg = err.response?.data?.detail || err.response?.data || err.message;
+      setOtpMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setOtpVerifyLoading(false);
     }
   };
 
@@ -116,39 +187,124 @@ export default function Profile() {
 
       <div className="bg-white rounded-xl shadow p-6">
         <h3 className="text-xl font-semibold text-[#4B687A] mb-4">Change password</h3>
-        <form onSubmit={handleChangePassword} className="space-y-3">
-          <input
-            type="password"
-            placeholder="Current password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2"
-          />
-          <input
-            type="password"
-            placeholder="New password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2"
-          />
-          <input
-            type="password"
-            placeholder="Confirm new password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2"
-          />
 
-          {pwMessage && <div className="text-sm text-gray-700">{pwMessage}</div>}
+        <div className="mb-4">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="radio"
+              name="pw-method"
+              checked={!useEmailOtp}
+              onChange={() => setUseEmailOtp(false)}
+            />
+            <span className="text-sm">Use current password</span>
+          </label>
+          <label className="inline-flex items-center gap-2 ml-6">
+            <input
+              type="radio"
+              name="pw-method"
+              checked={useEmailOtp}
+              onChange={() => setUseEmailOtp(true)}
+            />
+            <span className="text-sm">Use email OTP</span>
+          </label>
+        </div>
 
-          <button
-            type="submit"
-            disabled={pwLoading}
-            className="bg-[#4B687A] text-white py-2 px-4 rounded-lg hover:bg-[#3C5260] disabled:opacity-60"
-          >
-            {pwLoading ? 'Changing…' : 'Change password'}
-          </button>
-        </form>
+        {!useEmailOtp ? (
+          <form onSubmit={handleChangePassword} className="space-y-3">
+            <input
+              type="password"
+              placeholder="Current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2"
+            />
+            <input
+              type="password"
+              placeholder="New password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2"
+            />
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2"
+            />
+
+            {pwMessage && <div className="text-sm text-gray-700">{pwMessage}</div>}
+
+            <button
+              type="submit"
+              disabled={pwLoading}
+              className="bg-[#4B687A] text-white py-2 px-4 rounded-lg hover:bg-[#3C5260] disabled:opacity-60"
+            >
+              {pwLoading ? 'Changing…' : 'Change password'}
+            </button>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={sendOtpToEmail}
+                disabled={otpSending}
+                className="bg-[#4B687A] text-white py-2 px-4 rounded-lg hover:bg-[#3C5260] disabled:opacity-60"
+              >
+                {otpSending ? 'Sending OTP…' : (otpSent ? 'Resend OTP' : 'Send OTP to email')}
+              </button>
+              <div className="text-sm text-gray-600">OTP will be sent to your account email: <span className="font-medium">{profile?.email}</span></div>
+            </div>
+
+            {otpMessage && <div className="text-sm text-gray-700">{otpMessage}</div>}
+
+            {otpSent && (
+              <form onSubmit={verifyOtpAndChangePassword} className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2"
+                />
+
+                <input
+                  type="password"
+                  placeholder="Current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2"
+                />
+
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2"
+                />
+
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2"
+                />
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={otpVerifyLoading}
+                    className="bg-[#4B687A] text-white py-2 px-4 rounded-lg hover:bg-[#3C5260] disabled:opacity-60"
+                  >
+                    {otpVerifyLoading ? 'Verifying…' : 'Verify & Change Password'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
