@@ -733,6 +733,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
 export default function Sidebar({}) {
   const navigate = useNavigate();
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
  
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -766,6 +767,44 @@ export default function Sidebar({}) {
       return;
     }
     setIsRaiseModalOpen(true);
+  };
+
+  // fetch unread notification count
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchUnread = async () => {
+      try {
+        if (!token) return;
+        const res = await api.get('/notifications/unread-count/');
+        if (!mounted) return;
+        setUnreadCount(res.data.unread_count || 0);
+      } catch (err) {
+        // ignore errors silently
+      }
+    };
+
+    fetchUnread();
+
+    // poll every 30s to keep badge updated
+    const id = setInterval(fetchUnread, 30000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [token]);
+
+  const handleNotificationsClick = async (e) => {
+    // clear badge immediately by asking backend to mark all read
+    try {
+      if (token) {
+        await api.post('/notifications/mark-all-read/');
+      }
+    } catch (err) {
+      // ignore errors; still navigate
+    }
+    setUnreadCount(0);
+    // let Link handle navigation if used; if called directly, navigate
   };
 
   const handleCloseRaiseComplaint = () => {
@@ -813,9 +852,17 @@ export default function Sidebar({}) {
             <li>
               <Link
                 to="/notifications"
+                onClick={handleNotificationsClick}
                 className={getLinkClass('/notifications')}
               >
-                <BellIcon className="w-6 h-6" />
+                <div className="relative">
+                  <BellIcon className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
                 Notifications
               </Link>
             </li>
@@ -860,9 +907,17 @@ export default function Sidebar({}) {
             <li>
               <Link
                 to="/notifications"
+                onClick={handleNotificationsClick}
                 className={getLinkClass('/notifications')}
               >
-                <BellIcon className="w-6 h-6" />
+                <div className="relative">
+                  <BellIcon className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
                 Notifications
               </Link>
             </li>
@@ -907,9 +962,17 @@ export default function Sidebar({}) {
             <li>
               <Link
                 to="/notifications"
+                onClick={handleNotificationsClick}
                 className={getLinkClass('/notifications')}
               >
-                <BellIcon className="w-6 h-6" />
+                <div className="relative">
+                  <BellIcon className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
                 Notifications
               </Link>
             </li>
