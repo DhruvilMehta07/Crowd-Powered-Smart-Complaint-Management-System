@@ -1,9 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+import re
 from rest_framework import permissions, status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Complaint, ResolutionImage, Notification
-from .serializers import ResolutionImageSerializer, NotificationSerializer
+from .models import Notification
+from complaints.models import Complaint, ResolutionImage
+from .serializers import NotificationSerializer
+from complaints.serializers import ResolutionImageSerializer
 # Create your views here.
 
 class NotificationListAPIView(generics.ListAPIView):
@@ -73,3 +76,41 @@ class UnreadNotificationCountAPIView(APIView):
         return Response({
             'unread_count': unread_count
         }, status=status.HTTP_200_OK)
+
+
+class NotificationOpenAPIView(APIView):
+    """Mark notification as read and redirect to the complaint detail view linked by the notification.
+
+    Behavior:
+    - Only the notification owner can open it.
+    - Marks `is_read=True`.
+    - If the notification `link` contains a complaint id (e.g. '/complaints/123/' ), redirects to
+      the complaint detail path `/complaints/<id>/detail/`.
+    - Otherwise, redirects to whatever `link` is stored, or returns 400 if none.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, notification_id):
+        try:
+            notification = Notification.objects.get(id=notification_id, user=request.user)
+        except Notification.DoesNotExist:
+            return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # mark read
+        if not notification.is_read:
+            notification.is_read = True
+            notification.save()
+
+        link = (notification.link or '').strip()
+
+        # Try to extract complaint id from link
+        m = re.search(r'/complaints/(?P<id>\d+)', link)
+        if m:
+            complaint_id = m.group('id')
+            detail_path = f"/complaints/{complaint_id}/detail/"
+            return redirect(detail_path)
+
+        if link:
+            return redirect(link)
+
+        return Response({'error': 'No redirect link available for this notification'}, status=status.HTTP_400_BAD_REQUEST)

@@ -38,7 +38,7 @@ class ResolutionImageSerializer(serializers.ModelSerializer):
     
 
 class ComplaintSerializer(serializers.ModelSerializer):
-    posted_by = UserLoginSerializer(read_only=True)
+    posted_by = serializers.SerializerMethodField()
     upvotes_count = serializers.SerializerMethodField()
     is_upvoted = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
@@ -54,7 +54,7 @@ class ComplaintSerializer(serializers.ModelSerializer):
         fields = ['id','posted_by','content','posted_at','thumbnail_url',
                   'images_count','upvotes_count','is_upvoted','assigned_to_dept','address','pincode',
                   'latitude','longitude','location_type','location_display','status',
-                  'assigned_to_fieldworker','fake_confidence','current_resolution','has_pending_resolution']
+                  'assigned_to_fieldworker','fake_confidence','current_resolution','has_pending_resolution', 'is_anonymous']
         read_only_fields = ['posted_by', 'posted_at','location_display','fake_confidence']
 
     def get_upvotes_count(self, obj):
@@ -89,6 +89,15 @@ class ComplaintSerializer(serializers.ModelSerializer):
         if worker:
             return worker.username
         return None
+
+    def get_posted_by(self, obj):
+        # Hide poster identity when complaint was submitted anonymously
+        if getattr(obj, 'is_anonymous', False):
+            return None
+        request = self.context.get('request')
+        if obj.posted_by:
+            return UserLoginSerializer(obj.posted_by, context=self.context).data
+        return None
     
     def get_current_resolution(self, obj):
         if obj.current_resolution:
@@ -119,11 +128,12 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
     latitude = serializers.DecimalField(max_digits=11, decimal_places=8, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=11, decimal_places=8, required=False, allow_null=True)
     location_type = serializers.ChoiceField(choices=Complaint.Location_Choice, default='manual')
+    is_anonymous = serializers.BooleanField(required=False, default=False)
 
     class Meta:
         model = Complaint
         fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to_dept','address',
-                  'pincode','latitude','longitude','location_type','status','assigned_to_fieldworker']
+                  'pincode','latitude','longitude','location_type','status','assigned_to_fieldworker','is_anonymous']
         read_only_fields = ['posted_by', 'posted_at']
 
     def validate(self, data):

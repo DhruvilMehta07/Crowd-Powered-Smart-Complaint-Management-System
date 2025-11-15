@@ -52,6 +52,7 @@ class Complaint(models.Model):
     upvotes_count = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=20, default='Pending')
     assigned_to_fieldworker = models.ForeignKey(Field_Worker, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_complaints')
+    is_anonymous = models.BooleanField(default=False, help_text="If true, hide poster identity in API responses")
     current_resolution = models.ForeignKey(
         'Resolution',
         on_delete=models.SET_NULL,
