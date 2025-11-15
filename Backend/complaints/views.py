@@ -17,6 +17,41 @@ from CPCMS import settings
 from django.utils import timezone
 from datetime import timedelta
 
+
+def auto_approve_due_resolutions():
+    """Auto-approve pending Resolution entries whose auto_approve_at has passed.
+    This is safe to call frequently; failures in notifications are ignored.
+    """
+    from django.utils import timezone as _tz
+    now = _tz.now()
+
+    expired = Resolution.objects.filter(status='pending_approval', auto_approve_at__lte=now)
+    for resolution in expired:
+        resolution.status = 'auto_approved'
+        resolution.citizen_feedback = "Auto-approved after 3 days of no response."
+        resolution.citizen_responded_at = now
+        resolution.save()
+
+        complaint = resolution.complaint
+        complaint.status = 'Completed'
+        # store timestamp if the field exists
+        try:
+            complaint.resolution_approved_at = now
+            complaint.save()
+        except Exception:
+            complaint.save()
+
+        # Notify field worker (best-effort)
+        try:
+            if resolution.field_worker:
+                Notification.objects.create(
+                    user=resolution.field_worker,
+                    message=f"Your resolution for complaint #{complaint.id} was auto-approved (3 days no response from citizen).",
+                    link=f"/complaints/{complaint.id}/"
+                )
+        except Exception:
+            pass
+
 # Helper to build an optimized annotated queryset for complaints listings
 def base_complaint_queryset(request):
     user = getattr(request, 'user', None)
@@ -461,6 +496,75 @@ class ComplaintImageView(APIView):
             context={'request': request}
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ComplaintDetailView(APIView):
+    """Return full complaint details including images, upvotes, assigned worker,
+    resolutions and citizen feedback. Also returns simplified solved status
+    ('solved'|'in_progress'|'unsolved').
+    """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, complaint_id):
+        # Auto-approve any overdue resolutions before presenting detail
+        try:
+            auto_approve_due_resolutions()
+        except Exception:
+            # Non-fatal; we still return complaint data even if auto-approve fails
+            pass
+
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+
+        # Basic serialized complaint (includes images, upvotes_count, fake_confidence, resolutions)
+        serializer = ComplaintSerializer(complaint, context={'request': request})
+        data = serializer.data
+
+        # Assigned field worker name
+        assigned_worker = None
+        if complaint.assigned_to_fieldworker:
+            assigned_worker = complaint.assigned_to_fieldworker.username
+
+        # Determine simplified solved status
+        status_field = (complaint.status or '').lower()
+        if status_field in ('completed', 'approved', 'auto_approved', 'resolved'):
+            solved_status = 'solved'
+        elif status_field in ('in progress', 'in_progress', 'pending approval', 'pending_approval'):
+            solved_status = 'in_progress'
+        else:
+            solved_status = 'unsolved'
+
+        # Latest approved resolution (if any)
+        latest_approved = (
+            complaint.resolutions
+            .filter(status__in=['approved', 'auto_approved'])
+            .order_by('-citizen_responded_at', '-submitted_at')
+            .first()
+        )
+
+        latest_resolution_data = None
+        if latest_approved:
+            latest_resolution_data = {
+                'id': latest_approved.id,
+                'field_worker': latest_approved.field_worker.username if latest_approved.field_worker else None,
+                'description': latest_approved.description,
+                'submitted_at': latest_approved.submitted_at,
+                'status': latest_approved.status,
+                'citizen_feedback': latest_approved.citizen_feedback,
+                'citizen_responded_at': latest_approved.citizen_responded_at,
+            }
+
+        # If solved and feedback negative (we treat any non-empty feedback and not-approved state as negative),
+        # the existing rejection flow (CitizenResolutionResponseView) will already set complaint to 'Escalated'
+        # and clear assigned worker. Here we only surface the current state and let gov users reassign via AssignComplaintView.
+
+        response = {
+            'complaint': data,
+            'assigned_field_worker': assigned_worker,
+            'solved_status': solved_status,
+            'latest_approved_resolution': latest_resolution_data,
+        }
+
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class FakeConfidenceView(APIView):
