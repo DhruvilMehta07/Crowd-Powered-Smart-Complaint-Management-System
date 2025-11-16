@@ -15,7 +15,7 @@ export default function Notifications() {
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        const res = await api.get('/notifications/');
+        const res = await api.get('complaints/notifications/');
         if (!mounted) return;
         setNotifications(res.data || []);
         setError('');
@@ -39,7 +39,7 @@ export default function Notifications() {
       // mark single notification as read (backend list view already marks all read, but keep for safety)
       if (notif && notif.id) {
         try {
-          await api.post(`/notifications/${notif.id}/mark-read/`);
+          await api.post(`complaints/notifications/${notif.id}/mark-read/`);
         } catch (err) {
           // ignore
         }
