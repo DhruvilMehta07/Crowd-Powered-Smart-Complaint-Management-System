@@ -19,8 +19,9 @@ class EmailService:
         except Exception as e:
             print(f"Email error: {e}")
             return False
-        
-    def send_otp_for_password_reset(self, email, otp):
+    
+    @staticmethod
+    def send_otp_for_password_reset(email, otp):
         subject = 'CPCMS Password Reset OTP'
         message = f'Your OTP for password reset is: {otp}. It is valid for 10 minutes.'
         

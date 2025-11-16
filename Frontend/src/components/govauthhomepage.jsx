@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 import axios from 'axios';
 
@@ -52,6 +53,8 @@ const UserIcon = ({ className = 'w-12 h-12', color = '#4B687A' }) => (
 
 
 const ComplaintCard = ({ complaint, onAssignClick }) => {
+  const navigate = useNavigate();
+  
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
     try {
@@ -115,7 +118,10 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
   }, [showImageModal, images.length]);
 
   return (
-    <div className="bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300">
+    <div 
+      className="bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300 cursor-pointer"
+      onClick={() => navigate(`/complaint/${complaint.id}`)}
+    >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full p-1 text-indigo-600">
@@ -253,7 +259,10 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
           </span>
         </div>
         <button
-          onClick={() => onAssignClick(complaint)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAssignClick(complaint);
+          }}
           className="bg-[#4B687A] text-white px-4 py-2 rounded-lg hover:bg-[#3A4F5E] transition-colors duration-200"
         >
           Assign to Field Worker

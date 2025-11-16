@@ -482,18 +482,13 @@ class PasswordResetVerifyAPIView(APIView):
 
     def post(self, request):
         otp_attempt = request.data.get('otp')
-        current_password = request.data.get('current_password')
         new_password = request.data.get('new_password')
 
-        if not otp_attempt or not new_password or not current_password:
-            return Response({"detail": "otp, current_password and new_password required."},
+        if not otp_attempt or not new_password:
+            return Response({"detail": "otp and new_password required."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
-        if not user.check_password(current_password):
-            return Response({"detail": "Current password is incorrect."},
-                            status=status.HTTP_400_BAD_REQUEST)
-
         email = getattr(user, 'email', None)
         if not email:
             return Response({"detail": "No email on user."}, status=status.HTTP_400_BAD_REQUEST)
@@ -516,3 +511,23 @@ class PasswordResetVerifyAPIView(APIView):
             pass
 
         return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
+
+
+class ChangePasswordAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if  not new_password:
+            return Response({"detail": "current_password and new_password are required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)

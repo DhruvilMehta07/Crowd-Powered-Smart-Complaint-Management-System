@@ -4,7 +4,7 @@ from .views import (
     NotificationListAPIView, 
     MarkNotificationAsReadAPIView,
     MarkAllNotificationsAsReadAPIView,
-    UnreadNotificationCountAPIView
+    UnreadNotificationCountAPIView, NotificationOpenAPIView
 )
 
 urlpatterns = [

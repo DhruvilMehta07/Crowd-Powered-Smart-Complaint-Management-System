@@ -78,7 +78,7 @@ const AlertIcon = ({ className = 'w-5 h-5' }) => (
 );
 
 const ComplaintDetailView = () => {
-  const { complaint_id } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [complaintData, setComplaintData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,13 +91,13 @@ const ComplaintDetailView = () => {
     const fetchComplaintDetail = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/api/complaints/${complaint_id}/detail/`);
+        const response = await api.get(`/complaints/${id}/detail/`);
         setComplaintData(response.data);
 
         // Fetch images if available
         if (response.data.complaint && response.data.complaint.images_count > 0) {
           try {
-            const imagesResponse = await api.get(`/api/complaints/${complaint_id}/images/`);
+            const imagesResponse = await api.get(`/complaints/${id}/images/`);
             setImages(imagesResponse.data);
           } catch (imgErr) {
             console.error('Failed to fetch images:', imgErr);
@@ -112,7 +112,7 @@ const ComplaintDetailView = () => {
     };
 
     fetchComplaintDetail();
-  }, [complaint_id]);
+  }, [id]);
 
   // Keyboard navigation for image modal
   useEffect(() => {
@@ -320,7 +320,7 @@ const ComplaintDetailView = () => {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
                 <p className="text-sm font-semibold text-gray-700 mb-2">Location</p>
                 <p className="text-gray-600 text-sm">
-                  Latitude: {complaint.latitude.toFixed(4)}, Longitude: {complaint.longitude.toFixed(4)}
+                  Latitude: {Number(complaint.latitude).toFixed(4)}, Longitude: {Number(complaint.longitude).toFixed(4)}
                 </p>
               </div>
             )}

@@ -15,6 +15,7 @@ from .views import (
     CitizenProfileAPIView,
     PasswordResetRequestAPIView,
     PasswordResetVerifyAPIView,
+    ChangePasswordAPIView,
 )
 
 
@@ -35,6 +36,7 @@ urlpatterns = [
     path('forgot-password/', ForgotPasswordAPIView.as_view(), name='forgot-password'),
     path('reset-password/', ResetPasswordAPIView.as_view(), name='reset-password'),
     path('profile/', CitizenProfileAPIView.as_view(), name='user-profile'),
+    path('change-password/', ChangePasswordAPIView.as_view(), name='change-password'),
     path('password-reset/request/', PasswordResetRequestAPIView.as_view(), name='password-reset-request'),
     path('password-reset/verify/', PasswordResetVerifyAPIView.as_view(), name='password-reset-verify'),
 ]

@@ -52,13 +52,12 @@ export default function Profile() {
 
     setPwLoading(true);
     try {
-      // This endpoint is for unauthenticated resets; for logged-in users we prefer OTP flow below.
       const payload = {
         current_password: currentPassword,
         new_password: newPassword,
       };
 
-      const res = await api.post('/users/reset-password/', payload);
+      const res = await api.post('/users/change-password/', payload);
 
       if (res.status === 200 || res.status === 204) {
         setPwMessage('Password changed successfully.');
@@ -66,7 +65,7 @@ export default function Profile() {
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setPwMessage('Password change response: ' + (res.data?.message || res.statusText));
+        setPwMessage('Password change response: ' + (res.data?.detail || res.statusText));
       }
     } catch (err) {
       console.error('Password change error', err);
@@ -98,13 +97,13 @@ export default function Profile() {
     }
   };
 
-  // Verify OTP + current password + new password
+  // Verify OTP + new password
   const verifyOtpAndChangePassword = async (e) => {
     e.preventDefault();
     setOtpMessage('');
 
-    if (!otpValue || !currentPassword || !newPassword || !confirmPassword) {
-      setOtpMessage('Please fill OTP, current password, and new password fields.');
+    if (!otpValue || !newPassword || !confirmPassword) {
+      setOtpMessage('Please fill OTP and new password fields.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -116,7 +115,6 @@ export default function Profile() {
     try {
       const payload = {
         otp: otpValue,
-        current_password: currentPassword,
         new_password: newPassword,
       };
 
@@ -125,7 +123,6 @@ export default function Profile() {
         setOtpMessage(res.data?.detail || 'Password updated successfully.');
         // reset fields
         setOtpValue('');
-        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setOtpSent(false);
@@ -268,13 +265,7 @@ export default function Profile() {
                   className="w-full border border-gray-300 rounded-lg p-2"
                 />
 
-                <input
-                  type="password"
-                  placeholder="Current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2"
-                />
+                
 
                 <input
                   type="password"
