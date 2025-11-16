@@ -15,7 +15,7 @@ export default function Notifications() {
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        const res = await api.get('complaints/notifications/');
+        const res = await api.get('/notifications/notifications/');
         if (!mounted) return;
         setNotifications(res.data || []);
         setError('');

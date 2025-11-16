@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
-import axios from 'axios';
+import axios, { Axios } from 'axios';
 import Navbar from './components/Navbar';
 import Login from './components/LoginForm';
 import Sidebar from './pages/SideBar';
@@ -15,6 +15,7 @@ import TrendingComplaints from './pages/TrendingComplaints';
 import api from './utils/axiosConfig';
 import GovAuthHomepage from './components/govauthhomepage';
 import FieldWorkerHomepage from './components/fieldworkerhomepage';
+import ComplaintDetailView from './components/ComplaintDetailView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Citizen');
@@ -26,11 +27,7 @@ function App() {
     const initializeApp = async () => {
       try {
         // Fetch CSRF token
-        await api(
-          '{/users/token/refresh/}',
-          
-          { withCredentials: true }
-        );
+        
         console.log('CSRF token fetched successfully');
 
         // Check if user is logged in and get user type
@@ -93,6 +90,7 @@ function App() {
           <Route path="help" element={<Help />} />
           <Route path="raise-complaint" element={<RaiseComplaintModal />} />
           <Route path="trending" element={<Trending />} />
+          <Route path="complaint/:id" element={<ComplaintDetailView />} />
         </Routes>
       </div>
       <TrendingComplaints/>
@@ -112,6 +110,7 @@ function App() {
           <Route path="help" element={<Help />} />
           <Route path="raise-complaint" element={<RaiseComplaintModal />} />
           <Route path="trending" element={<Trending />} />
+          <Route path="complaint/:id" element={<ComplaintDetailView />} />
         </Routes>
       </div>
       <TrendingComplaints/>
@@ -131,7 +130,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="help" element={<Help />} />
-          
+          <Route path="complaint/:id" element={<ComplaintDetailView />} />
           {/* Add field worker specific routes */}
         </Routes>
       </div>

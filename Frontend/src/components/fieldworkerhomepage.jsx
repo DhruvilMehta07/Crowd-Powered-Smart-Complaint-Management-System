@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 
 const SearchIcon = ({ className = 'w-6 h-6' }) => (
@@ -59,6 +60,8 @@ const ImageUploadIcon = ({ className = 'w-10 h-10' }) => (
 );
 
 const ComplaintCard = ({ complaint }) => {
+  const navigate = useNavigate();
+  
   const formatDate = (dateString) => {
     const d = dateString || complaint.posted_at || complaint.date;
     if (!d) return 'Unknown date';
@@ -119,7 +122,10 @@ const ComplaintCard = ({ complaint }) => {
   }, [showImageModal, images.length]);
 
   return (
-  <div className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300">
+  <div 
+    className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300 cursor-pointer"
+    onClick={() => navigate(`/complaint/${complaint.id}`)}
+  >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-full p-1 text-[#4B687A]">

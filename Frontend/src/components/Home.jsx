@@ -121,6 +121,7 @@ const ComplaintCard = ({
   onReport,
   reported = false,
 }) => {
+  const navigate = useNavigate();
   const [isUpvoting, setIsUpvoting] = useState(false);
   const [localUpvotes, setLocalUpvotes] = useState(
     // prefer serializer-provided `upvotes_count`, fall back to older fields
@@ -317,7 +318,10 @@ const ComplaintCard = ({
 
   return (
     <>
-  <div className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300">
+  <div 
+    className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300 cursor-pointer"
+    onClick={() => navigate(`/complaint/${complaint.id}`)}
+  >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="rounded-full p-1 text-[#4B687A]">
@@ -336,7 +340,10 @@ const ComplaintCard = ({
           </div>
           {isAuthenticated && (
             <button
-              onClick={handleDeleteComplaint}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteComplaint();
+              }}
               className="text-red-600 hover:text-red-800 text-sm font-semibold transition-colors"
             >
               Delete
@@ -399,7 +406,10 @@ const ComplaintCard = ({
 
   <div className="flex items-center gap-10 pt-4 border-t-2 border-gray-100">
           <button
-            onClick={handleUpvote}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUpvote();
+            }}
             disabled={isUpvoting}
             className={`flex items-center gap-2 transition-all ${
               isUpvoting
@@ -418,7 +428,8 @@ const ComplaintCard = ({
           {/* Don't render Report button if this user already reported this complaint */}
           {!localReported && (
             <button
-              onClick={async () => {
+              onClick={async (e) => {
+                e.stopPropagation();
                 if (!isAuthenticated) {
                   alert('Please login to report complaints.');
                   return;
