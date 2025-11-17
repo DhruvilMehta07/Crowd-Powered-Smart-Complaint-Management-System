@@ -90,28 +90,120 @@ const ImageIcon = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
-const Header = ({ query, setQuery, onSearch }) => (
-  <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
-    <div className="flex-1 max-w-2xl mx-auto">
-      <div className="relative">
-  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="search"
-          placeholder="Search for complaints, people, or keywords"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              onSearch();
-            }
-          }}
-          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 transition-all"
-        />
-      </div>
-    </div>
-  </header>
+const FilterIcon = ({ className = 'w-4 h-4' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+    <path d="M3 5a1 1 0 011-1h12a1 1 0 01.707 1.707L12 10.414V15a1 1 0 01-1.447.894L7 14.118V10.414L3.293 6.707A1 1 0 013 6V5z" />
+  </svg>
 );
+
+const SortIcon = ({ className = 'w-4 h-4' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+    <path d="M3 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6 10a1 1 0 100 2h8a1 1 0 100-2H6zM9 14a1 1 0 100 2h2a1 1 0 100-2H9z" />
+  </svg>
+);
+
+const Header = ({
+  query,
+  setQuery,
+  onSearch,
+  departments = [],
+  department,
+  setDepartment,
+  pincode,
+  setPincode,
+  sortBy,
+  setSortBy,
+  order,
+  setOrder,
+}) => {
+  const [showFilter, setShowFilter] = React.useState(false);
+  const [showSort, setShowSort] = React.useState(false);
+
+  return (
+    <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
+      <div className="flex-1 max-w-2xl mx-auto">
+        <div className="relative">
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <button
+            title="Filters"
+            onClick={() => { setShowFilter((s) => !s); setShowSort(false); }}
+            className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            <FilterIcon />
+          </button>
+          <button
+            title="Sort"
+            onClick={() => { setShowSort((s) => !s); setShowFilter(false); }}
+            className="absolute left-16 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            <SortIcon />
+          </button>
+
+          <input
+            type="search"
+            placeholder="Search for complaints, people, or keywords"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onSearch();
+              }
+            }}
+            className="w-full pl-28 pr-4 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 transition-all"
+          />
+
+          {/* Filter panel */}
+          {showFilter && (
+            <div className="absolute left-4 top-full mt-3 w-80 bg-white border rounded-lg shadow-lg p-4 z-20">
+              <label className="text-sm text-gray-600">Department</label>
+              <select
+                value={department || ''}
+                onChange={(e) => setDepartment(e.target.value || null)}
+                className="w-full border rounded p-2 my-2"
+              >
+                <option value="">All departments</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+
+              <label className="text-sm text-gray-600">Pincode</label>
+              <input
+                value={pincode || ''}
+                onChange={(e) => setPincode(e.target.value)}
+                placeholder="Enter pincode"
+                className="w-full border rounded p-2 my-2"
+              />
+
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={() => { setDepartment(null); setPincode(''); }} className="px-3 py-1 rounded bg-gray-100">Reset</button>
+              </div>
+            </div>
+          )}
+
+          {/* Sort panel */}
+          {showSort && (
+            <div className="absolute left-28 top-full mt-3 w-56 bg-white border rounded-lg shadow-lg p-4 z-20">
+              <label className="text-sm text-gray-600">Sort by</label>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full border rounded p-2 my-2">
+                <option value="latest">Latest</option>
+                <option value="upvotes">Most upvotes</option>
+                <option value="oldest">Oldest</option>
+              </select>
+
+              <label className="text-sm text-gray-600">Order</label>
+              <select value={order} onChange={(e) => setOrder(e.target.value)} className="w-full border rounded p-2 my-2">
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};
 
 const ComplaintCard = ({
   complaint,
@@ -542,6 +634,11 @@ const Homepage = () => {
   const [isRaiseOpen, setIsRaiseOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [showReportToast, setShowReportToast] = useState(false);
+  const [department, setDepartment] = useState(null);
+  const [pincode, setPincode] = useState('');
+  const [sortBy, setSortBy] = useState('latest');
+  const [order, setOrder] = useState('desc');
+  const [departmentsList, setDepartmentsList] = useState([]);
   const isFetchingRef = useRef(false);
   // persist reported complaint ids for this user in localStorage so the "Report" button
   // stays disabled after reporting (survives reloads)
@@ -578,14 +675,39 @@ const Homepage = () => {
     };
   }, []);
 
-  const fetchComplaints = useCallback(async () => {
+  // Fetch departments for filter dropdown
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await api.get('/users/departments/');
+        setDepartmentsList(response.data);
+      } catch (err) {
+        console.error('Error fetching departments:', err);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  const fetchComplaints = useCallback(async (opts = {}) => {
   // prevent duplicate concurrent fetches (e.g., React StrictMode double-invoke in dev)
   if (isFetchingRef.current) return;
   isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/complaints/');
+      const params = {};
+      // merge filters from opts or current state
+      const dept = opts.department ?? department;
+      const pin = opts.pincode ?? pincode;
+      const sb = opts.sortBy ?? sortBy;
+      const ord = opts.order ?? order;
+
+      if (dept) params.department = dept;
+      if (pin) params.pincode = pin;
+      if (sb) params.sort_by = sb;
+      if (ord) params.order = ord;
+
+      const response = await api.get('/complaints/', { params });
       setComplaints(response.data);
     } catch (err) {
       console.error('Error fetching complaints:', err);
@@ -594,7 +716,7 @@ const Homepage = () => {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, []);
+  }, [department, pincode, sortBy, order]);
 
   const searchComplaints = useCallback(
     async (q) => {
@@ -604,9 +726,16 @@ const Homepage = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get(
-          `/complaints/search/?q=${encodeURIComponent(q)}`
-        );
+        const params = {
+          q: q,
+        };
+        if (department) params.department = department;
+        if (pincode) params.pincode = pincode;
+        if (sortBy) params.sort_by = sortBy;
+        if (order) params.order = order;
+
+        const query = new URLSearchParams(params).toString();
+        const response = await api.get(`/complaints/search/?${query}`);
         setComplaints(response.data || []);
       } catch (err) {
         console.error('Search error', err);
@@ -615,7 +744,7 @@ const Homepage = () => {
         setLoading(false);
       }
     },
-    [fetchComplaints]
+    [fetchComplaints, department, pincode, sortBy, order]
   );
   const handleUpvote = async (
     complaintId,
@@ -754,6 +883,15 @@ const Homepage = () => {
         query={query}
         setQuery={setQuery}
         onSearch={() => searchComplaints(query)}
+        departments={departmentsList}
+        department={department}
+        setDepartment={setDepartment}
+        pincode={pincode}
+        setPincode={setPincode}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        order={order}
+        setOrder={setOrder}
       />
 
       {showReportToast && (
