@@ -34,14 +34,12 @@ def auto_approve_due_resolutions():
 
         complaint = resolution.complaint
         complaint.status = 'Completed'
-        # store timestamp if the field exists
         try:
             complaint.resolution_approved_at = now
             complaint.save()
         except Exception:
             complaint.save()
 
-        # Notify field worker (best-effort)
         try:
             if resolution.field_worker:
                 Notification.objects.create(
@@ -870,3 +868,60 @@ class TopFieldworkersView(APIView):
         ]
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class PredictComplaintResolutionView(APIView):
+    # Returns severity analysis,time prediction and metadata 
+  
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, complaint_id):
+        from complaints.services.complaint_prediction_service import ComplaintPredictionService
+        
+        try:
+            complaint = get_object_or_404(Complaint, id=complaint_id)
+            
+            
+            images = ComplaintImage.objects.filter(complaint=complaint)
+            if not images.exists():
+                return Response(
+                    {"error": "Complaint must have at least one image for ML prediction"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+           
+            first_image = images.first()
+            image_url = first_image.image.url  # Cloudinary URL
+            
+            
+            category = complaint.category
+            description = complaint.content or ""
+            address = complaint.address or "Unknown location"
+            
+            # Run the ML prediction pipeline
+            severity_analysis, time_prediction, metadata = ComplaintPredictionService.predict_resolution(
+                complaint_id=complaint.id,
+                category=category,
+                description=description,
+                address=address,
+                image_url=image_url
+            )
+            
+            return Response(
+                {
+                    "severity_analysis": severity_analysis,
+                    "time_prediction": time_prediction,
+                    "metadata": metadata
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"ML prediction failed for complaint {complaint_id}: {str(e)}")
+            
+            return Response(
+                {"error": f"ML prediction pipeline failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
