@@ -5,7 +5,8 @@ from .views import (ComplaintListView,ComplaintCreateView,UpvoteComplaintView,
                     PastComplaintsView,GovernmentHomePageView,FieldWorkerHomePageView,
                     AssignComplaintView,AvailableFieldWorkersView,ComplaintImageView,
                     FakeConfidenceView,SubmitResolutionView,CitizenResolutionResponseView,
-                    AutoApproveResolutionsView,ComplaintResolutionView,TrendingComplaintsView,TopFieldworkersView)
+                    AutoApproveResolutionsView,ComplaintResolutionView,TrendingComplaintsView,
+                    TopFieldworkersView,PredictComplaintResolutionView)
 from .views import ComplaintDetailView
 
 
@@ -35,4 +36,5 @@ urlpatterns = [
     path('<int:complaint_id>/resolution/', ComplaintResolutionView.as_view(), name='resolution-response'),
     path('resolutions/auto-approve/', AutoApproveResolutionsView.as_view(), name='auto-approve'),
     path('top-fieldworkers/', TopFieldworkersView.as_view(), name='top-fieldworkers'),
+    path('<int:complaint_id>/predict-resolution/', PredictComplaintResolutionView.as_view(), name='predict-resolution'),
 ]
