@@ -93,6 +93,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     longitude: '',
     location_type: 'manual',
     files: [],
+    is_anonymous: false,
   });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState([]);
@@ -284,8 +285,11 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleFileChange = (e) => {
@@ -359,6 +363,9 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       formData.append('assigned_to_dept', form.assigned_to_dept);
     }
 
+    // Add anonymous flag
+    formData.append('is_anonymous', form.is_anonymous);
+
     // Add files if any
     if (form.files && form.files.length > 0) {
       // Append each selected file with the same field name 'images' so DRF parses them as a list
@@ -390,6 +397,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
         longitude: '',
         location_type: 'manual',
         files: [],
+        is_anonymous: false,
       });
       setLocationError('');
       onClose();
@@ -712,6 +720,23 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
               className="hidden"
             />
           </label>
+
+          <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <input
+              type="checkbox"
+              id="is_anonymous"
+              name="is_anonymous"
+              checked={form.is_anonymous}
+              onChange={handleChange}
+              className="w-4 h-4 text-[#4B687A] rounded cursor-pointer"
+            />
+            <label htmlFor="is_anonymous" className="flex items-center cursor-pointer flex-1">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Submit Anonymously</p>
+                <p className="text-xs text-gray-600">Your name won't be visible to others</p>
+              </div>
+            </label>
+          </div>
 
           <button
             type="submit"
