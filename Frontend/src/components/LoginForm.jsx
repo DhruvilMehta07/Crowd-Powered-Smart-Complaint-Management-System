@@ -103,9 +103,11 @@ const LoginForm = ({
       Test Connection
     </button>
 
-    <p className="text-center text-gray-600 text-xs sm:text-sm pt-2">
-      Don't have an account? <button type="button" onClick={() => setActiveForm('SignUp')} className="text-[#4B687A] font-semibold hover:text-gray-700">Sign up</button>
-    </p>
+    {!error && (
+      <p className="text-center text-gray-600 text-xs sm:text-sm pt-2">
+        Don't have an account? <button type="button" onClick={() => setActiveForm('SignUp')} className="text-[#4B687A] font-semibold hover:text-gray-700">Sign up</button>
+      </p>
+    )}
   </form>
 );
 
