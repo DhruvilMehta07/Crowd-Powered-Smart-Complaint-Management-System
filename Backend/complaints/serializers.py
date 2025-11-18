@@ -133,7 +133,8 @@ class ComplaintCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Complaint
         fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to_dept','address',
-                  'pincode','latitude','longitude','location_type','status','assigned_to_fieldworker','is_anonymous']
+                  'pincode','latitude','longitude','location_type','status','assigned_to_fieldworker','is_anonymous',
+                  ]
         read_only_fields = ['posted_by', 'posted_at']
 
     def validate(self, data):

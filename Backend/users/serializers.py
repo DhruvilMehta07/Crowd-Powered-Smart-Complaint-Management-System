@@ -31,7 +31,7 @@ class CitizenProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Citizen
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined']
-        read_only_fields = ['id', 'username', 'email', 'date_joined']
+        read_only_fields = ['id', 'username', 'email', 'date_joined','first_name','last_name']
         extra_kwargs = {'password': {'write_only': True}}
     def get_phone_number(self, obj):
         return getattr(obj, 'phone_number', None)
