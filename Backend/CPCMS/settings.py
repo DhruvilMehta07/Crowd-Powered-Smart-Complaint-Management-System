@@ -24,10 +24,6 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-j87721-qpo2z*xjtwl!!ee5e()no*3o)o8ui!0hh5gsh=k=2yw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -97,7 +93,7 @@ CACHES = {
     },
     'otps': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://redis:6379/2',
+        'LOCATION': os.getenv('REDIS_URL'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'IGNORE_EXCEPTIONS': True,
@@ -153,14 +149,12 @@ DEFAULT_FROM_EMAIL = 'ekkatran@gmail.com'
 import os
 from urllib.parse import urlparse
 
-# Database configuration
 if 'DATABASE_URL' in os.environ:
-    # Parse the DATABASE_URL from Railway
     db_url = urlparse(os.environ['DATABASE_URL'])
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db_url.path[1:],  # Remove leading slash
+            'NAME': db_url.path[1:], 
             'USER': db_url.username,
             'PASSWORD': db_url.password,
             'HOST': db_url.hostname,
@@ -168,7 +162,6 @@ if 'DATABASE_URL' in os.environ:
         }
     }
 else:
-    # Fallback to individual environment variables
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',

@@ -24,7 +24,6 @@ class Complaint(models.Model):
     content = models.TextField()
     posted_by = models.ForeignKey(ParentUser,null=True, blank=True,on_delete=models.SET_NULL)
     posted_at = models.DateTimeField(default=timezone.now)
-    
     Location_Choice = [
         ('gps','GPS'),
         ('manual',"Manual")
