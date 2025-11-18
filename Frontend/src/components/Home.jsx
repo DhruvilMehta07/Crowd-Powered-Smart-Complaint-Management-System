@@ -91,13 +91,23 @@ const ImageIcon = ({ className = 'w-5 h-5' }) => (
 );
 
 const FilterIcon = ({ className = 'w-4 h-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className={className}
+  >
     <path d="M3 5a1 1 0 011-1h12a1 1 0 01.707 1.707L12 10.414V15a1 1 0 01-1.447.894L7 14.118V10.414L3.293 6.707A1 1 0 013 6V5z" />
   </svg>
 );
 
 const SortIcon = ({ className = 'w-4 h-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className={className}
+  >
     <path d="M3 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6 10a1 1 0 100 2h8a1 1 0 100-2H6zM9 14a1 1 0 100 2h2a1 1 0 100-2H9z" />
   </svg>
 );
@@ -116,89 +126,123 @@ const Header = ({
   order,
   setOrder,
 }) => {
-  const [showFilter, setShowFilter] = React.useState(false);
-  const [showSort, setShowSort] = React.useState(false);
+  const [showPanel, setShowPanel] = React.useState(false);
+  const panelWrapperRef = React.useRef(null);
 
+  // Close panel when clicking outside
+  React.useEffect(() => {
+    if (!showPanel) return;
+
+    const handleOutsideClick = (e) => {
+      if (panelWrapperRef.current && !panelWrapperRef.current.contains(e.target)) {
+        setShowPanel(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showPanel]);
   return (
     <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
       <div className="flex-1 max-w-2xl mx-auto">
-        <div className="relative">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <button
-            title="Filters"
-            onClick={() => { setShowFilter((s) => !s); setShowSort(false); }}
-            className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            <FilterIcon />
-          </button>
-          <button
-            title="Sort"
-            onClick={() => { setShowSort((s) => !s); setShowFilter(false); }}
-            className="absolute left-16 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            <SortIcon />
-          </button>
+        <div className="relative flex items-center gap-4">
+          {/* Search input (left) and a single combined Filter/Sort button to the right */}
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Search for complaints, people, or keywords"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  onSearch();
+                }
+              }}
+              className="w-full pl-12 pr-12 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 transition-all"
+            />
+          </div>
 
-          <input
-            type="search"
-            placeholder="Search for complaints, people, or keywords"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                onSearch();
-              }
-            }}
-            className="w-full pl-28 pr-4 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 transition-all"
-          />
+          <div className="relative" ref={panelWrapperRef}>
+            <button
+              title="Filter and Sort"
+              onClick={() => setShowPanel((s) => !s)}
+              className="w-12 h-12 flex items-center gap-2 px-3 py-2 rounded-full bg-[#4B687A] text-white hover:bg-[#3C5260] transition-shadow shadow-sm"
+              aria-label="Open filter and sort options"
+            >
+              <FilterIcon className="w-10 h-10 text-white" />
+            </button>
 
-          {/* Filter panel */}
-          {showFilter && (
-            <div className="absolute left-4 top-full mt-3 w-80 bg-white border rounded-lg shadow-lg p-4 z-20">
-              <label className="text-sm text-gray-600">Department</label>
-              <select
-                value={department || ''}
-                onChange={(e) => setDepartment(e.target.value || null)}
-                className="w-full border rounded p-2 my-2"
-              >
-                <option value="">All departments</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+            {showPanel && (
+              <div className="absolute right-0 top-full mt-3 w-96 bg-gray-100 border border-gray-200 rounded-lg shadow-lg p-4 z-20">
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="text-sm text-gray-600">Department</label>
+                    <select
+                      value={department || ''}
+                      onChange={(e) => setDepartment(e.target.value || null)}
+                      className="w-full border rounded p-2 my-2"
+                    >
+                      <option value="">All departments</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <label className="text-sm text-gray-600">Pincode</label>
-              <input
-                value={pincode || ''}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="Enter pincode"
-                className="w-full border rounded p-2 my-2"
-              />
+                  <div>
+                    <label className="text-sm text-gray-600">Pincode</label>
+                    <input
+                      value={pincode || ''}
+                      onChange={(e) => setPincode(e.target.value)}
+                      placeholder="Enter pincode"
+                      className="w-full border rounded p-2 my-2"
+                    />
+                  </div>
 
-              <div className="flex justify-end gap-2 mt-2">
-                <button onClick={() => { setDepartment(null); setPincode(''); }} className="px-3 py-1 rounded bg-gray-100">Reset</button>
+                  <div>
+                    <label className="text-sm text-gray-600">Sort by</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full border rounded p-2 my-2"
+                    >
+                      <option value="latest">Latest</option>
+                      <option value="upvotes">Most upvotes</option>
+                      <option value="least_votes">Least votes</option>
+                      <option value="oldest">Oldest</option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        setDepartment(null);
+                        setPincode('');
+                        setSortBy('latest');
+                        setOrder('desc');
+                      }}
+                      className="px-3 py-1 rounded bg-gray-100"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={() => {
+                        onSearch();
+                        setShowPanel(false);
+                      }}
+                      className="px-4 py-1 rounded bg-[#4B687A] text-white hover:bg-[#3C5260]"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Sort panel */}
-          {showSort && (
-            <div className="absolute left-28 top-full mt-3 w-56 bg-white border rounded-lg shadow-lg p-4 z-20">
-              <label className="text-sm text-gray-600">Sort by</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full border rounded p-2 my-2">
-                <option value="latest">Latest</option>
-                <option value="upvotes">Most upvotes</option>
-                <option value="oldest">Oldest</option>
-              </select>
-
-              <label className="text-sm text-gray-600">Order</label>
-              <select value={order} onChange={(e) => setOrder(e.target.value)} className="w-full border rounded p-2 my-2">
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
-              </select>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </header>
@@ -410,10 +454,10 @@ const ComplaintCard = ({
 
   return (
     <>
-  <div 
-    className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300 cursor-pointer"
-    onClick={() => navigate(`/complaint/${complaint.id}`)}
-  >
+      <div
+        className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300 cursor-pointer"
+        onClick={() => navigate(`/complaint/${complaint.id}`)}
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="rounded-full p-1 text-[#4B687A]">
@@ -496,7 +540,7 @@ const ComplaintCard = ({
           </span>
         </div>
 
-  <div className="flex items-center gap-10 pt-4 border-t-2 border-gray-100">
+        <div className="flex items-center gap-10 pt-4 border-t-2 border-gray-100">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -507,8 +551,8 @@ const ComplaintCard = ({
               isUpvoting
                 ? 'text-gray-400 cursor-not-allowed'
                 : userHasUpvoted
-            ? 'text-[#4B687A] hover:text-[#3C5260]'
-              : 'text-gray-600 hover:text-[#4B687A]'
+                  ? 'text-[#4B687A] hover:text-[#3C5260]'
+                  : 'text-gray-600 hover:text-[#4B687A]'
             } hover:scale-105 transform font-semibold`}
           >
             <ArrowUpIcon
@@ -688,35 +732,38 @@ const Homepage = () => {
     fetchDepartments();
   }, []);
 
-  const fetchComplaints = useCallback(async (opts = {}) => {
-  // prevent duplicate concurrent fetches (e.g., React StrictMode double-invoke in dev)
-  if (isFetchingRef.current) return;
-  isFetchingRef.current = true;
-    try {
-      setLoading(true);
-      setError(null);
-      const params = {};
-      // merge filters from opts or current state
-      const dept = opts.department ?? department;
-      const pin = opts.pincode ?? pincode;
-      const sb = opts.sortBy ?? sortBy;
-      const ord = opts.order ?? order;
+  const fetchComplaints = useCallback(
+    async (opts = {}) => {
+      // prevent duplicate concurrent fetches (e.g., React StrictMode double-invoke in dev)
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+      try {
+        setLoading(true);
+        setError(null);
+        const params = {};
+        // merge filters from opts or current state
+        const dept = opts.department ?? department;
+        const pin = opts.pincode ?? pincode;
+        const sb = opts.sortBy ?? sortBy;
+        const ord = opts.order ?? order;
 
-      if (dept) params.department = dept;
-      if (pin) params.pincode = pin;
-      if (sb) params.sort_by = sb;
-      if (ord) params.order = ord;
+        if (dept) params.department = dept;
+        if (pin) params.pincode = pin;
+        if (sb) params.sort_by = sb;
+        if (ord) params.order = ord;
 
-      const response = await api.get('/complaints/', { params });
-      setComplaints(response.data);
-    } catch (err) {
-      console.error('Error fetching complaints:', err);
-      setError('Failed to load complaints. Please try again later.');
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-    }
-  }, [department, pincode, sortBy, order]);
+        const response = await api.get('/complaints/', { params });
+        setComplaints(response.data);
+      } catch (err) {
+        console.error('Error fetching complaints:', err);
+        setError('Failed to load complaints. Please try again later.');
+      } finally {
+        setLoading(false);
+        isFetchingRef.current = false;
+      }
+    },
+    [department, pincode, sortBy, order]
+  );
 
   const searchComplaints = useCallback(
     async (q) => {
@@ -878,7 +925,7 @@ const Homepage = () => {
   }, [fetchComplaints]);
 
   return (
-  <div className="bg-gradient-to-br from-gray-50 via-[#4B687A]/10 to-gray-50 font-inter min-h-screen flex flex-col">
+    <div className="bg-gradient-to-br from-gray-50 via-[#4B687A]/10 to-gray-50 font-inter min-h-screen flex flex-col">
       <Header
         query={query}
         setQuery={setQuery}

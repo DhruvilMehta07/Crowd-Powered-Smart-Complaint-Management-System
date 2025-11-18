@@ -337,7 +337,7 @@ const SubmitResolutionButton = ({ complaintId }) => {
   return (
     <div>
       <button
-        onClick={open}
+        onClick={(e) => { e.stopPropagation(); open(); }}
         className="bg-[#4B687A] text-white px-3 py-1 rounded-md hover:bg-[#3C5260] transition-colors"
       >
         Submit Resolution
