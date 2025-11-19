@@ -13,6 +13,7 @@ import RaiseComplaintModal from './pages/SideBar';
 import Trending from './pages/TrendingComplaints';
 import TrendingComplaints from './pages/TrendingComplaints';
 import api from './utils/axiosConfig';
+import { setAccessToken } from './utils/auth';
 import GovAuthHomepage from './components/govauthhomepage';
 import FieldWorkerHomepage from './components/fieldworkerhomepage';
 import ComplaintDetailView from './components/ComplaintDetailView';
@@ -26,20 +27,21 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Fetch CSRF token
-        
-        console.log('CSRF token fetched successfully');
+        // Ensure CSRF cookie is set for subsequent POST/PUT/DELETE calls
+        await api.get('/users/csrf/');
+
+        // Restore access token from localStorage into in-memory helper
+        const storedAccess = localStorage.getItem('access_token');
+        if (storedAccess) setAccessToken(storedAccess);
 
         // Check if user is logged in and get user type
         const storedUserType = localStorage.getItem('user_type');
-        const accessToken = localStorage.getItem('accessToken');
-        
-        
+        const accessToken = storedAccess;
         if (storedUserType && accessToken) {
           setUserType(storedUserType);
         }
       } catch (error) {
-        console.warn('Failed to fetch CSRF token:', error);
+        console.warn('Failed to initialize app (CSRF or tokens):', error);
       } finally {
         setIsLoading(false);
       }

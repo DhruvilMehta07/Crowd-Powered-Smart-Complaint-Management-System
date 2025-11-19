@@ -36,6 +36,38 @@ class CitizenProfileSerializer(serializers.ModelSerializer):
     def get_phone_number(self, obj):
         return getattr(obj, 'phone_number', None)
 
+
+class GeneralProfileSerializer(serializers.ModelSerializer):
+    """General profile serializer that works for Citizen, Government_Authority and Field_Worker."""
+    
+    assigned_department = serializers.SerializerMethodField()
+    verified = serializers.SerializerMethodField()
+    phone_number = serializers.CharField()
+    class Meta:
+        model = ParentUser
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined'
+                  , 'assigned_department', 'verified']
+        read_only_fields = ['id', 'username', 'email', 'date_joined']
+
+    def get_user_type(self):
+        
+        if Citizen.objects.filter(id=self.user.id).exists():
+            return 'citizen'
+        if Government_Authority.objects.filter(id=self.user.id).exists():
+            return 'authority'
+        if Field_Worker.objects.filter(id=self.user.id).exists():
+            return 'fieldworker'
+        return 'user'
+
+    def get_assigned_department(self, obj):
+        dep = getattr(obj, 'assigned_department', None)
+        if dep:
+            return DepartmentSerializer(dep).data
+        return None
+
+    def get_verified(self, obj):
+        return getattr(obj, 'verified', None)
+
 class GovernmentAuthoritySerializer(serializers.ModelSerializer):
     # serialize department as ID + name
     assigned_department = DepartmentSerializer(read_only=True)

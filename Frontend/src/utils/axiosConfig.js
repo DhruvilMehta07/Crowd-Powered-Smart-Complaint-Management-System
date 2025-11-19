@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getCsrfToken } from './auth';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -15,6 +16,13 @@ api.interceptors.request.use(
     if(token)
     {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // add CSRF token for unsafe methods
+    const method = (config.method || '').toUpperCase();
+    const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
+    if (!safeMethods.includes(method)) {
+      const csrf = getCsrfToken();
+      if (csrf) config.headers['X-CSRFToken'] = csrf;
     }
     return config;
   },
