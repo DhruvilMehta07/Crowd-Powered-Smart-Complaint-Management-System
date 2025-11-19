@@ -8,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
 from rest_framework_simplejwt.backends import TokenBackend
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 
 from django.contrib.auth import logout
 from django.contrib.auth import authenticate, login
@@ -18,7 +20,7 @@ from django.core.cache import caches
 import re,requests,json
 
 from .models import Citizen, Government_Authority, Field_Worker, Department
-from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer,CitizenProfileSerializer
+from .serializers import CitizenSerializer, GovernmentAuthoritySerializer, FieldWorkerSerializer, UserLoginSerializer, DepartmentSerializer,CitizenProfileSerializer, GeneralProfileSerializer
 from .EmailService import EmailService
 
 from django.utils.decorators import method_decorator
@@ -362,12 +364,27 @@ class TokenRefreshCookieView(TokenRefreshView):
                 pass
 
         return response
+    
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class EnsureCSRFCookieView(APIView):
+    """Simple endpoint to ensure the CSRF cookie is set for SPA clients.
 
+    Frontend should call GET /users/csrf/ on app load to get the CSRFTOKEN cookie.
+    """
+    permission_classes = []
+
+    def get(self, request):
+        return Response({"detail": "CSRF cookie set"}, status=status.HTTP_200_OK)
+    
+    
 class ForgotPasswordAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
         if not email:
             return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
         
         user = Citizen.objects.filter(email=email).first() or Government_Authority.objects.filter(email=email).first() or Field_Worker.objects.filter(email=email).first()
         if not user:
@@ -411,32 +428,34 @@ class ResetPasswordAPIView(APIView):
         return Response({"message": "Password reset successful."}, status=status.HTTP_200_OK)
     
 
-class CitizenProfileAPIView(APIView):
+class ProfileAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    def get_user_as_citizen(self, user):
-        if isinstance(user, Citizen):
-            return user
-        try:
-            return Citizen.objects.get(pk=user.pk)
-        except Citizen.DoesNotExist:
-            return None
-    
+
+    def _get_full_user(self, user):
+        # Try to return the concrete subclass instance for full profile data
+        for model in (Citizen, Government_Authority, Field_Worker):
+            try:
+                return model.objects.get(pk=user.pk)
+            except model.DoesNotExist:
+                continue
+        return None
+
     def get(self, request):
-        citizen=self.get_user_as_citizen(request.user)
-        serializer = CitizenProfileSerializer(citizen, context={'request': request})
+        user = self._get_full_user(request.user)
+        serializer = GeneralProfileSerializer(user, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
-        citizen=self.get_user_as_citizen(request.user)
-        serializer = CitizenProfileSerializer(citizen, data=request.data)
+        user = self._get_full_user(request.user)
+        serializer = GeneralProfileSerializer(user, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
-        citizen=self.get_user_as_citizen(request.user)
-        serializer = CitizenProfileSerializer(citizen, data=request.data, partial=True)
+        user = self._get_full_user(request.user)
+        serializer = GeneralProfileSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

@@ -144,6 +144,19 @@ class ComplaintCreateView(APIView):
         serializer=ComplaintCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             complaint = serializer.save(posted_by=request.user)
+            # Notify government authorities for the assigned department (if any)
+            try:
+                if complaint.assigned_to_dept:
+                    gov_users = Government_Authority.objects.filter(assigned_department=complaint.assigned_to_dept)
+                    for gov in gov_users:
+                        Notification.objects.create(
+                            user=gov,
+                            message=f"New complaint #{complaint.id} posted in your department.",
+                            link=f"/complaints/{complaint.id}/"
+                        )
+            except Exception:
+                # non-fatal; don't block complaint creation on notification failure
+                pass
             response_serializer = ComplaintSerializer(complaint, context={'request': request})
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -467,8 +480,28 @@ class AssignComplaintView(APIView):
             complaint.status = 'In Progress'
             
             complaint.save()
-            
-            
+
+            # Notify the assigned field worker
+            try:
+                Notification.objects.create(
+                    user=fieldworker,
+                    message=f"You have been assigned complaint #{complaint.id}.",
+                    link=f"/complaints/{complaint.id}/"
+                )
+            except Exception:
+                pass
+
+            # Notify the complaint owner that the complaint was assigned
+            try:
+                if complaint.posted_by:
+                    Notification.objects.create(
+                        user=complaint.posted_by,
+                        message=f"Your complaint #{complaint.id} has been assigned to {fieldworker.username}.",
+                        link=f"/complaints/{complaint.id}/"
+                    )
+            except Exception:
+                pass
+
             serializer = ComplaintSerializer(complaint, context={'request': request})# update
             return Response({
                 "message": f"Complaint assigned to {fieldworker.username}",
