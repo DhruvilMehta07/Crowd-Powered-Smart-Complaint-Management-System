@@ -135,7 +135,7 @@ class RoadYOLODetector:
                 temp_image_path = temp_file.name
             
             # Run YOLO inference
-            results = self._model(temp_image_path, conf=0.25)
+            results = self._model.predict(temp_image_path, conf=0.25)
             
             # Extract detection data
             detections = []
@@ -144,51 +144,51 @@ class RoadYOLODetector:
             total_damage_area = 0
             
             if results and len(results) > 0:
-                result = results[0]
+                # result = results[0]
                 
                 # Get image dimensions
                 img = Image.open(temp_image_path)
                 img_width, img_height = img.size
                 total_image_area = img_width * img_height
-                
+                for result in results:
                 # Process each detection
-                if result.boxes is not None and len(result.boxes) > 0:
-                    for box in result.boxes:
-                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                        conf = float(box.conf[0].cpu().numpy())
-                        cls = int(box.cls[0].cpu().numpy())
-                        
-                        # Get class name
-                        class_code = RDD_CLASS_NAMES.get(cls, f'Unknown_{cls}')
-                        class_description = RDD_CLASS_DESCRIPTIONS.get(class_code, 'Unknown damage type')
-                        
-                        # Calculate damage area
-                        box_width = x2 - x1
-                        box_height = y2 - y1
-                        box_area = box_width * box_height
-                        total_damage_area += box_area
-                        
-                        # Store confidence
-                        confidences.append(conf)
-                        
-                        # Track damage class occurrences
-                        if class_code not in damage_classes:
-                            damage_classes[class_code] = {
-                                'description': class_description,
-                                'count': 0,
-                                'total_confidence': 0.0
-                            }
-                        damage_classes[class_code]['count'] += 1
-                        damage_classes[class_code]['total_confidence'] += conf
-                        
-                        detections.append({
-                            'class_id': cls,
-                            'class_code': class_code,
-                            'class_description': class_description,
-                            'confidence': conf,
-                            'bbox': [float(x1), float(y1), float(x2), float(y2)],
-                            'area': float(box_area)
-                        })
+                    if result.boxes is not None and len(result.boxes) > 0:
+                        for box in result.boxes:
+                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                            conf = float(box.conf[0].cpu().numpy())
+                            cls = int(box.cls[0].cpu().numpy())
+                            
+                            # Get class name
+                            class_code = RDD_CLASS_NAMES.get(cls, f'Unknown_{cls}')
+                            class_description = RDD_CLASS_DESCRIPTIONS.get(class_code, 'Unknown damage type')
+                            
+                            # Calculate damage area
+                            box_width = x2 - x1
+                            box_height = y2 - y1
+                            box_area = box_width * box_height
+                            total_damage_area += box_area
+                            
+                            # Store confidence
+                            confidences.append(conf)
+                            
+                            # Track damage class occurrences
+                            if class_code not in damage_classes:
+                                damage_classes[class_code] = {
+                                    'description': class_description,
+                                    'count': 0,
+                                    'total_confidence': 0.0
+                                }
+                            damage_classes[class_code]['count'] += 1
+                            damage_classes[class_code]['total_confidence'] += conf
+                            
+                            detections.append({
+                                'class_id': cls,
+                                'class_code': class_code,
+                                'class_description': class_description,
+                                'confidence': conf,
+                                'bbox': [float(x1), float(y1), float(x2), float(y2)],
+                                'area': float(box_area)
+                            })
                 
                 # Calculate average confidence across all detections
                 avg_confidence = sum(confidences) / len(confidences) if confidences else 0

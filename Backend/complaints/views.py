@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 import re, requests, json
 from django.db.models import Q, Count, Exists, OuterRef, Value, BooleanField
 
+from complaints.services.department_suggestion_service import DepartmentSuggestionService
 from users.models import Government_Authority, Department,Field_Worker
 from .models import Complaint, ComplaintImage, Upvote, Fake_Confidence,Notification,Resolution
 from .serializers import (ComplaintSerializer, ComplaintCreateSerializer, 
@@ -902,6 +903,22 @@ class TopFieldworkersView(APIView):
 
         return Response(data, status=status.HTTP_200_OK)
 
+class DepartmentSuggestionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response(
+                {"error": "Image field is required for department suggestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        description = request.data.get('description', '')
+        service = DepartmentSuggestionService()
+        suggestion = service.suggest(image_file=image_file, description=description)
+        return Response({"suggestion": suggestion}, status=status.HTTP_200_OK)
 
 class PredictComplaintResolutionView(APIView):
     # Returns severity analysis,time prediction and metadata 
@@ -927,7 +944,7 @@ class PredictComplaintResolutionView(APIView):
             image_url = first_image.image.url  # Cloudinary URL
             
             
-            category = complaint.category
+            category = str(complaint.assigned_to_dept)
             description = complaint.content or ""
             address = complaint.address or "Unknown location"
             

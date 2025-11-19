@@ -292,6 +292,9 @@ const AssignModal = ({
   const [selectedWorker, setSelectedWorker] = useState('');
   const [predictedTime, setPredictedTime] = useState(null);
   const [predictedDays, setPredictedDays] = useState(null);
+  const [predictedExplanation, setPredictedExplanation] = useState('');
+  const [weatherImpact, setWeatherImpact] = useState('');
+  const [predictedUrgency, setPredictedUrgency] = useState('');
   const [loadingPrediction, setLoadingPrediction] = useState(false);
   const [predictionError, setPredictionError] = useState('');
 
@@ -307,8 +310,25 @@ const AssignModal = ({
         const data = response.data;
         
         if (data.time_prediction) {
-          setPredictedTime(data.time_prediction.estimated_time || null);
-          setPredictedDays(data.time_prediction.estimated_days || null);
+          // Preferred values from the API
+          const estHours = data.time_prediction.estimated_hours ?? null;
+          const estDays = data.time_prediction.estimated_days ?? (estHours ? (estHours / 24).toFixed(2) : null);
+
+          setPredictedDays(estDays);
+
+          // Display a friendly predicted time string (prefer hours)
+          if (estHours) setPredictedTime(`${estHours} hours`);
+          else if (estDays) setPredictedTime(`${estDays} days`);
+          else setPredictedTime(null);
+
+          // Explanation and weather impact
+          const explanation = data.time_prediction.explanation || data.time_prediction.explain || '';
+          setPredictedExplanation(explanation);
+          const wImpact = data.time_prediction.weather_impact || data.time_prediction.weatherImpact || '';
+          setWeatherImpact(wImpact);
+
+          const urgency = data.time_prediction.urgency_tier || data.time_prediction.urgency || '';
+          setPredictedUrgency(urgency);
         }
       } catch (error) {
         console.error('Failed to fetch prediction:', error);
@@ -330,7 +350,7 @@ const AssignModal = ({
       <div className="bg-white p-6 rounded-lg w-96 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl text-center font-bold mb-4">Assign Complaint</h2>
         
-        {/* ML Prediction Section */}
+        
         {loadingPrediction && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2">
@@ -340,16 +360,27 @@ const AssignModal = ({
           </div>
         )}
         
-        {!loadingPrediction && predictedTime && (
+        {!loadingPrediction && (predictedTime || predictedDays || predictedExplanation || weatherImpact) && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm font-semibold text-green-800 mb-1">📊 ML Prediction</p>
-            <p className="text-sm text-green-700">
-              Expected Resolution Time: <span className="font-bold">{predictedTime}</span>
-            </p>
-            {predictedDays && (
-              <p className="text-xs text-green-600 mt-1">
-                (~{predictedDays} days)
+            <p className="text-sm font-semibold text-green-800 mb-1">📊 AI Prediction</p>
+
+            {predictedDays  && (
+              <p className="text-sm text-green-700">Predicted Urgency: 
+                 {predictedUrgency && (
+                  <span className="font-bold mr-2"> {predictedUrgency.toUpperCase()}</span>
+                )}
+                <br />
+                Estimated Days To solve the issue:
+                <span className="font-bold"> {predictedDays} days</span>
               </p>
+            )}
+
+            {predictedExplanation && (
+              <p className="text-xs text-gray-700 mt-2"><span className="font-bold">Explanation:</span> {predictedExplanation}</p>
+            )}
+
+            {weatherImpact && (
+              <p className="text-xs text-gray-700 mt-1"><span className="font-bold">Weather Impact:</span> {weatherImpact}</p>
             )}
           </div>
         )}

@@ -1,10 +1,10 @@
 import os
-os.environ['YOLO_MODEL_PATH'] = 'ml_models/best.pt'
+os.environ['YOLO_MODEL_PATH'] = 'ml_models/best1.pt'
 
 from complaints.ml.road_yolo_detector import RoadYOLODetector
 
 # Test with a sample road damage image URL
-test_image_url = "https://www.shutterstock.com/shutterstock/photos/2499298641/display_1500/stock-photo-a-close-up-of-a-large-pothole-on-a-damaged-road-2499298641.jpg"
+test_image_url = "https://www.shutterstock.com/shutterstock/photos/2401102987/display_1500/stock-photo-tarmac-road-pothole-damage-uk-great-britain-2401102987.jpg"
 
 detector = RoadYOLODetector()
 result = detector.detect_road_damage(test_image_url, "road")

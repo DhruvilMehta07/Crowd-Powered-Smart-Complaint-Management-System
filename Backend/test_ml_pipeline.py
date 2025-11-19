@@ -21,7 +21,7 @@ test_complaint_id = 1
 test_category = "road"
 test_description = "Large pothole causing traffic issues"
 test_address = "Mumbai, Maharashtra, India"
-test_image_url = "https://www.shutterstock.com/image-photo/pothole-road-damaged-rural-surface-600nw-1927082354.jpg"
+test_image_url = "https://www.shutterstock.com/shutterstock/photos/2401102987/display_1500/stock-photo-tarmac-road-pothole-damage-uk-great-britain-2401102987.jpg"
 
 print("Starting ML Pipeline Test...")
 print(f"OPENAI_API_KEY set: {'Yes' if os.getenv('OPENAI_API_KEY') else 'No'}")
