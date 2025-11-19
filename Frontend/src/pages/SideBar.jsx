@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
@@ -83,6 +83,89 @@ const UserIcon = ({ className = 'w-6 h-6' }) => (
   </svg>
 );
 
+const DEPARTMENT_SUGGESTION_ENDPOINT =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_DEPARTMENT_SUGGESTION_PATH) ||
+  '/complaints/department-suggestion/';
+
+const normalizeDepartmentSuggestion = (payload) => {
+  if (!payload) return null;
+
+  const rawSuggestion = payload.suggestion ?? payload.prediction ?? payload.result ?? payload;
+
+  if (Array.isArray(rawSuggestion)) {
+    return normalizeDepartmentSuggestion(rawSuggestion[0]);
+  }
+
+  if (typeof rawSuggestion !== 'object' || rawSuggestion === null) {
+    return null;
+  }
+
+  const departmentDetails =
+    rawSuggestion.department ??
+    rawSuggestion.department_info ??
+    rawSuggestion.department_details ??
+    payload.department ??
+    payload.department_info ??
+    payload.department_details;
+
+  const departmentId =
+    rawSuggestion.department_id ??
+    departmentDetails?.id ??
+    payload.department_id ??
+    rawSuggestion.id ??
+    departmentDetails?.department_id;
+
+  const departmentName =
+    rawSuggestion.department_name ??
+    departmentDetails?.name ??
+    payload.department_name ??
+    rawSuggestion.name ??
+    departmentDetails?.label;
+
+  const confidenceRaw =
+    rawSuggestion.confidence ??
+    rawSuggestion.score ??
+    rawSuggestion.probability ??
+    payload.confidence ??
+    payload.score;
+
+  let confidence = null;
+  if (typeof confidenceRaw === 'number') {
+    confidence = confidenceRaw;
+  } else if (typeof confidenceRaw === 'string') {
+    const parsed = parseFloat(confidenceRaw);
+    confidence = Number.isFinite(parsed) ? parsed : null;
+  }
+
+  const reason =
+    rawSuggestion.reason ??
+    rawSuggestion.explanation ??
+    rawSuggestion.summary ??
+    payload.reason ??
+    payload.explanation ??
+    '';
+
+  if (!departmentId && !departmentName) {
+    return null;
+  }
+
+  return {
+    id: departmentId ? departmentId.toString() : '',
+    name: departmentName || 'Suggested Department',
+    confidence,
+    reason,
+  };
+};
+
+const formatConfidencePercent = (confidence) => {
+  if (confidence === null || confidence === undefined || Number.isNaN(confidence)) {
+    return null;
+  }
+
+  const normalizedValue = confidence <= 1 ? confidence * 100 : confidence;
+  return Math.round(normalizedValue);
+};
+
 const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
     description: '',
@@ -100,6 +183,69 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [suggestedDept, setSuggestedDept] = useState(null);
+  const [suggestionStatus, setSuggestionStatus] = useState('idle');
+  const [suggestionError, setSuggestionError] = useState('');
+  const suggestionRequestRef = useRef(0);
+
+  const resetSuggestionState = useCallback(() => {
+    setSuggestedDept(null);
+    setSuggestionStatus('idle');
+    setSuggestionError('');
+  }, []);
+
+  const fetchDepartmentSuggestion = useCallback(
+    async (file) => {
+      if (!file) {
+        resetSuggestionState();
+        return;
+      }
+
+      const requestId = Date.now();
+      suggestionRequestRef.current = requestId;
+      setSuggestionStatus('loading');
+      setSuggestionError('');
+      setSuggestedDept(null);
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const response = await api.post(DEPARTMENT_SUGGESTION_ENDPOINT, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (suggestionRequestRef.current !== requestId) {
+          return;
+        }
+
+        const normalizedSuggestion = normalizeDepartmentSuggestion(response.data);
+
+        if (!normalizedSuggestion) {
+          throw new Error('ML service did not return any department suggestion.');
+        }
+
+        setSuggestedDept(normalizedSuggestion);
+        setSuggestionStatus('success');
+      } catch (error) {
+        if (suggestionRequestRef.current !== requestId) {
+          return;
+        }
+        const message =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          'Unable to fetch department suggestion.';
+
+        setSuggestionError(message);
+        setSuggestionStatus('error');
+        setSuggestedDept(null);
+      }
+    },
+    [resetSuggestionState]
+  );
 
   const reverseGeocodeMapmyIndia = async (lat, lng) => {
     try {
@@ -284,6 +430,26 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     fetchDepartments();
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      resetSuggestionState();
+    }
+  }, [isOpen, resetSuggestionState]);
+
+  useEffect(() => {
+    if (
+      suggestionStatus === 'success' &&
+      suggestedDept?.id &&
+      !form.assigned_to_dept &&
+      departments.some((dept) => String(dept.id) === String(suggestedDept.id))
+    ) {
+      setForm((prev) => ({
+        ...prev,
+        assigned_to_dept: suggestedDept.id.toString(),
+      }));
+    }
+  }, [suggestionStatus, suggestedDept, form.assigned_to_dept, departments, setForm]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
@@ -296,8 +462,21 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     const selected = Array.from(e.target.files || []);
     // Only keep images and limit to 4 (backend enforces max 4 but we can help in UI)
     const imagesOnly = selected.filter((f) => f.type && f.type.startsWith('image/'));
-    setForm((prev) => ({ ...prev, files: imagesOnly.slice(0, 4) }));
+    const trimmedImages = imagesOnly.slice(0, 4);
+    setForm((prev) => ({ ...prev, files: trimmedImages }));
+
+    if (trimmedImages.length > 0) {
+      fetchDepartmentSuggestion(trimmedImages[0]);
+    } else {
+      resetSuggestionState();
+    }
   };
+
+  const handleSuggestionRetry = useCallback(() => {
+    if (form.files && form.files.length > 0) {
+      fetchDepartmentSuggestion(form.files[0]);
+    }
+  }, [form.files, fetchDepartmentSuggestion]);
 
   const handleLocationMethodChange = (method) => {
     setForm((prev) => ({
@@ -399,6 +578,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
         files: [],
         is_anonymous: false,
       });
+      resetSuggestionState();
       setLocationError('');
       onClose();
       window.location.reload();
@@ -450,6 +630,16 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       onClose();
     }
   };
+
+  const matchedDeptOption = suggestedDept
+    ? departments.find((dept) => String(dept.id) === String(suggestedDept.id))
+    : null;
+  const suggestionDisplayName = suggestedDept?.name || matchedDeptOption?.name;
+  const suggestionConfidence = formatConfidencePercent(suggestedDept?.confidence);
+  const suggestionApplied =
+    suggestedDept?.id && form.assigned_to_dept === suggestedDept.id.toString();
+  const canApplySuggestion = Boolean(suggestedDept?.id && matchedDeptOption);
+  const canRunSuggestion = Boolean(form.files && form.files.length > 0);
 
   if (!isOpen) return null;
 
@@ -721,6 +911,110 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             />
           </label>
 
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  ML department suggestion
+                </p>
+                <p className="text-xs text-gray-500">
+                  We analyze the first photo to recommend the right team.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSuggestionRetry}
+                disabled={!canRunSuggestion || suggestionStatus === 'loading'}
+                className={`text-xs font-medium px-3 py-1 rounded-full border transition ${
+                  !canRunSuggestion || suggestionStatus === 'loading'
+                    ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                    : 'text-[#4B687A] border-[#4B687A] hover:bg-[#4B687A] hover:text-white'
+                }`}
+              >
+                {suggestionStatus === 'loading' ? 'Analyzing...' : 'Re-run'}
+              </button>
+            </div>
+
+            {suggestionStatus === 'idle' && (
+              <p className="text-sm text-gray-600">
+                Upload at least one image to receive a smart suggestion.
+              </p>
+            )}
+
+            {suggestionStatus === 'loading' && (
+              <div className="flex items-center text-sm text-[#4B687A] gap-2">
+                <span className="w-4 h-4 border-2 border-[#4B687A] border-t-transparent rounded-full animate-spin" />
+                <span>Analyzing the image...</span>
+              </div>
+            )}
+
+            {suggestionStatus === 'error' && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md p-2">
+                {suggestionError}
+              </div>
+            )}
+
+            {suggestionStatus === 'success' && (
+              <div className="space-y-2 text-sm text-gray-700">
+                <p className="leading-relaxed">
+                  We think this issue belongs to{' '}
+                  <span className="inline-block font-bold text-white bg-[#4B687A] px-2 py-1 rounded-md shadow-sm">
+                    {suggestionDisplayName || 'one of the departments'}
+                  </span>
+                </p>
+                {suggestionConfidence !== null && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-700 font-medium">Confidence:</span>
+                    <span className={`inline-block text-xs font-bold px-2 py-1 rounded-md ${
+                      suggestionConfidence >= 75 
+                        ? 'bg-green-100 text-green-700 border border-green-300'
+                        : suggestionConfidence >= 50
+                        ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                        : 'bg-red-100 text-red-700 border border-red-300'
+                    }`}>
+                      {suggestionConfidence}%
+                    </span>
+                  </div>
+                )}
+                {suggestedDept?.reason && (
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {suggestedDept.reason}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    suggestedDept?.id &&
+                    setForm((prev) => ({
+                      ...prev,
+                      assigned_to_dept: suggestedDept.id.toString(),
+                    }))
+                  }
+                  disabled={!canApplySuggestion || suggestionApplied}
+                  className={`w-full text-xs font-semibold px-3 py-2 rounded-lg border transition ${
+                    suggestionApplied
+                      ? 'bg-green-50 border-green-200 text-green-700 cursor-default'
+                      : canApplySuggestion
+                      ? 'border-[#4B687A] text-[#4B687A] hover:bg-[#4B687A] hover:text-white'
+                      : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {suggestionApplied
+                    ? 'Suggestion applied'
+                    : canApplySuggestion
+                    ? 'Use suggested department'
+                    : 'Select the suggested department manually'}
+                </button>
+                {!canApplySuggestion && suggestionDisplayName && (
+                  <p className="text-xs text-amber-600">
+                    We could not match this suggestion with your department list. Please
+                    pick "{suggestionDisplayName}" manually if it exists.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
             <input
               type="checkbox"
@@ -755,7 +1049,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   );
 };
 
-export default function Sidebar({}) {
+export default function Sidebar() {
   const navigate = useNavigate();
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -804,7 +1098,7 @@ export default function Sidebar({}) {
         const res = await api.get('/notifications/unread-count/');
         if (!mounted) return;
         setUnreadCount(res.data.unread_count || 0);
-      } catch (err) {
+      } catch (_err) {
         // ignore errors silently
       }
     };
@@ -819,13 +1113,13 @@ export default function Sidebar({}) {
     };
   }, [token]);
 
-  const handleNotificationsClick = async (e) => {
+  const handleNotificationsClick = async () => {
     // clear badge immediately by asking backend to mark all read
     try {
       if (token) {
         await api.post('/notifications/mark-all-read/');
       }
-    } catch (err) {
+    } catch (_err) {
       // ignore errors; still navigate
     }
     setUnreadCount(0);

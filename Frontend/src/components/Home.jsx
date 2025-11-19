@@ -539,6 +539,24 @@ const ComplaintCard = ({
               'Not assigned'}
           </span>
         </div>
+        
+        {complaint.assigned_to_fieldworker && (
+          <div className="text-sm text-gray-600 mb-4 bg-indigo-50 px-3 py-2 rounded-lg inline-block border border-indigo-200 ml-2">
+            <span className="font-semibold text-indigo-700">Field Worker:</span>{' '}
+            <span className="text-gray-800">
+              {complaint.assigned_to_fieldworker}
+            </span>
+          </div>
+        )}
+        
+        {complaint.assigned_to_fieldworker && (
+          <div className="text-sm text-gray-600 mb-4 bg-green-50 px-3 py-2 rounded-lg inline-block border border-green-200 ml-2">
+            <span className="font-semibold text-green-700">Expected Time:</span>{' '}
+            <span className="text-gray-800">
+              {complaint.expected_resolution_time}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center gap-10 pt-4 border-t-2 border-gray-100">
           <button

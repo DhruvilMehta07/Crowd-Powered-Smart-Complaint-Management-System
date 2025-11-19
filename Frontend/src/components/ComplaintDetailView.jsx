@@ -313,6 +313,20 @@ const ComplaintDetailView = () => {
               <p className="text-base text-blue-900">
                 {assignedWorker || 'Not yet assigned'}
               </p>
+              
+              {complaint.expected_resolution_time && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-sm font-semibold text-green-800 mb-1">Expected Resolution Time</p>
+                  <p className="text-base text-green-900 font-semibold">
+                    {complaint.expected_resolution_time}
+                  </p>
+                  {complaint.predicted_resolution_days && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      (~{complaint.predicted_resolution_days} Days)
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Location Details */}

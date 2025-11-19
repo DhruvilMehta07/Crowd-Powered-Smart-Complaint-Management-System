@@ -376,6 +376,17 @@ export default function PastComplaints() {
                       </span>
                     </span>
                   )}
+                  
+                  {complaint.expected_resolution_time && (
+                    <span className="text-sm text-gray-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                      <span className="font-semibold text-green-700">
+                        Expected Time:
+                      </span>{' '}
+                      <span className="text-gray-800">
+                        {complaint.expected_resolution_time}
+                      </span>
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-indigo-100">
