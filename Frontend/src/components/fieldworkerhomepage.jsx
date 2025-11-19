@@ -242,12 +242,22 @@ const ComplaintCard = ({ complaint }) => {
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between">
-        <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg inline-block border border-gray-200">
-          <span className="font-semibold text-[#4B687A]">Assigned to:</span>{' '}
-          <span className="text-gray-800">
-            {complaint.assigned_to_fieldworker || 'Unassigned'}
-          </span>
+      <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg inline-block border border-gray-200">
+            <span className="font-semibold text-[#4B687A]">Assigned to:</span>{' '}
+            <span className="text-gray-800">
+              {complaint.assigned_to_fieldworker || 'Unassigned'}
+            </span>
+          </div>
+          {complaint.expected_resolution_time && (
+            <div className="text-sm text-gray-600 bg-green-50 px-3 py-2 rounded-lg inline-block border border-green-200">
+              <span className="font-semibold text-green-700">Expected:</span>{' '}
+              <span className="text-gray-800">
+                {complaint.expected_resolution_time}
+              </span>
+            </div>
+          )}
         </div>
         {complaint.status === 'In Progress' && (
           <SubmitResolutionButton complaintId={complaint.id} />

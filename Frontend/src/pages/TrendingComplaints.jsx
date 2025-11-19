@@ -93,7 +93,11 @@ export default function TrendingComplaints({
           setError(null);
         }
       } catch (err) {
-        if (mounted && err.name !== 'CanceledError' && err.name !== 'AbortError') {
+        if (
+          mounted &&
+          err.name !== 'CanceledError' &&
+          err.name !== 'AbortError'
+        ) {
           console.error('Error fetching trending complaints:', err);
           setError('Failed to load trending complaints');
         }
@@ -103,12 +107,15 @@ export default function TrendingComplaints({
     };
 
     fetchTrending();
-    const interval = setInterval(() => {
-      // rotate controller to avoid reusing aborted signal
-      controller.abort();
-      controller = new AbortController();
-      fetchTrending();
-    }, 5 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        // rotate controller to avoid reusing aborted signal
+        controller.abort();
+        controller = new AbortController();
+        fetchTrending();
+      },
+      5 * 60 * 1000
+    );
     return () => {
       mounted = false;
       controller.abort();
@@ -116,10 +123,154 @@ export default function TrendingComplaints({
     };
   }, []);
 
+  // Modal to show full list of fieldworkers
+  // Accepts an optional `workers` prop so leaderboard can pass its data
+  function FieldworkersModal({ open, onClose, workers: initialWorkers = null }) {
+    const [localWorkers, setLocalWorkers] = useState(initialWorkers || []);
+    const [loading, setLoading] = useState(initialWorkers ? false : false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+      if (!open) return;
+      let mounted = true;
+      const controller = new AbortController();
+
+      // If parent passed workers, reuse them and skip fetching
+      if (initialWorkers) {
+        setLocalWorkers(initialWorkers);
+        setLoading(false);
+        return () => {
+          mounted = false;
+          controller.abort();
+        };
+      }
+
+      const fetchAll = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const res = await api.get('/complaints/available-workers/', {
+            signal: controller.signal,
+          });
+          if (!mounted) return;
+          const data = (res.data || []).map((fw) => ({
+            id: fw.id,
+            username: fw.username || fw.name || `user-${fw.id}`,
+            email: fw.email || '',
+            solved_count:
+              fw.total_assigned_complaints != null
+                ? fw.total_assigned_complaints
+                : fw.solved_count || 0,
+          }));
+          setLocalWorkers(data);
+        } catch (err) {
+          if (err.name === 'CanceledError' || err.name === 'AbortError') return;
+          console.error('Error fetching available workers', err);
+          setError(
+            err.response?.data?.error ||
+              'Failed to load fieldworkers for this department.'
+          );
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      };
+
+      fetchAll();
+      return () => {
+        mounted = false;
+        controller.abort();
+      };
+    }, [open, initialWorkers]);
+
+    useEffect(() => {
+      if (!open) return;
+      const onKeyDown = (e) => {
+        if (e.key === 'Escape') onClose?.();
+      };
+      window.addEventListener('keydown', onKeyDown);
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }, [open, onClose]);
+
+    if (!open) return null;
+
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        aria-modal="true"
+        role="dialog"
+      >
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+        <div className="relative bg-white w-full max-w-2xl mx-4 rounded-xl shadow-xl border border-gray-200">
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <h2 className="text-lg font-semibold text-[#4B687A]">
+              Fieldworkers in Your Department
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 rounded p-1"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="max-h-[70vh] overflow-y-auto p-5">
+            {loading ? (
+              <div className="text-center text-gray-600">Loading...</div>
+            ) : error ? (
+              <div className="text-center text-red-600">{error}</div>
+            ) : localWorkers.length === 0 ? (
+              <div className="text-center text-gray-600">
+                No fieldworkers found for this department.
+              </div>
+            ) : (
+              <div className="divide-y">
+                {localWorkers.map((w) => (
+                  <div
+                    key={w.id}
+                    className="py-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full bg-gray-100 w-10 h-10 flex items-center justify-center text-sm font-semibold text-[#4B687A]">
+                        {w.username ? w.username.charAt(0).toUpperCase() : '#'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-800">
+                          {w.username}
+                        </div>
+                        <div className="text-xs text-gray-500">{w.email}</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-[#4B687A]">
+                      {w.solved_count}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="px-5 py-4 border-t flex justify-end">
+            <button
+              onClick={onClose}
+              className="bg-[#4B687A] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#3C5260] transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const GovAuthRightbar = () => {
     return (
       <div className="sticky top-5 flex flex-col h-[calc(100vh-6rem)] mx-auto">
-        <div className="flex items-center mx-auto">
+        <div className="flex items-center mx-auto mb-6">
           {isAuthenticated ? (
             <button
               onClick={handleLogout}
@@ -128,7 +279,7 @@ export default function TrendingComplaints({
               <LogoutIcon className="w-4 h-4" />
               Logout
             </button>
-            ) : (
+          ) : (
             <button
               onClick={handleLogin}
               className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
@@ -138,56 +289,6 @@ export default function TrendingComplaints({
           )}
         </div>
 
-        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
-            <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
-              Trending Complaints
-            </h3>
-            <div className="space-y-4">
-              {isLoading ? (
-                <div className="text-center text-gray-600">Loading...</div>
-              ) : error ? (
-                <div className="text-center text-red-600">{error}</div>
-              ) : trending.length === 0 ? (
-                <div className="text-center text-gray-600">No complaints yet</div>
-              ) : (
-                trending.map((item) => (
-                  <div
-                    key={item.id}
-                    className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
-                  >
-                    <p className="text-gray-700">{item.text}</p>
-                    <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-      </div>
-    );
-  };
-
-  const CitizenRightbar = () => {
-    return (
-      <div className="sticky top-5 flex flex-col h-[calc(100vh-6rem)] mx-auto">
-        <div className="flex items-center mx-auto">
-          {isAuthenticated ? (
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-colors duration-300 shadow-lg"
-            >
-              <LogoutIcon className="w-4 h-4" />
-              Logout
-            </button>
-            ) : (
-              <button
-                onClick={handleLogin}
-                className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
-              >
-                Login / SignUp
-              </button>
-            )}
-        </div>
         <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
           <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
             Trending Complaints
@@ -206,12 +307,179 @@ export default function TrendingComplaints({
                   className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
                 >
                   <p className="text-gray-700">{item.text}</p>
-                  <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
+                  <p className="font-bold text-[#4B687A] mt-1">
+                    {item.upvotes}
+                  </p>
                 </div>
               ))
             )}
           </div>
         </div>
+      </div>
+    );
+  };
+
+  // Field Worker Leaderboard
+  function FieldWorkerLeaderboard() {
+    const [workers, setWorkers] = useState([]);
+    const [loadingWorkers, setLoadingWorkers] = useState(true);
+    const [errorWorkers, setErrorWorkers] = useState(null);
+    // removed modalOpen state — leaderboard is no longer clickable to open a modal
+
+    useEffect(() => {
+      let mounted = true;
+      const fetchWorkers = async () => {
+        setLoadingWorkers(true);
+        setErrorWorkers(null);
+        try {
+          const res = await api.get('/complaints/top-fieldworkers/');
+          if (!mounted) return;
+          const data = (res.data || []).map((fw) => ({
+            id: fw.id,
+            username: fw.name || fw.username || `user-${fw.id}`,
+            email: fw.email || '',
+            solved_count: fw.total_assigned_complaints || fw.solved_count || 0,
+          }));
+          setWorkers(data);
+        } catch (err) {
+          console.error('Error fetching fieldworker leaderboard', err);
+          if (mounted) setErrorWorkers('Failed to load leaderboard');
+        } finally {
+          if (mounted) setLoadingWorkers(false);
+        }
+      };
+      fetchWorkers();
+      return () => {
+        mounted = false;
+      };
+    }, []);
+
+    const visible = workers.slice(0, 3);
+
+    return (
+      <>
+        <div className="bg-white p-4 rounded-xl border-3 border-gray-300 mb-4 hover:shadow-md transition-all">
+          <h3 className="text-center font-bold text-lg text-[#4B687A] mb-3">
+            Field Worker Leaderboard
+          </h3>
+
+          {loadingWorkers ? (
+            <div className="text-sm text-gray-600">Loading leaderboard...</div>
+          ) : errorWorkers ? (
+            <div className="text-sm text-red-600">{errorWorkers}</div>
+          ) : workers.length === 0 ? (
+            <div className="text-sm text-gray-600">No field workers yet.</div>
+          ) : (
+            <div>
+              {visible.map((w, idx) => (
+                <div
+                  key={w.id || idx}
+                  className="py-2 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full bg-gray-100 w-10 h-10 flex items-center justify-center text-sm font-semibold text-[#4B687A]">
+                      {w.username ? w.username.charAt(0).toUpperCase() : '#'}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-800">
+                        {w.username || w.name || 'Unknown'}
+                      </div>
+                      <div className="text-xs text-gray-500">{w.email || ''}</div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold text-[#4B687A]">
+                    {w.solved_count != null ? w.solved_count : 0}
+                  </div>
+                </div>
+              ))}
+              {workers.length > 3 && (
+                <div className="pt-2 text-center text-xs text-gray-500">
+                  View more in the Fieldworkers section
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Modal removed from click behavior — kept component defined above in case it's used elsewhere */}
+      </>
+    );
+  }
+
+  const CitizenRightbar = () => {
+    return (
+      <div className="sticky top-5 flex flex-col h-[calc(100vh-6rem)] mx-auto">
+        <div className="flex items-center mx-auto mb-6">
+          {isAuthenticated ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-colors duration-300 shadow-lg"
+            >
+              <LogoutIcon className="w-4 h-4" />
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
+            >
+              Login / SignUp
+            </button>
+          )}
+        </div>
+
+        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
+          <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
+            Trending Complaints
+          </h3>
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="text-center text-gray-600">Loading...</div>
+            ) : error ? (
+              <div className="text-center text-red-600">{error}</div>
+            ) : trending.length === 0 ? (
+              <div className="text-center text-gray-600">No complaints yet</div>
+            ) : (
+              trending.map((item) => (
+                <div
+                  key={item.id}
+                  className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
+                >
+                  <p className="text-gray-700">{item.text}</p>
+                  <p className="font-bold text-[#4B687A] mt-1">
+                    {item.upvotes}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const FieldWorkerRightbar = () => {
+    return (
+      <div className="sticky top-5 flex flex-col h-[calc(100vh-6rem)] mx-auto">
+        <div className="flex items-center mx-auto mb-6">
+          {isAuthenticated ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-colors duration-300 shadow-lg"
+            >
+              <LogoutIcon className="w-4 h-4" />
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="bg-[#4B687A] text-white font-bold py-3 px-8 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 shadow-lg"
+            >
+              Login / SignUp
+            </button>
+          )}
+        </div>
+
+        <FieldWorkerLeaderboard />
       </div>
     );
   };
@@ -224,7 +492,9 @@ export default function TrendingComplaints({
         return <GovAuthRightbar />;
       case 'citizen':
         return <CitizenRightbar />;
-      
+      case 'fieldworker':
+        return <FieldWorkerRightbar />;
+
       default:
         return <CitizenRightbar />;
     }

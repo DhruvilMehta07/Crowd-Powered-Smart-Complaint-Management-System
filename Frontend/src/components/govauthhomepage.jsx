@@ -248,15 +248,25 @@ const ComplaintCard = ({ complaint, onAssignClick }) => {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600 mb-4 bg-gray-100 px-3 py-2 rounded-lg inline-block border border-gray-200">
-          <span className="font-semibold text-black">Assigned to:</span>{' '}
-          <span className="text-gray-800">
-            {complaint.assignedTo ||
-              complaint.assigned_to_fieldworker ||
-              complaint.category ||
-              'Not assigned'}
-          </span>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg inline-block border border-gray-200">
+            <span className="font-semibold text-black">Assigned to:</span>{' '}
+            <span className="text-gray-800">
+              {complaint.assignedTo ||
+                complaint.assigned_to_fieldworker ||
+                complaint.category ||
+                'Not assigned'}
+            </span>
+          </div>
+          {complaint.expected_resolution_time && (
+            <div className="text-sm text-gray-600 bg-green-50 px-3 py-2 rounded-lg inline-block border border-green-200">
+              <span className="font-semibold text-green-700">⏱️ Expected:</span>{' '}
+              <span className="text-gray-800">
+                {complaint.expected_resolution_time}
+              </span>
+            </div>
+          )}
         </div>
         <button
           onClick={(e) => {
@@ -280,13 +290,76 @@ const AssignModal = ({
   fieldWorkers,
 }) => {
   const [selectedWorker, setSelectedWorker] = useState('');
+  const [predictedTime, setPredictedTime] = useState(null);
+  const [predictedDays, setPredictedDays] = useState(null);
+  const [loadingPrediction, setLoadingPrediction] = useState(false);
+  const [predictionError, setPredictionError] = useState('');
+
+  useEffect(() => {
+    const fetchPrediction = async () => {
+      if (!complaint || !complaint.id) return;
+      
+      setLoadingPrediction(true);
+      setPredictionError('');
+      
+      try {
+        const response = await api.post(`/complaints/${complaint.id}/predict-resolution/`);
+        const data = response.data;
+        
+        if (data.time_prediction) {
+          setPredictedTime(data.time_prediction.estimated_time || null);
+          setPredictedDays(data.time_prediction.estimated_days || null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch prediction:', error);
+        setPredictionError('Could not fetch resolution time prediction');
+      } finally {
+        setLoadingPrediction(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchPrediction();
+    }
+  }, [isOpen, complaint]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20">
-      <div className="bg-white p-6 rounded-lg w-96">
+      <div className="bg-white p-6 rounded-lg w-96 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl text-center font-bold mb-4">Assign Complaint</h2>
+        
+        {/* ML Prediction Section */}
+        {loadingPrediction && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-sm text-blue-700">Analyzing complaint...</span>
+            </div>
+          </div>
+        )}
+        
+        {!loadingPrediction && predictedTime && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm font-semibold text-green-800 mb-1">📊 ML Prediction</p>
+            <p className="text-sm text-green-700">
+              Expected Resolution Time: <span className="font-bold">{predictedTime}</span>
+            </p>
+            {predictedDays && (
+              <p className="text-xs text-green-600 mt-1">
+                (~{predictedDays} days)
+              </p>
+            )}
+          </div>
+        )}
+        
+        {!loadingPrediction && predictionError && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-700">{predictionError}</p>
+          </div>
+        )}
+        
         <p className="text-gray-600 mb-4">
           Select a field worker to assign this complaint:
         </p>
@@ -312,7 +385,7 @@ const AssignModal = ({
           <button
             onClick={() => {
               if (selectedWorker) {
-                onAssign(selectedWorker);
+                onAssign(selectedWorker, predictedTime, predictedDays);
               }
             }}
             disabled={!selectedWorker}
@@ -394,11 +467,21 @@ const GovAuthHomepage = () => {
     setIsAssignModalOpen(true);
   };
 
-  const handleAssign = async (workerId) => {
+  const handleAssign = async (workerId, expectedTime, predictedDays) => {
     try {
-      await api.post(`/complaints/assign/${selectedComplaint.id}/`, {
-        fieldworker_id: workerId, // Match the backend expected field name
-      });
+      const payload = {
+        fieldworker_id: workerId,
+      };
+      
+      // Add expected time if available
+      if (expectedTime) {
+        payload.expected_resolution_time = expectedTime;
+      }
+      if (predictedDays !== null && predictedDays !== undefined) {
+        payload.predicted_resolution_days = predictedDays;
+      }
+      
+      await api.post(`/complaints/assign/${selectedComplaint.id}/`, payload);
       // Refresh the complaints list
       fetchGovComplaints();
       setIsAssignModalOpen(false);
