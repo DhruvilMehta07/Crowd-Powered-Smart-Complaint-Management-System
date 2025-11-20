@@ -7,7 +7,7 @@ from .views import (ComplaintListView,ComplaintCreateView,UpvoteComplaintView,
                     FakeConfidenceView,SubmitResolutionView,CitizenResolutionResponseView,
                     AutoApproveResolutionsView,ComplaintResolutionView,TrendingComplaintsView,
                     TopFieldworkersView,PredictComplaintResolutionView)
-from .views import ComplaintDetailView
+from .views import ComplaintDetailView,DepartmentSuggestionView
 
 
 app_name = 'complaints' 
@@ -37,4 +37,5 @@ urlpatterns = [
     path('resolutions/auto-approve/', AutoApproveResolutionsView.as_view(), name='auto-approve'),
     path('top-fieldworkers/', TopFieldworkersView.as_view(), name='top-fieldworkers'),
     path('<int:complaint_id>/predict-resolution/', PredictComplaintResolutionView.as_view(), name='predict-resolution'),
+    path('department-suggestion/', DepartmentSuggestionView.as_view(), name='department-suggestion'),
 ]

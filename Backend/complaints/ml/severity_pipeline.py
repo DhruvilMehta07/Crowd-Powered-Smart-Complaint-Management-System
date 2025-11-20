@@ -37,7 +37,7 @@ class SeverityAnalysisChain:
             model=model,
             api_key=api_key,
             temperature=0.2,  
-            max_tokens=10000
+            max_tokens=8000
         )
         
         logger.info(f"Initialized SeverityAnalysisChain with model: {model}")
