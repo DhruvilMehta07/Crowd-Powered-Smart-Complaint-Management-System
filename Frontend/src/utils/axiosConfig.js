@@ -3,7 +3,7 @@ import { getCsrfToken } from './auth';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:7000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000',
   withCredentials: true,
 });
 
@@ -43,7 +43,7 @@ api.interceptors.response.use(
       try
       {
         const refreshResponse = await axios.post(
-          'http://localhost:7000/users/token/refresh',
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/token/refresh`,
           {},
           {withCredentials: true}
 

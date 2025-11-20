@@ -325,7 +325,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
     setMessage('');
     
     try {
-      const response = await axios.get('http://localhost:7000/users/departments/', {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/departments/`, {
         withCredentials: true,
         timeout: 5000
       });
