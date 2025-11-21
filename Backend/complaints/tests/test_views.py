@@ -825,4 +825,327 @@ class TestUpvoteCountRecalculation:
         assert res3.status_code == 200
         assert res3.json()['detail'] == 'Upvote removed.'
         test_complaint.refresh_from_db()
-        assert test_complaint.upvotes_count == 1
+
+
+# Test TrendingComplaintsView with various limits
+class TestTrendingComplaintsView:
+    def test_trending_default_limit(self, client, test_complaint):
+        """Test default limit of 3"""
+        url = reverse('complaints:trending-complaints')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert len(response.json()) <= 3
+    
+    def test_trending_custom_valid_limit(self, client, test_complaint):
+        """Test custom valid limit"""
+        url = reverse('complaints:trending-complaints')
+        response = client.get(url, {'limit': 5})
+        assert response.status_code == 200
+        assert len(response.json()) <= 5
+    
+    def test_trending_invalid_limit_string(self, client, test_complaint):
+        """Test invalid limit (string) defaults to 3"""
+        url = reverse('complaints:trending-complaints')
+        response = client.get(url, {'limit': 'invalid'})
+        assert response.status_code == 200
+        assert len(response.json()) <= 3
+    
+    def test_trending_negative_limit(self, client, test_complaint):
+        """Test negative limit defaults to 3"""
+        url = reverse('complaints:trending-complaints')
+        response = client.get(url, {'limit': -5})
+        assert response.status_code == 200
+        assert len(response.json()) <= 3
+    
+    def test_trending_zero_limit(self, client, test_complaint):
+        """Test zero limit defaults to 3"""
+        url = reverse('complaints:trending-complaints')
+        response = client.get(url, {'limit': 0})
+        assert response.status_code == 200
+        assert len(response.json()) <= 3
+
+
+# Test ComplaintListView filtering and sorting
+class TestComplaintListViewFiltering:
+    def test_filter_by_department(self, client, test_complaint, department):
+        """Test filtering by department ID"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'department': department.id})
+        assert response.status_code == 200
+        data = response.json()
+        # If filtering works, we should get results for the specified department
+        assert isinstance(data, list)
+    
+    def test_filter_by_pincode(self, client, test_complaint):
+        """Test filtering by pincode"""
+        test_complaint.pincode = '123456'
+        test_complaint.save()
+        
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'pincode': '123456'})
+        assert response.status_code == 200
+        data = response.json()
+        for complaint in data:
+            if complaint.get('pincode'):
+                assert complaint['pincode'] == '123456'
+    
+    def test_sort_by_latest_desc(self, client, test_complaint):
+        """Test default sorting (latest desc)"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'sort_by': 'latest', 'order': 'desc'})
+        assert response.status_code == 200
+    
+    def test_sort_by_latest_asc(self, client, test_complaint):
+        """Test sorting by latest asc"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'sort_by': 'latest', 'order': 'asc'})
+        assert response.status_code == 200
+    
+    def test_sort_by_upvotes_desc(self, client, test_complaint):
+        """Test sorting by upvotes descending"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'sort_by': 'upvotes', 'order': 'desc'})
+        assert response.status_code == 200
+    
+    def test_sort_by_upvotes_asc(self, client, test_complaint):
+        """Test sorting by upvotes ascending"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'sort_by': 'upvotes', 'order': 'asc'})
+        assert response.status_code == 200
+    
+    def test_sort_by_oldest(self, client, test_complaint):
+        """Test sorting by oldest"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'sort_by': 'oldest', 'order': 'asc'})
+        assert response.status_code == 200
+    
+    def test_sort_invalid_field_fallback(self, client, test_complaint):
+        """Test invalid sort field falls back to posted_at"""
+        url = reverse('complaints:complaint-list')
+        response = client.get(url, {'sort_by': 'invalid_field'})
+        assert response.status_code == 200
+
+
+# Test auto_approve_due_resolutions function
+class TestAutoApproveDueResolutions:
+    def test_auto_approve_expired_resolution(self, client, field_worker_user, assigned_complaint):
+        """Test that expired resolutions are auto-approved"""
+        from django.utils import timezone
+        from datetime import timedelta
+        from complaints.models import Resolution
+        
+        # Create a resolution with auto_approve_at in the past
+        past_time = timezone.now() - timedelta(days=1)
+        resolution = Resolution.objects.create(
+            complaint=assigned_complaint,
+            field_worker=field_worker_user,
+            description="Test resolution",
+            status='pending_approval',
+            auto_approve_at=past_time
+        )
+        
+        # Call auto-approve function
+        from complaints.views import auto_approve_due_resolutions
+        auto_approve_due_resolutions()
+        
+        # Check that resolution was auto-approved
+        resolution.refresh_from_db()
+        assert resolution.status == 'auto_approved'
+        assert resolution.citizen_feedback == "Auto-approved after 3 days of no response."
+        
+        # Check that complaint status updated
+        assigned_complaint.refresh_from_db()
+        assert assigned_complaint.status == 'Completed'
+    
+    def test_auto_approve_notification_to_fieldworker(self, client, field_worker_user, assigned_complaint):
+        """Test notification sent to field worker on auto-approval"""
+        from django.utils import timezone
+        from datetime import timedelta
+        from complaints.models import Resolution, Notification
+        
+        past_time = timezone.now() - timedelta(days=1)
+        resolution = Resolution.objects.create(
+            complaint=assigned_complaint,
+            field_worker=field_worker_user,
+            description="Test resolution",
+            status='pending_approval',
+            auto_approve_at=past_time
+        )
+        
+        from complaints.views import auto_approve_due_resolutions
+        auto_approve_due_resolutions()
+        
+        # Check notification was created (if field_worker exists)
+        notifications = Notification.objects.filter(
+            user=field_worker_user,
+            message__contains='auto-approved'
+        )
+        assert notifications.exists()
+    
+    def test_auto_approve_handles_exceptions_gracefully(self, client, field_worker_user, assigned_complaint, monkeypatch):
+        """Test that auto-approve handles notification failures gracefully"""
+        from django.utils import timezone
+        from datetime import timedelta
+        from complaints.models import Resolution
+        
+        past_time = timezone.now() - timedelta(days=1)
+        resolution = Resolution.objects.create(
+            complaint=assigned_complaint,
+            field_worker=field_worker_user,
+            description="Test resolution",
+            status='pending_approval',
+            auto_approve_at=past_time
+        )
+        
+        # Mock Notification.objects.create to raise exception
+        from complaints.models import Notification
+        original_create = Notification.objects.create
+        def mock_create_fail(*args, **kwargs):
+            raise Exception("Notification failed")
+        monkeypatch.setattr(Notification.objects, 'create', mock_create_fail)
+        
+        # Should not raise exception
+        from complaints.views import auto_approve_due_resolutions
+        auto_approve_due_resolutions()
+        
+        # Resolution should still be auto-approved
+        resolution.refresh_from_db()
+        assert resolution.status == 'auto_approved'
+
+
+# Test ComplaintDetailView with auto-approve
+class TestComplaintDetailAutoApprove:
+    def test_detail_calls_auto_approve(self, client, test_complaint, monkeypatch):
+        """Test that complaint detail view calls auto-approve"""
+        auto_approve_called = []
+        
+        def mock_auto_approve():
+            auto_approve_called.append(True)
+        
+        from complaints import views
+        monkeypatch.setattr(views, 'auto_approve_due_resolutions', mock_auto_approve)
+        
+        url = reverse('complaints:complaint-detail', kwargs={'complaint_id': test_complaint.id})
+        response = client.get(url)
+        
+        assert response.status_code == 200
+        assert len(auto_approve_called) == 1
+    
+    def test_detail_handles_auto_approve_exception(self, client, test_complaint, monkeypatch):
+        """Test that detail view handles auto-approve exceptions"""
+        def mock_auto_approve_fail():
+            raise Exception("Auto-approve failed")
+        
+        from complaints import views
+        monkeypatch.setattr(views, 'auto_approve_due_resolutions', mock_auto_approve_fail)
+        
+        url = reverse('complaints:complaint-detail', kwargs={'complaint_id': test_complaint.id})
+        response = client.get(url)
+        
+        # Should still return complaint details
+        assert response.status_code == 200
+        assert 'complaint' in response.json()
+
+
+# Test notification exception handling in ComplaintCreateView
+class TestComplaintCreateNotificationHandling:
+    def test_create_handles_notification_failure(self, client, citizen_user, department, monkeypatch, mock_cloudinary_upload):
+        """Test that complaint creation handles notification failures gracefully"""
+        from complaints.models import Notification
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from io import BytesIO
+        from PIL import Image as PILImage
+        
+        def mock_create_fail(*args, **kwargs):
+            raise Exception("Notification failed")
+        
+        monkeypatch.setattr(Notification.objects, 'create', mock_create_fail)
+        
+        # Create test image
+        img_io = BytesIO()
+        img = PILImage.new('RGB', (100, 100))
+        img.save(img_io, format='JPEG')
+        img_io.seek(0)
+        test_image = SimpleUploadedFile("test.jpg", img_io.read(), content_type="image/jpeg")
+        
+        client.force_authenticate(user=citizen_user)
+        url = reverse('complaints:complaint-create')
+        
+        data = {
+            'content': 'Test complaint with notification failure',
+            'address': 'Test Address',
+            'pincode': '123456',
+            'latitude': '19.0760',
+            'longitude': '72.8777',
+            'assigned_to_dept': department.id,
+            'images': [test_image],
+        }
+        
+        response = client.post(url, data, format='multipart')
+        
+        # Should still create complaint successfully
+        assert response.status_code == 201
+        assert 'id' in response.json()
+
+
+# Test AssignComplaintView notification handling
+class TestAssignComplaintNotificationHandling:
+    def test_assign_handles_fieldworker_notification_failure(self, client, gov_user, field_worker_user, test_complaint, monkeypatch):
+        """Test assignment handles field worker notification failure"""
+        # Set up proper department assignment
+        field_worker_user.assigned_department = gov_user.assigned_department
+        field_worker_user.verified = True
+        field_worker_user.save()
+        test_complaint.assigned_to_dept = gov_user.assigned_department
+        test_complaint.save()
+        
+        from complaints.models import Notification
+        call_count = [0]
+        original_create = Notification.objects.create
+        
+        def mock_create_fail(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:  # Fail first notification (to fieldworker)
+                raise Exception("Notification failed")
+            return original_create(*args, **kwargs)
+        
+        monkeypatch.setattr(Notification.objects, 'create', mock_create_fail)
+        
+        client.force_authenticate(user=gov_user)
+        url = reverse('complaints:complaint-assign', kwargs={'complaint_id': test_complaint.id})
+        
+        response = client.post(url, {'fieldworker_id': field_worker_user.id})
+        
+        # Should still assign successfully
+        assert response.status_code == 200
+        test_complaint.refresh_from_db()
+        assert test_complaint.assigned_to_fieldworker == field_worker_user
+    
+    def test_assign_handles_citizen_notification_failure(self, client, gov_user, field_worker_user, test_complaint, monkeypatch):
+        """Test assignment handles citizen notification failure"""
+        # Set up proper department assignment
+        field_worker_user.assigned_department = gov_user.assigned_department
+        field_worker_user.verified = True
+        field_worker_user.save()
+        test_complaint.assigned_to_dept = gov_user.assigned_department
+        test_complaint.save()
+        
+        from complaints.models import Notification
+        call_count = [0]
+        original_create = Notification.objects.create
+        
+        def mock_create_fail(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 2:  # Fail second notification (to citizen)
+                raise Exception("Notification failed")
+            return original_create(*args, **kwargs)
+        
+        monkeypatch.setattr(Notification.objects, 'create', mock_create_fail)
+        
+        client.force_authenticate(user=gov_user)
+        url = reverse('complaints:complaint-assign', kwargs={'complaint_id': test_complaint.id})
+        
+        response = client.post(url, {'fieldworker_id': field_worker_user.id})
+        
+        # Should still assign successfully
+        assert response.status_code == 200

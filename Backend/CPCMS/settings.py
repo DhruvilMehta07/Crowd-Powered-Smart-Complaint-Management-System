@@ -29,12 +29,7 @@ SECRET_KEY = 'django-insecure-j87721-qpo2z*xjtwl!!ee5e()no*3o)o8ui!0hh5gsh=k=2yw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '.railway.app',  # Allow all Railway subdomains
-    '.vercel.app',   # Allow all Vercel subdomains
-]
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -229,24 +224,16 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 CORS_ALLOW_CREDENTIALS = True
 
-# Get frontend and backend URLs from environment
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:7000')
-
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:7000",
-    FRONTEND_URL,
-    BACKEND_URL,
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:7000",
-    FRONTEND_URL,
-    BACKEND_URL,
 ]
 
 
