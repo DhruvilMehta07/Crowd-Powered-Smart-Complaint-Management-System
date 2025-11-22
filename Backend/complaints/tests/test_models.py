@@ -206,6 +206,6 @@ def test_resolution_image_clean_validation():
         ri.clean()
 
 
-    
-                                        
-    
+@pytest.mark.django_db
+class TestComplaintModelCoverage:
+    """Additional tests for complaint models to reach 100% coverage"""

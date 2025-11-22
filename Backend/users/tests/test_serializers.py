@@ -66,3 +66,166 @@ def test_government_and_fieldworker_serializers_create(department):
     fw = ser_fw.save()
     assert fw.assigned_department == dept
     assert fw.check_password('fwpass')
+
+
+@ pytest.mark.django_db
+def test_citizen_profile_serializer():
+    """Test CitizenProfileSerializer"""
+    from users.serializers import CitizenProfileSerializer
+    
+    citizen = Citizen.objects.create_user(
+        username='profile_test',
+        email='profile@test.com',
+        password='testpass',
+        phone_number='1234567890'
+    )
+    
+    serializer = CitizenProfileSerializer(citizen)
+    data = serializer.data
+    
+    assert data['username'] == 'profile_test'
+    assert data['email'] == 'profile@test.com'
+    assert data['phone_number'] == '1234567890'
+    assert 'id' in data
+    assert 'date_joined' in data
+
+
+@ pytest.mark.django_db
+def test_general_profile_serializer_citizen():
+    """Test GeneralProfileSerializer with Citizen"""
+    from users.serializers import GeneralProfileSerializer
+    
+    citizen = Citizen.objects.create_user(
+        username='general_citizen',
+        email='citizen@test.com',
+        password='testpass',
+        phone_number='9999999999'
+    )
+    
+    serializer = GeneralProfileSerializer(citizen)
+    data = serializer.data
+    
+    assert data['username'] == 'general_citizen'
+    assert data['email'] == 'citizen@test.com'
+    assert data['phone_number'] == '9999999999'
+    assert data['assigned_department'] is None
+    assert data['verified'] is None
+
+
+@ pytest.mark.django_db
+def test_general_profile_serializer_government_authority():
+    """Test GeneralProfileSerializer with Government Authority"""
+    from users.serializers import GeneralProfileSerializer
+    
+    dept = Department.objects.create(name='Test Dept')
+    ga = Government_Authority.objects.create_user(
+        username='general_ga',
+        email='ga@test.com',
+        password='testpass',
+        phone_number='8888888888',
+        assigned_department=dept,
+        verified=True
+    )
+    
+    serializer = GeneralProfileSerializer(ga)
+    data = serializer.data
+    
+    assert data['username'] == 'general_ga'
+    assert data['assigned_department'] is not None
+    assert data['assigned_department']['name'] == 'test dept'
+    assert data['verified'] is True
+
+
+@ pytest.mark.django_db
+def test_general_profile_serializer_field_worker():
+    """Test GeneralProfileSerializer with Field Worker"""
+    from users.serializers import GeneralProfileSerializer
+    
+    dept = Department.objects.create(name='Worker Dept')
+    fw = Field_Worker.objects.create_user(
+        username='general_fw',
+        email='fw@test.com',
+        password='testpass',
+        phone_number='7777777777',
+        assigned_department=dept,
+        verified=False
+    )
+    
+    serializer = GeneralProfileSerializer(fw)
+    data = serializer.data
+    
+    assert data['username'] == 'general_fw'
+    assert data['assigned_department'] is not None
+    assert data['verified'] is False
+
+
+@ pytest.mark.django_db
+def test_user_login_serializer():
+    """Test UserLoginSerializer"""
+    from users.serializers import UserLoginSerializer
+    
+    data = {
+        'username': 'testuser',
+        'password': 'testpass123'
+    }
+    
+    serializer = UserLoginSerializer(data=data)
+    assert serializer.is_valid()
+    assert serializer.validated_data['username'] == 'testuser'
+    assert serializer.validated_data['password'] == 'testpass123'
+
+
+@ pytest.mark.django_db
+def test_user_login_serializer_invalid():
+    """Test UserLoginSerializer with missing fields"""
+    from users.serializers import UserLoginSerializer
+    
+    # Missing password
+    serializer = UserLoginSerializer(data={'username': 'test'})
+    assert not serializer.is_valid()
+    assert 'password' in serializer.errors
+    
+    # Missing username
+    serializer2 = UserLoginSerializer(data={'password': 'pass'})
+    assert not serializer2.is_valid()
+    assert 'username' in serializer2.errors
+
+
+@ pytest.mark.django_db
+def test_government_authority_serializer_read():
+    """Test GovernmentAuthoritySerializer read with department"""
+    dept = Department.objects.create(name='Read Dept')
+    ga = Government_Authority.objects.create_user(
+        username='read_ga',
+        email='read@test.com',
+        password='testpass',
+        phone_number='6666666666',
+        assigned_department=dept
+    )
+    
+    serializer = GovernmentAuthoritySerializer(ga)
+    data = serializer.data
+    
+    assert data['username'] == 'read_ga'
+    assert data['assigned_department'] is not None
+    assert data['assigned_department']['name'] == 'read dept'
+
+
+@ pytest.mark.django_db
+def test_field_worker_serializer_read():
+    """Test FieldWorkerSerializer read with department"""
+    dept = Department.objects.create(name='FW Dept')
+    fw = Field_Worker.objects.create_user(
+        username='read_fw',
+        email='readfw@test.com',
+        password='testpass',
+        phone_number='5555555555',
+        assigned_department=dept
+    )
+    
+    serializer = FieldWorkerSerializer(fw)
+    data = serializer.data
+    
+    assert data['username'] == 'read_fw'
+    assert data['assigned_department'] is not None
+    assert data['assigned_department']['name'] == 'fw dept'
