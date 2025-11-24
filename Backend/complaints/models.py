@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import datetime
+from datetime import datetime,timedelta
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -83,9 +83,22 @@ class Complaint(models.Model):
 
         if not self.address and (not self.latitude or not self.longitude):
             raise ValidationError("Either address or GPS coordinates must be provided.")           
+        
+        current_time = timezone.now()
+        message=''
+        if self.resolution_deadline:
+            if self.resolution_deadline > current_time:
+                self.due_date = self.resolution_deadline
+            else:
+                self.due_date = self.resolution_deadline+timedelta(days=2)
+                message="Sorry for delay. We are working on your complaint and it will be solved soon"
+        
+
 
         super().save(*args,**kwargs) 
-        super().save(update_fields=['upvotes_count'])    
+        super().save(update_fields=['upvotes_count'])   
+        if message:
+            return message 
 
     def reverse_geocode_mapmyindia(self):
         """Convert latitude/longitude to address using CORRECT MapmyIndia Reverse Geocoding API"""

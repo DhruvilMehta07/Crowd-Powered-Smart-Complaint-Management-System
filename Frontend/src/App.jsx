@@ -132,6 +132,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="help" element={<Help />} />
+          <Route path='past-complaints' element={<PastComplaints/>} />
           <Route path="complaint/:id" element={<ComplaintDetailView />} />
           {/* Add field worker specific routes */}
         </Routes>
