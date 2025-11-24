@@ -343,7 +343,25 @@ class PastComplaintsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        complaints = base_complaint_queryset(request).filter(posted_by=request.user)
+        userid = self.request.user.id
+        st = Complaint.objects.all()
+        # First, complaints posted by this user
+        complaints = st.filter(posted_by_id=userid)
+
+        # If none, check complaints assigned to the user as a field worker
+        if not complaints.exists():
+            complaints = st.filter(assigned_to_fieldworker_id=userid)
+
+        # If still none, and user is a government authority with an assigned department, return complaints for that department. 
+        if not complaints.exists():
+            try:
+                gov_user = Government_Authority.objects.filter(id=userid).first()
+                if gov_user and gov_user.assigned_department:
+                    complaints = st.filter(assigned_to_dept=gov_user.assigned_department)
+                else:
+                    complaints = Complaint.objects.none()
+            except Exception:
+                complaints = Complaint.objects.none()
 
         serializer = ComplaintSerializer(complaints, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -611,7 +629,23 @@ class FakeConfidenceView(APIView):
 
         complaint.refresh_from_db(fields=['fake_confidence'])
         serializer = FakeConfidenceSerializer(fake_entry)
+        # If reporter is a field worker and this is a new report, notify gov authorities
+        try:
+            is_field_worker = Field_Worker.objects.filter(pk=request.user.id).exists()
+        except Exception:
+            is_field_worker = False
 
+        if created and is_field_worker and complaint.assigned_to_dept:
+            try:
+                gov_users = Government_Authority.objects.filter(assigned_department=complaint.assigned_to_dept)
+                for gov in gov_users:
+                    Notification.objects.create(
+                        user=gov,
+                        message=f"Field worker {request.user.username} has requested deletion approval for complaint #{complaint.id}.",
+                        link=f"/complaints/{complaint.id}/approve-delete/"
+                    )
+            except Exception:
+                pass
         if created:
             message = "Fake confidence recorded."
             status_code = status.HTTP_201_CREATED
@@ -723,6 +757,39 @@ class SubmitResolutionView(APIView):
             }, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ApproveDeleteComplaintView(APIView):
+    """Government authority approves deletion of a complaint belonging to their department."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, complaint_id):
+        try:
+            gov_user = Government_Authority.objects.get(id=request.user.id)
+        except Government_Authority.DoesNotExist:
+            return Response({"error": "User is not a government authority."}, status=status.HTTP_403_FORBIDDEN)
+
+        complaint = get_object_or_404(Complaint, id=complaint_id)
+
+        if not gov_user.assigned_department or complaint.assigned_to_dept != gov_user.assigned_department:
+            return Response({"error": "You can only approve deletions for complaints in your department."}, status=status.HTTP_403_FORBIDDEN)
+
+        poster = complaint.posted_by
+        cid = complaint.id
+        complaint.delete()
+
+        # notify poster that complaint was deleted
+        try:
+            if poster:
+                Notification.objects.create(
+                    user=poster,
+                    message=f"Your complaint #{cid} was deleted following government approval.",
+                    link=f"/complaints/"
+                )
+        except Exception:
+            pass
+
+        return Response({"message": f"Complaint #{cid} deleted."}, status=status.HTTP_200_OK)
 
 class CitizenResolutionResponseView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -956,7 +1023,9 @@ class PredictComplaintResolutionView(APIView):
                 address=address,
                 image_url=image_url
             )
-            
+            complaint.resolution_deadline = metadata.get('predicted_deadline')
+            complaint.save(update_fields=['resolution_deadline'])
+
             return Response(
                 {
                     "severity_analysis": severity_analysis,
