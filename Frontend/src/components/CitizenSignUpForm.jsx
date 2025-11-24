@@ -9,8 +9,10 @@ import { Eye, EyeOff } from 'lucide-react';
 const CitizenSignUpForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showReenterPassword, setShowReenterPassword] = useState(false);
-  const [step, setStep] = useState('signup'); // 'signup', 'verify', 'success'
+  const [step, setStep] = useState('signup'); 
   const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
     username: '',
     email: '',
     password: '',
@@ -31,7 +33,6 @@ const CitizenSignUpForm = () => {
     setMessage('');
     setError('');
     
-    // Basic validation
     if (formData.password !== formData.reenterPassword) {
       setError("Passwords do not match");
       return;
@@ -46,6 +47,8 @@ const CitizenSignUpForm = () => {
     
     try {
       const res = await api.post("/users/signup/citizens/", {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -53,7 +56,7 @@ const CitizenSignUpForm = () => {
       });
       
       setMessage(res.data.message || "OTP sent to your email!");
-      setStep('verify'); // Move to OTP verification step
+      setStep('verify'); 
       
     } catch (err) {
       console.log(err.response?.data);
@@ -124,6 +127,8 @@ const CitizenSignUpForm = () => {
     
     try {
       const res = await api.post("/users/signup/citizens/", {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -229,15 +234,40 @@ const CitizenSignUpForm = () => {
     );
   }
 
-  // Original Signup Form (Step 1 - Send OTP)
   return (
     <div className="auth-wrapper">
       <form onSubmit={handleSendOtp} className="auth-form">
         <div className="mb-4 relative">
           <input
             type="text"
+            name="first_name"
+            placeholder="Enter your First Name"
+            value={formData.first_name}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          />
+        </div>
+        
+        <div className="mb-4 relative">
+          <input
+            type="text"
+            name="last_name"
+            placeholder="Enter your Last Name"
+            value={formData.last_name}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          />
+        </div>
+        
+        <div className="mb-4 relative">
+          <input
+            type="text"
             name="username"
-            placeholder="Enter your Name"
+            placeholder="Enter your Username"
             value={formData.username}
             onChange={handleChange}
             required

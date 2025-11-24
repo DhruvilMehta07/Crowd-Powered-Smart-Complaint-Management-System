@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 import TrendingComplaints from '../pages/TrendingComplaints';
 import { clearAccessToken } from '../utils/auth';
-import { logoutUser } from '../services/api';
 
 const SearchIcon = ({ className = 'w-6 h-6' }) => (
   <svg
@@ -207,12 +206,21 @@ const Header = ({
                     <label className="text-sm text-gray-600">Sort by</label>
                     <select
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
+                      onChange={(e) => {
+                        const nextSort = e.target.value;
+                        setSortBy(nextSort);
+
+                        if (nextSort === 'oldest' || nextSort === 'least_votes') {
+                          setOrder('asc');
+                        } else {
+                          setOrder('desc');
+                        }
+                      }}
                       className="w-full border rounded p-2 my-2"
                     >
                       <option value="latest">Latest</option>
-                      <option value="upvotes">Most upvotes</option>
-                      <option value="least_votes">Least votes</option>
+                      <option value="upvotes">Most UpVotes</option>
+                      <option value="least_votes">Least UpVotes</option>
                       <option value="oldest">Oldest</option>
                     </select>
                   </div>
@@ -487,7 +495,7 @@ const ComplaintCard = ({
           )}
         </div>
 
-        <p className="text-lg text-gray-800 mb-1">{complaint.content}</p>
+        <p className="text-lg text-gray-800 mb-1 clamped-text">{complaint.content}</p>
         <p className="text-gray-600 text-base leading-relaxed mb-4">
           Address: {complaint.address}
         </p>
@@ -500,7 +508,10 @@ const ComplaintCard = ({
                 <div
                   key={image.id || index}
                   className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => handleImageClick(index)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleImageClick(index);
+                  }}
                 >
                   <img
                     src={getImageUrl(image)}
@@ -750,6 +761,25 @@ const Homepage = () => {
     fetchDepartments();
   }, []);
 
+  const mapSortParams = useCallback((uiSortKey, uiOrder) => {
+    const normalizedSort = uiSortKey || 'latest';
+    const normalizedOrder = uiOrder || 'desc';
+
+    if (normalizedSort === 'least_votes') {
+      return { sort_by: 'upvotes', order: 'asc' };
+    }
+
+    if (normalizedSort === 'oldest') {
+      return { sort_by: 'oldest', order: 'asc' };
+    }
+
+    if (normalizedSort === 'upvotes') {
+      return { sort_by: 'upvotes', order: normalizedOrder };
+    }
+
+    return { sort_by: 'latest', order: normalizedOrder };
+  }, []);
+
   const fetchComplaints = useCallback(
     async (opts = {}) => {
       // prevent duplicate concurrent fetches (e.g., React StrictMode double-invoke in dev)
@@ -762,13 +792,14 @@ const Homepage = () => {
         // merge filters from opts or current state
         const dept = opts.department ?? department;
         const pin = opts.pincode ?? pincode;
-        const sb = opts.sortBy ?? sortBy;
-        const ord = opts.order ?? order;
+        const uiSort = opts.sortBy ?? sortBy;
+        const uiOrder = opts.order ?? order;
+        const { sort_by: apiSortBy, order: apiOrder } = mapSortParams(uiSort, uiOrder);
 
         if (dept) params.department = dept;
         if (pin) params.pincode = pin;
-        if (sb) params.sort_by = sb;
-        if (ord) params.order = ord;
+        if (apiSortBy) params.sort_by = apiSortBy;
+        if (apiOrder) params.order = apiOrder;
 
         const response = await api.get('/complaints/', { params });
         setComplaints(response.data);
@@ -780,7 +811,7 @@ const Homepage = () => {
         isFetchingRef.current = false;
       }
     },
-    [department, pincode, sortBy, order]
+    [department, pincode, sortBy, order, mapSortParams]
   );
 
   const searchComplaints = useCallback(
@@ -796,8 +827,9 @@ const Homepage = () => {
         };
         if (department) params.department = department;
         if (pincode) params.pincode = pincode;
-        if (sortBy) params.sort_by = sortBy;
-        if (order) params.order = order;
+        const { sort_by: apiSortBy, order: apiOrder } = mapSortParams(sortBy, order);
+        if (apiSortBy) params.sort_by = apiSortBy;
+        if (apiOrder) params.order = apiOrder;
 
         const query = new URLSearchParams(params).toString();
         const response = await api.get(`/complaints/search/?${query}`);
@@ -809,7 +841,7 @@ const Homepage = () => {
         setLoading(false);
       }
     },
-    [fetchComplaints, department, pincode, sortBy, order]
+    [fetchComplaints, department, pincode, sortBy, order, mapSortParams]
   );
   const handleUpvote = async (
     complaintId,
@@ -912,7 +944,7 @@ const Homepage = () => {
     } catch (error) {
       console.warn('Logout API call failed:', error);
     } finally {
-      localStorage.removeItem('access_token');
+      clearAccessToken();
       localStorage.removeItem('user_id');
       localStorage.removeItem('username');
       localStorage.removeItem('isAuthenticated');
@@ -921,9 +953,10 @@ const Homepage = () => {
       delete api.defaults.headers.common['Authorization'];
       setIsAuthenticated(false);
       setUsername('');
-      alert('Logged out successfully!');
+      navigate('/', { replace: true });
+      window.location.reload();
     }
-  }, []);
+  }, [navigate]);
 
   const openRaiseComplaint = useCallback(() => {
     if (!isAuthenticated) {

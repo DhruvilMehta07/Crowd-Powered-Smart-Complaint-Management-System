@@ -29,9 +29,31 @@ const LoginForm = ({
   error,
   testConnection, // This is the JWT-based handler
   setActiveForm,
-  onForgotClick
+  onForgotClick,
+  onDismissError
 }) => (
-  <form onSubmit={handleLoginSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
+  <form
+    onSubmitCapture={(e) => {
+      // prevent native form submission at the earliest possible phase
+      e.preventDefault();
+      e.stopPropagation();
+      handleLoginSubmit(e);
+    }}
+    className="space-y-3 sm:space-y-4 md:space-y-5"
+    aria-live="polite"
+  >
+    {error && (
+      <div className="mb-2">
+        <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-lg text-sm font-medium flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button type="button" onClick={onDismissError} aria-label="Dismiss error" className="text-red-600 font-semibold">✕</button>
+        </div>
+      </div>
+    )}
+
     <div className="relative">
       <input
         type="text"
@@ -75,7 +97,7 @@ const LoginForm = ({
     </div>
     
     <button 
-      type="submit" // Changed from onClick to type="submit"
+      type="submit"
       className="w-full bg-[#4B687A] text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg text-sm sm:text-base"
       disabled={loading}
     >
@@ -86,12 +108,6 @@ const LoginForm = ({
       <div className="bg-green-50 border-2 border-green-300 text-green-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2">
         <CheckCircle size={16} className="sm:w-5 sm:h-5 flex-shrink-0" />
         <span>{message}</span>
-      </div>
-    )}
-    {error && (
-      <div className="bg-red-50 border-2 border-red-300 text-red-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2">
-        <AlertCircle size={16} className="sm:w-5 sm:h-5 flex-shrink-0" />
-        <span>{error}</span>
       </div>
     )}
     
@@ -118,7 +134,7 @@ const LoginForm = ({
 const Login = ({ activeTab }) => { // activeTab prop might be redundant now but keeping it
   const navigate = useNavigate();
   // State from your styled (second) file
-  const [activeForm, setActiveForm] = useState('SignUp');
+  const [activeForm, setActiveForm] = useState('Login');
   const [activeSignUpTab, setActiveSignUpTab] = useState('Citizen');
   const [showPassword, setShowPassword] = useState(false);
   const [loginFormData, setLoginFormData] = useState({
@@ -165,7 +181,8 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
     });
   };
 
-  // Forgot password helpers
+
+
   const openForgot = () => {
     setForgotOpen(true);
     setForgotMessage('');
@@ -252,6 +269,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
   // handleLoginSubmit from your JWT (first) file
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setError('');
     setMessage('');
     setLoading(true);
@@ -280,12 +298,10 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('user_type', response.data.user_type);
         
-        // Set default Authorization header for future requests
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
         
         setMessage('Login successful! Redirecting...');
         
-        // Redirect after delay
         setTimeout(() => {
           navigate('/');
         }, 1500);
@@ -299,17 +315,17 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
       });
       
       if (err.response) {
-        if (err.response.status === 401) {
-          setError('Invalid username or password');
+        if (err.response.status === 401 || err.response.status === 400) {
+          setError('Incorrect username or password. Please try again.');
         } else if (err.response.status === 403) {
           setError('Account pending admin verification');
-        } else if (err.response.status === 400) {
-          setError(err.response.data.error || 'Invalid form data');
         } else {
           setError(err.response.data.error || `Server error: ${err.response.status}`);
         }
+        setActiveForm && setActiveForm('Login');
       } else if (err.request) {
         setError('Cannot connect to server. Please check: 1) Backend is running, 2) Port 7000 is correct');
+        setActiveForm && setActiveForm('Login');
       } else {
         setError('Login failed: ' + err.message);
       }
@@ -462,6 +478,7 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
                     testConnection={testConnection} // Passing JWT handler
                     onForgotClick={openForgot}
                     setActiveForm={setActiveForm}
+                    onDismissError={() => setError('')}
                   />
                 </div>
               ) : (

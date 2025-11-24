@@ -342,7 +342,7 @@ export default function PastComplaints() {
                   </div>
                 </div>
 
-                <p className="text-lg text-gray-800 mb-1">
+                <p className="text-lg text-gray-800 mb-1 clamped-text">
                   {complaint.content}
                 </p>
 

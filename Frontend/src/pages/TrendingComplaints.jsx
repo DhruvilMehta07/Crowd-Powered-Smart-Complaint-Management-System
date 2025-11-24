@@ -51,7 +51,7 @@ export default function TrendingComplaints({
     } catch (error) {
       console.warn('Logout API call failed:', error);
     } finally {
-      localStorage.removeItem('access_token');
+      clearAccessToken();
       localStorage.removeItem('user_id');
       localStorage.removeItem('username');
       localStorage.removeItem('isAuthenticated');
@@ -59,72 +59,70 @@ export default function TrendingComplaints({
       if (api?.defaults?.headers?.common) {
         delete api.defaults.headers.common['Authorization'];
       }
-      navigate('/');
-      alert('Logged out successfully!');
+      navigate('/', { replace: true });
+      window.location.reload();
     }
   }, [navigate]);
 
   const handleLogin = onLoginClick || fallbackOnLogin;
   const handleLogout = onLogoutClick || fallbackOnLogout;
 
-  // Fetch trending once at the parent to avoid duplicate calls (StrictMode safe)
   const [trending, setTrending] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingError, setTrendingError] = useState(null);
 
   useEffect(() => {
     let mounted = true;
-    let controller = new AbortController();
+    const controller = new AbortController();
 
     const fetchTrending = async () => {
+      setTrendingLoading(true);
+      setTrendingError(null);
+
       try {
-        setIsLoading(true);
         const response = await api.get('/complaints/trending/?limit=3', {
           signal: controller.signal,
         });
-        const complaints = response.data || [];
-        const items = complaints.map((c) => ({
-          id: c.id,
-          text: c.content,
-          upvotes: `${c.upvotes_count || 0} Upvotes`,
-        }));
-        if (mounted) {
-          setTrending(items);
-          setError(null);
+        if (!mounted) {
+          return;
         }
+        const complaints = Array.isArray(response.data) ? response.data : [];
+        const formatted = complaints.map((complaint) => ({
+          id: complaint.id,
+          text:
+            complaint.content ||
+            complaint.description ||
+            complaint.title ||
+            'Complaint details unavailable.',
+          upvotes: `${
+            complaint.upvotes_count ??
+            complaint.computed_upvotes_count ??
+            complaint.upvotes?.length ??
+            0
+          } Upvotes`,
+        }));
+        setTrending(formatted);
       } catch (err) {
-        if (
-          mounted &&
-          err.name !== 'CanceledError' &&
-          err.name !== 'AbortError'
-        ) {
+        if (mounted && err.name !== 'CanceledError' && err.name !== 'AbortError') {
           console.error('Error fetching trending complaints:', err);
-          setError('Failed to load trending complaints');
+          setTrendingError('Failed to load trending complaints');
         }
       } finally {
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setTrendingLoading(false);
+        }
       }
     };
 
     fetchTrending();
-    const interval = setInterval(
-      () => {
-        // rotate controller to avoid reusing aborted signal
-        controller.abort();
-        controller = new AbortController();
-        fetchTrending();
-      },
-      5 * 60 * 1000
-    );
+
     return () => {
       mounted = false;
       controller.abort();
-      clearInterval(interval);
     };
   }, []);
 
-  // Modal to show full list of fieldworkers
-  // Accepts an optional `workers` prop so leaderboard can pass its data
+  
   function FieldworkersModal({ open, onClose, workers: initialWorkers = null }) {
     const [localWorkers, setLocalWorkers] = useState(initialWorkers || []);
     const [loading, setLoading] = useState(initialWorkers ? false : false);
@@ -135,7 +133,6 @@ export default function TrendingComplaints({
       let mounted = true;
       const controller = new AbortController();
 
-      // If parent passed workers, reuse them and skip fetching
       if (initialWorkers) {
         setLocalWorkers(initialWorkers);
         setLoading(false);
@@ -289,32 +286,7 @@ export default function TrendingComplaints({
           )}
         </div>
 
-        <div className="bg-white p-5 rounded-xl mt-15 border-3 border-gray-300">
-          <h3 className="font-bold text-xl text-center mb-4 text-[#4B687A]">
-            Trending Complaints
-          </h3>
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="text-center text-gray-600">Loading...</div>
-            ) : error ? (
-              <div className="text-center text-red-600">{error}</div>
-            ) : trending.length === 0 ? (
-              <div className="text-center text-gray-600">No complaints yet</div>
-            ) : (
-              trending.map((item) => (
-                <div
-                  key={item.id}
-                  className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
-                >
-                  <p className="text-gray-700">{item.text}</p>
-                  <p className="font-bold text-[#4B687A] mt-1">
-                    {item.upvotes}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <FieldWorkerLeaderboard />
       </div>
     );
   };
@@ -324,35 +296,64 @@ export default function TrendingComplaints({
     const [workers, setWorkers] = useState([]);
     const [loadingWorkers, setLoadingWorkers] = useState(true);
     const [errorWorkers, setErrorWorkers] = useState(null);
+    const userType = typeof window !== 'undefined' ? localStorage.getItem('user_type') : null;
     // removed modalOpen state — leaderboard is no longer clickable to open a modal
 
     useEffect(() => {
       let mounted = true;
+
       const fetchWorkers = async () => {
         setLoadingWorkers(true);
         setErrorWorkers(null);
+
+        let departmentId = null;
+
+        if (userType === 'authority' || userType === 'fieldworker') {
+          try {
+            const profileRes = await api.get('/users/profile/');
+            departmentId = profileRes.data?.assigned_department?.id ?? null;
+          } catch (profileErr) {
+            console.error('Error fetching profile for leaderboard', profileErr);
+            departmentId = null;
+          }
+        }
+
+        const queryConfig = departmentId ? { params: { department: departmentId } } : {};
+
         try {
-          const res = await api.get('/complaints/top-fieldworkers/');
-          if (!mounted) return;
-          const data = (res.data || []).map((fw) => ({
+          const res = await api.get('/complaints/top-fieldworkers/', queryConfig);
+          if (!mounted) {
+            return;
+          }
+
+          const list = (res.data || []).map((fw) => ({
             id: fw.id,
-            username: fw.name || fw.username || `user-${fw.id}`,
+            username: fw.username || fw.name || `user-${fw.id}`,
             email: fw.email || '',
-            solved_count: fw.total_assigned_complaints || fw.solved_count || 0,
+            solved_count:
+              fw.total_assigned_complaints ?? fw.total_assigned ?? fw.solved_count ?? 0,
           }));
-          setWorkers(data);
+
+          setWorkers(list);
         } catch (err) {
+          if (!mounted) {
+            return;
+          }
           console.error('Error fetching fieldworker leaderboard', err);
-          if (mounted) setErrorWorkers('Failed to load leaderboard');
+          setErrorWorkers(err.response?.data?.error || 'Failed to load leaderboard');
         } finally {
-          if (mounted) setLoadingWorkers(false);
+          if (mounted) {
+            setLoadingWorkers(false);
+          }
         }
       };
+
       fetchWorkers();
+
       return () => {
         mounted = false;
       };
-    }, []);
+    }, [userType]);
 
     const visible = workers.slice(0, 3);
 
@@ -432,10 +433,10 @@ export default function TrendingComplaints({
             Trending Complaints
           </h3>
           <div className="space-y-4">
-            {isLoading ? (
+            {trendingLoading ? (
               <div className="text-center text-gray-600">Loading...</div>
-            ) : error ? (
-              <div className="text-center text-red-600">{error}</div>
+            ) : trendingError ? (
+              <div className="text-center text-red-600">{trendingError}</div>
             ) : trending.length === 0 ? (
               <div className="text-center text-gray-600">No complaints yet</div>
             ) : (
@@ -444,10 +445,8 @@ export default function TrendingComplaints({
                   key={item.id}
                   className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
                 >
-                  <p className="text-gray-700">{item.text}</p>
-                  <p className="font-bold text-[#4B687A] mt-1">
-                    {item.upvotes}
-                  </p>
+                  <p className="text-gray-700 clamped-text">{item.text}</p>
+                  <p className="font-bold text-[#4B687A] mt-1">{item.upvotes}</p>
                 </div>
               ))
             )}

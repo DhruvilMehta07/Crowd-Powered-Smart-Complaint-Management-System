@@ -15,6 +15,8 @@ const GovtAuthSignUpForm = () => {
   const [isOtherSelected, setIsOtherSelected] = useState(false);
 
   const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
     username: '',
     email: '',
     password: '',
@@ -86,6 +88,8 @@ const GovtAuthSignUpForm = () => {
 
       // Post to the same endpoint — backend should send OTP for verification
       const res = await api.post('/users/signup/authorities/', {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -158,6 +162,8 @@ const GovtAuthSignUpForm = () => {
     try {
       // Re-send the signup request to trigger a new OTP
       await api.post('/users/signup/authorities/', {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -252,8 +258,34 @@ const GovtAuthSignUpForm = () => {
         <div className="mb-4">
           <input
             type="text"
+            name="first_name"
+            placeholder="Enter your First Name"
+            value={formData.first_name}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+          />
+        </div>
+        
+        <div className="mb-4">
+          <input
+            type="text"
+            name="last_name"
+            placeholder="Enter your Last Name"
+            value={formData.last_name}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+          />
+        </div>
+        
+        <div className="mb-4">
+          <input
+            type="text"
             name="username"
-            placeholder="Enter your Name"
+            placeholder="Enter your Username"
             value={formData.username}
             onChange={handleChange}
             required

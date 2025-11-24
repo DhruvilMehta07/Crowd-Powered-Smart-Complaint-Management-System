@@ -236,7 +236,7 @@ const ComplaintDetailView = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex justify-center px-4 py-6">
+      <div className="flex-1 flex justify-center px-1 py-1">
         <div className="w-full max-w-2xl lg:max-w-4xl">
           {/* Main Complaint Card */}
           <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 mb-6 border border-gray-100">
@@ -259,7 +259,7 @@ const ComplaintDetailView = () => {
             </div>
 
             {/* Complaint Title */}
-            <p className="text-2xl font-bold text-gray-800 mb-3">{complaint.content}</p>
+            <p className="text-lg text-gray-800 mb-3">{complaint.content}</p>
 
             {/* Address Section */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">

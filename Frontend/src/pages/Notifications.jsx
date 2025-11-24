@@ -59,7 +59,7 @@ export default function Notifications() {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 min-h-screen">
+    <div className="p-1 bg-grey min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg border-2 border-indigo-100 p-6">
           <h1 className="text-3xl font-bold text-indigo-900 mb-4">Notifications</h1>
