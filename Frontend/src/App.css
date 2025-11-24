@@ -10,3 +10,12 @@ body.modal-open > *:not(.complaint-modal-portal) {
 	position: relative;
 	z-index: 9999;
 }
+
+/* Clamp multi-line text to avoid overly tall cards */
+.clamped-text {
+	display: -webkit-box;
+	overflow: hidden;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	line-clamp: 4;
+}

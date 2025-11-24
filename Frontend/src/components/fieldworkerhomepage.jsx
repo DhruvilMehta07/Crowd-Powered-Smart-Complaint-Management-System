@@ -144,7 +144,7 @@ const ComplaintCard = ({ complaint }) => {
         </div>
       </div>
 
-      <p className="text-lg text-gray-800 mb-1">{complaint.content}</p>
+      <p className="text-lg text-gray-800 mb-1 clamped-text">{complaint.content}</p>
       <p className="text-gray-600 text-base leading-relaxed mb-4">
         Address: {complaint.address}
       </p>
@@ -156,7 +156,8 @@ const ComplaintCard = ({ complaint }) => {
               <div
                 key={image.id || index}
                 className="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation();
                   setSelectedImageIndex(index);
                   setShowImageModal(true);
                 }}

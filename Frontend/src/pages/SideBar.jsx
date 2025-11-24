@@ -166,6 +166,12 @@ const formatConfidencePercent = (confidence) => {
   return Math.round(normalizedValue);
 };
 
+const isOtherDepartmentName = (name) => {
+  if (!name) return false;
+  const normalized = name.trim().toLowerCase();
+  return normalized === 'other' || normalized === 'others';
+};
+
 const RaiseComplaintModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
     description: '',
@@ -227,6 +233,24 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
           throw new Error('ML service did not return any department suggestion.');
         }
 
+        if (isOtherDepartmentName(normalizedSuggestion.name)) {
+          setSuggestionError('No matching department identified from the uploaded image.');
+          setSuggestionStatus('error');
+          setSuggestedDept(null);
+          return;
+        }
+
+        const matchedDepartment = departments.find(
+          (dept) => String(dept.id) === String(normalizedSuggestion.id)
+        );
+
+        if (matchedDepartment && isOtherDepartmentName(matchedDepartment.name)) {
+          setSuggestionError('No matching department identified from the uploaded image.');
+          setSuggestionStatus('error');
+          setSuggestedDept(null);
+          return;
+        }
+
         setSuggestedDept(normalizedSuggestion);
         setSuggestionStatus('success');
       } catch (error) {
@@ -244,7 +268,7 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
         setSuggestedDept(null);
       }
     },
-    [resetSuggestionState]
+    [resetSuggestionState, departments]
   );
 
   const reverseGeocodeMapmyIndia = async (lat, lng) => {
@@ -437,11 +461,31 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   }, [isOpen, resetSuggestionState]);
 
   useEffect(() => {
+    if (suggestionStatus !== 'success' || !suggestedDept) {
+      return;
+    }
+
+    const matched = departments.find(
+      (dept) => String(dept.id) === String(suggestedDept.id)
+    );
+
+    if (isOtherDepartmentName(suggestedDept.name) || isOtherDepartmentName(matched?.name)) {
+      setSuggestionStatus('error');
+      setSuggestionError('No matching department identified from the uploaded image.');
+      setSuggestedDept(null);
+    }
+  }, [suggestionStatus, suggestedDept, departments]);
+
+  useEffect(() => {
     if (
       suggestionStatus === 'success' &&
       suggestedDept?.id &&
       !form.assigned_to_dept &&
-      departments.some((dept) => String(dept.id) === String(suggestedDept.id))
+      departments.some(
+        (dept) =>
+          String(dept.id) === String(suggestedDept.id) &&
+          !isOtherDepartmentName(dept.name)
+      )
     ) {
       setForm((prev) => ({
         ...prev,
@@ -471,12 +515,22 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
       resetSuggestionState();
     }
   };
+  const handleFileRemove = useCallback(
+    (index) => {
+      setForm((prev) => {
+        const nextFiles = prev.files.filter((_, idx) => idx !== index);
 
-  const handleSuggestionRetry = useCallback(() => {
-    if (form.files && form.files.length > 0) {
-      fetchDepartmentSuggestion(form.files[0]);
-    }
-  }, [form.files, fetchDepartmentSuggestion]);
+        if (nextFiles.length === 0) {
+          resetSuggestionState();
+        } else {
+          fetchDepartmentSuggestion(nextFiles[0]);
+        }
+
+        return { ...prev, files: nextFiles };
+      });
+    },
+    [fetchDepartmentSuggestion, resetSuggestionState]
+  );
 
   const handleLocationMethodChange = (method) => {
     setForm((prev) => ({
@@ -635,11 +689,13 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
     ? departments.find((dept) => String(dept.id) === String(suggestedDept.id))
     : null;
   const suggestionDisplayName = suggestedDept?.name || matchedDeptOption?.name;
+  const suggestionIsOther = isOtherDepartmentName(suggestionDisplayName);
   const suggestionConfidence = formatConfidencePercent(suggestedDept?.confidence);
   const suggestionApplied =
     suggestedDept?.id && form.assigned_to_dept === suggestedDept.id.toString();
-  const canApplySuggestion = Boolean(suggestedDept?.id && matchedDeptOption);
-  const canRunSuggestion = Boolean(form.files && form.files.length > 0);
+  const canApplySuggestion = Boolean(
+    suggestedDept?.id && matchedDeptOption && !suggestionIsOther
+  );
 
   if (!isOpen) return null;
 
@@ -891,7 +947,13 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M3 15a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4v8zm7-4l2 2 4-4"
+                d="M3 9a2 2 0 012-2h1l1.447-2.894A2 2 0 0110.236 3h3.528a2 2 0 011.789 1.106L17 7h1a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
             <span className="text-gray-500 text-sm">
@@ -911,8 +973,33 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
             />
           </label>
 
+          {form.files && form.files.length > 0 && (
+            <ul className="space-y-2">
+              {form.files.map((file, index) => (
+                <li
+                  key={`${file.name}-${index}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+                >
+                  <span className="flex-1 truncate" title={file.name}>
+                    {file.name}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {(file.size / 1024).toFixed(0)} KB
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleFileRemove(index)}
+                    className="text-xs font-semibold text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-800">
                   ML department suggestion
@@ -921,18 +1008,6 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
                   We analyze the first photo to recommend the right team.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleSuggestionRetry}
-                disabled={!canRunSuggestion || suggestionStatus === 'loading'}
-                className={`text-xs font-medium px-3 py-1 rounded-full border transition ${
-                  !canRunSuggestion || suggestionStatus === 'loading'
-                    ? 'text-gray-400 border-gray-200 cursor-not-allowed'
-                    : 'text-[#4B687A] border-[#4B687A] hover:bg-[#4B687A] hover:text-white'
-                }`}
-              >
-                {suggestionStatus === 'loading' ? 'Analyzing...' : 'Re-run'}
-              </button>
             </div>
 
             {suggestionStatus === 'idle' && (
@@ -1247,12 +1322,6 @@ export default function Sidebar() {
               >
                 <DocumentTextIcon className="w-6 h-6" />
                 Past Complaints
-              </Link>
-            </li>
-            <li>
-              <Link to="/help" className={getLinkClass('/help')}>
-                <QuestionMarkCircleIcon className="w-6 h-6" />
-                Help
               </Link>
             </li>
           </ul>
