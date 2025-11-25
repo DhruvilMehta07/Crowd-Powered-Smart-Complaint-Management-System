@@ -1,0 +1,115 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ComplaintCard Component > should match snapshot on initial render 1`] = `
+<div>
+  <div
+    class="bg-white p-4 rounded-lg shadow"
+  >
+    <div
+      class="flex justify-between items-center mb-2"
+    >
+      <span
+        class="font-semibold"
+      >
+        John Doe
+      </span>
+      <span
+        class="text-sm text-gray-500"
+      >
+        2024-01-15
+      </span>
+    </div>
+    <p
+      class="text-gray-700 mb-2"
+    >
+      Pothole on Main Street needs urgent repair
+    </p>
+    <p
+      class="text-sm font-medium"
+    >
+      Assigned to: 
+      <span
+        class="text-gray-600"
+      >
+        Public Works Team
+      </span>
+    </p>
+    <div
+      class="flex gap-6 mt-3 text-gray-600"
+    >
+      <button
+        class="flex items-center gap-1 hover:text-blue-600"
+      >
+        👍 Upvote
+      </button>
+      <button
+        class="flex items-center gap-1 hover:text-blue-600"
+      >
+        💬 Comment
+      </button>
+      <button
+        class="flex items-center gap-1 hover:text-blue-600"
+      >
+        📤 Share
+      </button>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ComplaintCard Component > should match snapshot with different data 1`] = `
+<div>
+  <div
+    class="bg-white p-4 rounded-lg shadow"
+  >
+    <div
+      class="flex justify-between items-center mb-2"
+    >
+      <span
+        class="font-semibold"
+      >
+        Jane Smith
+      </span>
+      <span
+        class="text-sm text-gray-500"
+      >
+        2024-12-01
+      </span>
+    </div>
+    <p
+      class="text-gray-700 mb-2"
+    >
+      Broken streetlight at corner
+    </p>
+    <p
+      class="text-sm font-medium"
+    >
+      Assigned to: 
+      <span
+        class="text-gray-600"
+      >
+        Electrical Team
+      </span>
+    </p>
+    <div
+      class="flex gap-6 mt-3 text-gray-600"
+    >
+      <button
+        class="flex items-center gap-1 hover:text-blue-600"
+      >
+        👍 Upvote
+      </button>
+      <button
+        class="flex items-center gap-1 hover:text-blue-600"
+      >
+        💬 Comment
+      </button>
+      <button
+        class="flex items-center gap-1 hover:text-blue-600"
+      >
+        📤 Share
+      </button>
+    </div>
+  </div>
+</div>
+`;
