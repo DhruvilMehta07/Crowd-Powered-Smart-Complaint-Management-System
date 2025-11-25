@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GoogleAuth Component > should match image snapshot 1`] = `
+<img
+  alt="Google"
+  src="https://upload.wikimedia.org/wikipedia/commons/4/4e/G_logo.svg"
+/>
+`;
+
+exports[`GoogleAuth Component > should match snapshot 1`] = `
+<div>
+  <div
+    class="google-auth"
+  >
+    <img
+      alt="Google"
+      src="https://upload.wikimedia.org/wikipedia/commons/4/4e/G_logo.svg"
+    />
+  </div>
+</div>
+`;

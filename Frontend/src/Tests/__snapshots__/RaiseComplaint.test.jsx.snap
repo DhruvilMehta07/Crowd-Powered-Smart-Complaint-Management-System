@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RaiseComplaint page > matches snapshot 1`] = `
+<div>
+  <div
+    class="p-6"
+  >
+    <h1
+      class="text-2xl font-bold"
+    >
+      Raise Complaint
+    </h1>
+    <p
+      class="mt-4"
+    >
+      Form to raise a new complaint (placeholder).
+    </p>
+  </div>
+</div>
+`;
