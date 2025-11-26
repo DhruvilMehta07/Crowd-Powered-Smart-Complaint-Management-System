@@ -46,8 +46,13 @@ export default function Notifications() {
       }
 
       if (notif && notif.link) {
-        // if link is absolute http(s)
-        if (/^https?:\/\//.test(notif.link)) {
+        // Extract complaint ID from link like "/complaints/123/"
+        const complaintMatch = notif.link.match(/\/complaints\/(\d+)/);
+        if (complaintMatch) {
+          const complaintId = complaintMatch[1];
+          navigate(`/complaint/${complaintId}`);
+        } else if (/^https?:\/\//.test(notif.link)) {
+          // if link is absolute http(s)
           window.location.href = notif.link;
         } else {
           navigate(notif.link);
@@ -58,11 +63,19 @@ export default function Notifications() {
     }
   };
 
+  const sanitizeMessage = (msg) => {
+    if (!msg) return '';
+    let out = msg.replace(/(complaint)\s*#?\s*\d+/gi, '$1');
+    out = out.replace(/#\rgba(6, 6, 6, 1)/g, '');
+    out = out.replace(/\s+([.,!?:;])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+    return out;
+  };
+
   return (
     <div className="p-1 bg-grey min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg border-2 border-indigo-100 p-6">
-          <h1 className="text-3xl font-bold text-indigo-900 mb-4">Notifications</h1>
+        <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6">
+          <h1 className="text-3xl font-bold text-[#4B687A] mb-4">Notifications</h1>
 
           {loading ? (
             <div className="p-6 text-center">Loading...</div>
@@ -70,7 +83,7 @@ export default function Notifications() {
             <div className="p-6 text-center text-red-600">{error}</div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">🔔</span>
               </div>
               <p className="text-gray-600 text-lg">No notifications yet.</p>
@@ -84,7 +97,7 @@ export default function Notifications() {
                   onClick={() => handleNotificationClick(n)}
                   className={`p-4 cursor-pointer hover:bg-gray-50 flex justify-between items-start ${n.is_read ? '' : 'bg-white'}`}>
                   <div>
-                    <div className="text-sm text-gray-800">{n.message}</div>
+                    <div className="text-sm text-gray-800">{sanitizeMessage(n.message)}</div>
                     <div className="text-xs text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</div>
                   </div>
                   {!n.is_read && (

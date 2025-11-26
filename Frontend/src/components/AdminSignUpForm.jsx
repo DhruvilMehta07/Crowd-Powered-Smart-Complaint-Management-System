@@ -39,7 +39,7 @@ const AdminSignUpForm = () => {
                         onChange={handleChange}
                         required
                         disabled={loading}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
                     />
                 </div>
                 <div className="mb-4">
@@ -51,7 +51,7 @@ const AdminSignUpForm = () => {
                         onChange={handleChange}
                         required
                         disabled={loading}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
                     />
                 </div>
                 <div className="mb-6 relative">
@@ -63,7 +63,7 @@ const AdminSignUpForm = () => {
                         onChange={handleChange}
                         required
                         disabled={loading}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50 pr-12"
                     />
                     <button
                         type="button"
@@ -80,7 +80,7 @@ const AdminSignUpForm = () => {
 
                 <button 
                     type="submit" 
-                    className="login-btn w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="login-btn w-full bg-[#4B687A] text-white py-3 px-4 rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-[#4B687A] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     disabled={loading}
                 >
                     {loading ? 'Signing Up...' : 'SignUp'}

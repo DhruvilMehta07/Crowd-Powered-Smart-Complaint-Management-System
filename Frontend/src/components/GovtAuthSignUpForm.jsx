@@ -222,7 +222,7 @@ const GovtAuthSignUpForm = () => {
                 maxLength={6}
                 required
                 disabled={loading}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all"
               />
             </div>
 
@@ -264,7 +264,7 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
           />
         </div>
         
@@ -277,7 +277,7 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
           />
         </div>
         
@@ -290,7 +290,7 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
           />
         </div>
 
@@ -303,7 +303,7 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
           />
         </div>
 
@@ -316,13 +316,13 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50 pr-12"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             disabled={loading}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600 disabled:opacity-50 bg-transparent border-none cursor-pointer transition-colors"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#4B687A] disabled:opacity-50 bg-transparent border-none cursor-pointer transition-colors"
           >
             {showPassword ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
           </button>
@@ -337,13 +337,13 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50 pr-12"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50 pr-12"
           />
           <button
             type="button"
             onClick={() => setShowReenterPassword(!showReenterPassword)}
             disabled={loading}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600 disabled:opacity-50 bg-transparent border-none cursor-pointer transition-colors"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#4B687A] disabled:opacity-50 bg-transparent border-none cursor-pointer transition-colors"
           >
             {showReenterPassword ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
           </button>
@@ -358,7 +358,7 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
           />
         </div>
 
@@ -369,7 +369,7 @@ const GovtAuthSignUpForm = () => {
             onChange={handleChange}
             required
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
           >
             <option value="" disabled>
               Select Department
@@ -393,7 +393,7 @@ const GovtAuthSignUpForm = () => {
               onChange={handleChange}
               required
               disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
             />
           </div>
         )}
@@ -405,7 +405,7 @@ const GovtAuthSignUpForm = () => {
 
         <button
           type="submit"
-          className="login-btn w-full bg-[#4B687A] text-white py-3 px-4 rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          className="login-btn w-full bg-[#4B687A] text-white py-3 px-4 rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-[#4B687A] focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           disabled={loading}
         >
           {loading ? 'Signing Up...' : 'SignUp'}

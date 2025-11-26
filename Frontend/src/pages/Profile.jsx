@@ -156,7 +156,7 @@ export default function Profile() {
 
   return (
     <div className="p-1 max-w mx-auto">
-      <div className="bg-white rounded-xl shadow p-6 mb-6">
+      <div className="bg-white rounded-xl shadow p-6 mb-1">
         <h2 className="text-2xl font-semibold text-[#4B687A] mb-4">Profile</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
