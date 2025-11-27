@@ -71,5 +71,6 @@ COPY . /code/
 
 # additional test dependencies
 RUN pip install --no-cache-dir pytest pytest-django pytest-cov
+RUN pip install mutpy
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

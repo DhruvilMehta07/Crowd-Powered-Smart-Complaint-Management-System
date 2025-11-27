@@ -10,7 +10,7 @@ services:
       - .env
     environment:
       - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=your_project.settings_test
+      - DJANGO_SETTINGS_MODULE=mutpy_settings
     profiles: ["test"]
 
   web:
@@ -18,6 +18,9 @@ services:
     command: python /code/manage.py runserver 0.0.0.0:7000
     volumes:
       - .:/code
+      - ./users/tests/mutpy_report:/test_mutpy
+      - ./notifications/tests/mutpy_report:/test_mutpy_notifications
+      - ./complaints/tests/mutpy_report:/test_mutpy_complaints
     ports:
       - 7000:7000
     depends_on:
