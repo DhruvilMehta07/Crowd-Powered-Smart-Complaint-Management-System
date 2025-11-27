@@ -564,7 +564,7 @@ const ComplaintCard = ({
           <div className="text-sm text-gray-600 mb-4 bg-green-50 px-3 py-2 rounded-lg inline-block border border-green-200 ml-2">
             <span className="font-semibold text-green-700">Expected Time:</span>{' '}
             <span className="text-gray-800">
-              {complaint.expected_resolution_time}
+              {complaint.resolution_deadline }
             </span>
           </div>
         )}

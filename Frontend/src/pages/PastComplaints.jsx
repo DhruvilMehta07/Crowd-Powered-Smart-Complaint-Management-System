@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 
 // Search icon + header (copied from Home.jsx to provide same search UX)
@@ -19,11 +20,11 @@ const SearchIcon = ({ className = 'w-6 h-6' }) => (
 );
 
 const Header = ({ query, setQuery, onSearch }) => (
-  <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-indigo-400">
+  <header className="bg-white w-full p-4 flex justify-between items-center sticky top-0 z-10 border-b-3 border-gray-400">
     {/* increase max width so header/search is longer on larger screens */}
     <div className="flex-1 max-w-2xl mx-auto">
       <div className="relative">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400" />
+        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="search"
           placeholder="Search for complaints, people, or keywords"
@@ -35,7 +36,7 @@ const Header = ({ query, setQuery, onSearch }) => (
               onSearch();
             }
           }}
-          className="w-full pl-12 pr-4 py-3 border-2 border-indigo-200 rounded-full bg-indigo-50/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B687A] focus:border-gray-500 transition-all"
         />
       </div>
     </div>
@@ -59,6 +60,7 @@ const UserIcon = ({ className = 'w-10 h-10' }) => (
 );
 
 export default function PastComplaints() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -259,7 +261,7 @@ export default function PastComplaints() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6">Past Complaints</h1>
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4B687A]"></div>
         </div>
       </div>
     );
@@ -304,13 +306,12 @@ export default function PastComplaints() {
             {complaints.map((complaint) => (
               <div
                 key={complaint.id}
-                className="bg-white p-4 rounded-xl border-indigo-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-indigo-300"
+                onClick={() => navigate(`/complaint/${complaint.id}`)}
+                className="bg-white p-4 rounded-xl border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-gray-300 cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full p-1 text-indigo-600 bg-indigo-50">
-                      <UserIcon className="w-8 h-8 text-indigo-600" />
-                    </div>
+                    <UserIcon className="w-11 h-11 text-[#4B687A]" />
                     <div>
                       <p className="font-bold text-gray-800">
                         {complaint.posted_by?.username ||
@@ -321,24 +322,6 @@ export default function PastComplaints() {
                         {formatDate(complaint.posted_at || complaint.date)}
                       </p>
                     </div>
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    {(() => {
-                      const isReported =
-                        reportedIds.includes(complaint.id) ||
-                        (complaint.fake_confidence &&
-                          complaint.fake_confidence > 0);
-                      const isReportingNow = reportingId === complaint.id;
-                    })()}
-
-                    <button
-                      onClick={() => handleDeleteComplaint(complaint.id)}
-                      className="bg-red-50 hover:bg-red-100 border border-red-200 text-sm font-semibold transition-colors px-3 py-1 rounded-md text-red-600 hover:text-red-800"
-                      title="Delete complaint"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
 
@@ -356,8 +339,8 @@ export default function PastComplaints() {
 
                 <div className="flex items-center gap-4 flex-wrap">
                   {complaint.assigned_to_dept && (
-                    <span className="text-sm text-gray-600 bg-indigo-50 px-3 py-2 rounded-lg">
-                      <span className="font-semibold text-indigo-700">
+                    <span className="text-sm text-gray-600 bg-[#4B687A]/10 px-3 py-2 rounded-lg">
+                      <span className="font-semibold text-[#4B687A]">
                         Department:
                       </span>{' '}
                       <span className="text-gray-800">
@@ -367,8 +350,8 @@ export default function PastComplaints() {
                   )}
 
                   {complaint.assigned_to_fieldworker && (
-                    <span className="text-sm text-gray-600 bg-indigo-50 px-3 py-2 rounded-lg">
-                      <span className="font-semibold text-indigo-700">
+                    <span className="text-sm text-gray-600 bg-[#4B687A]/10 px-3 py-2 rounded-lg">
+                      <span className="font-semibold text-[#4B687A]">
                         Assigned to:
                       </span>{' '}
                       <span className="text-gray-800">
@@ -376,7 +359,7 @@ export default function PastComplaints() {
                       </span>
                     </span>
                   )}
-                  
+
                   {complaint.expected_resolution_time && (
                     <span className="text-sm text-gray-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
                       <span className="font-semibold text-green-700">
@@ -389,8 +372,8 @@ export default function PastComplaints() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-indigo-100">
-                  <span className="text-sm font-medium">
+                <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-gray-200">
+                  <span className="text-sm font-medium text-[#4B687A]">
                     Upvotes: {complaint.upvotes_count}
                   </span>
                   {complaint.fake_confidence > 0 && (
@@ -409,9 +392,10 @@ export default function PastComplaints() {
                             src={getImageUrl(image)}
                             alt={`Complaint evidence ${index + 1}`}
                             className="w-full h-36 object-cover rounded border border-gray-200 cursor-pointer"
-                            onClick={() =>
-                              openImageModal(complaint.images, index)
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openImageModal(complaint.images, index);
+                            }}
                             onError={(e) => {
                               e.target.src =
                                 'https://via.placeholder.com/300?text=Image+Not+Found';
@@ -425,7 +409,7 @@ export default function PastComplaints() {
 
                 {/* If there's a pending resolution for this complaint, show review prompt */}
                 {complaint.has_pending_resolution && (
-                  <div className="mt-4">
+                  <div className="mt-4" onClick={(e) => e.stopPropagation()}>
                     <ReviewResolutionButton
                       complaint={complaint}
                       onRefresh={fetchPastComplaints}
@@ -581,7 +565,7 @@ function ReviewResolutionButton({ complaint, onRefresh }) {
         <div>
           <button
             onClick={open}
-            className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="px-5 py-3 bg-[#4B687A] text-white rounded hover:bg-[#3A4F5E]"
           >
             Review & Respond
           </button>
