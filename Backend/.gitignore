@@ -2,3 +2,7 @@
 env
 ./complaint_images/
 complaint_images/*
+.coverage
+
+notifications/tests/mutpy_report
+users/tests/mutpy_report
