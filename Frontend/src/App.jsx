@@ -59,24 +59,10 @@ function App() {
 
   // Handle successful login
   const handleLoginSuccess = (userData) => {
-    // Determine user type based on username or additional API call
-    // You may need to modify your backend to return user_type in login response
-    const type = determineUserType(userData);
+    //use user_type from backend response
+    const type = userData.user_type || 'citizen';
     setUserType(type);
     localStorage.setItem('user_type', type);
-  };
-
-  // Determine user type (you may need to adjust this based on your backend response)
-  const determineUserType = (userData) => {
-    // Option 1: If your backend returns user_type in login response
-    if (userData.user_type) {
-      return userData.user_type;
-    }
-    
-    // Option 2: Make an additional API call to get user details
-    // Option 3: Check against multiple user tables (as you have in views.py)
-    // For now, defaulting to 'citizen' - you should implement proper detection
-    return userData.userType || 'citizen';
   };
 
   // Citizen Home Layout
@@ -134,7 +120,6 @@ function App() {
           <Route path="help" element={<Help />} />
           <Route path='past-complaints' element={<PastComplaints/>} />
           <Route path="complaint/:id" element={<ComplaintDetailView />} />
-          {/* Add field worker specific routes */}
         </Routes>
       </div>
       <TrendingComplaints/>

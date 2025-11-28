@@ -77,16 +77,22 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,  # or explicit custom signing key
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),  # Increased for better persistence
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_COOKIE': 'access_token',  # Cookie name for access token
+    'AUTH_COOKIE_DOMAIN': None,
+    'AUTH_COOKIE_SECURE': True,  # Set to True for HTTPS (Railway uses HTTPS)
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://redis:6379/1',  #change this according to port number currently not configured to environment variable
+        'LOCATION': os.getenv('REDIS_URL', 'redis://redis:6379/1'),  # Use REDIS_URL for Railway deployment
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
@@ -219,21 +225,27 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Lax' for HTTP
 
 # CSRF settings
 CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = True  # Set to True for HTTPS (Railway uses HTTPS)
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:7000",
+    origin for origin in [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:7000",
+        os.getenv('FRONTEND_URL'),  # Railway frontend URL
+    ] if origin is not None
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:7000",
+    origin for origin in [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:7000",
+        os.getenv('FRONTEND_URL'),  # Railway frontend URL
+    ] if origin is not None
 ]
 
 
