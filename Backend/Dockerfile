@@ -3,11 +3,12 @@ FROM python:3.10-slim-bookworm
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV PORT=8000
 
 # Set working directory
 WORKDIR /code
 
-# Update apt and install system dependencies (including OpenGL for OpenCV/YOLO)
+# Update apt and install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     zlib1g-dev \
@@ -36,7 +37,7 @@ COPY Pipfile Pipfile.lock /code/
 # Install dependencies using pipenv
 RUN pipenv install --system --deploy
 
-# Install additional Python packages
+# Install additional Python packages INCLUDING PRODUCTION DEPENDENCIES
 RUN pip install --no-cache-dir \
     pillow \
     requests \
@@ -47,30 +48,33 @@ RUN pip install --no-cache-dir \
     djangorestframework-simplejwt \
     django-redis \
     redis \
+    # PRODUCTION DEPENDENCIES - ADD THESE
+    gunicorn \
+    whitenoise \
+    psycopg2-binary \
+    dj-database-url \
     pytest \
     pytest-django \
     coverage
 
-# Install ML dependencies (torch/torchvision already in base image)
-# increase pip timeout
+# Install ML dependencies
 ENV PIP_DEFAULT_TIMEOUT=120
 
-# Install CPU-only PyTorch (pinned) using the official cpu wheel index, then install other ML deps
+# Install PyTorch (ARM-compatible - no +cpu suffix)
 RUN pip install --no-cache-dir \
     "numpy>=1.24.0,<2.0.0" \
-    "torch==2.0.1+cpu" "torchvision==0.15.2+cpu" \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html \
-  || (sleep 5 && pip install --no-cache-dir \
-    "numpy>=1.24.0,<2.0.0" \
-    "torch==2.0.1+cpu" "torchvision==0.15.2+cpu" \
-    -f https://download.pytorch.org/whl/cpu/torch_stable.html) && \
-  pip install --no-cache-dir ultralytics>=8.0.0 langchain>=0.1.0 langchain-core>=0.1.0 langchain-groq>=0.1.0 numpy==1.26.4
+    "torch==2.0.1" \
+    "torchvision==0.15.2" \
+    ultralytics>=8.0.0 \
+    langchain>=0.1.0 \
+    langchain-core>=0.1.0 \
+    langchain-groq>=0.1.0
 
 # Copy project files
 COPY . /code/
 
-# additional test dependencies
-RUN pip install --no-cache-dir pytest pytest-django pytest-cov
-RUN pip install mutpy
+# Collect static files
+RUN python manage.py collectstatic --noinput
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Use Gunicorn for production instead of runserver
+CMD gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
