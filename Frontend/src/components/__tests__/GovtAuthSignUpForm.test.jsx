@@ -42,7 +42,8 @@ describe('GovtAuthSignUpForm component', () => {
   it('renders signup form fields', () => {
     render(<GovtAuthSignUpForm />)
 
-    expect(screen.getByPlaceholderText('Enter your Name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your First Name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your Last Name')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Enter Password')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Re-enter Password')).toBeInTheDocument()
@@ -83,7 +84,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'different')
@@ -110,7 +112,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -143,7 +146,8 @@ describe('GovtAuthSignUpForm component', () => {
     const user = userEvent.setup()
 
     // fill and submit signup form
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -184,7 +188,8 @@ describe('GovtAuthSignUpForm component', () => {
     const user = userEvent.setup()
 
     // fill and submit to reach verify
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -233,7 +238,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -266,7 +272,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -301,7 +308,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -338,7 +346,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -367,7 +376,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -392,7 +402,8 @@ describe('GovtAuthSignUpForm component', () => {
     const { container } = render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
@@ -427,7 +438,8 @@ describe('GovtAuthSignUpForm component', () => {
     render(<GovtAuthSignUpForm />)
     const user = userEvent.setup()
 
-    await user.type(screen.getByPlaceholderText('Enter your Name'), 'Gov Admin')
+    await user.type(screen.getByPlaceholderText('Enter your First Name'), 'Gov')
+    await user.type(screen.getByPlaceholderText('Enter your Last Name'), 'Admin')
     await user.type(screen.getByPlaceholderText('Enter your email'), 'admin@gov.test')
     await user.type(screen.getByPlaceholderText('Enter Password'), 'pass1234')
     await user.type(screen.getByPlaceholderText('Re-enter Password'), 'pass1234')
