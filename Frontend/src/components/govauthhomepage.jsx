@@ -390,82 +390,109 @@ const AssignModal = ({
 
   if (!isOpen) return null;
 
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20">
-      <div className="bg-white p-6 rounded-lg w-96 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl text-center font-bold mb-4">Assign Complaint</h2>
-        
-        
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative mx-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-3 right-3 text-[#4B687A] hover:text-[#AAAAAA] text-lg bg-white w-10 h-10 flex items-center justify-center"
+        >
+          ✕
+        </button>
+
+        <h2 className="text-xl font-semibold text-center text-[#4B687A] mb-6">
+          Assign Complaint
+        </h2>
+
         {loadingPrediction && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="text-sm text-blue-700">Analyzing complaint...</span>
+          <div className="mb-4 p-3 bg-[#F1F4F7] border border-[#D7E1EA] rounded-xl">
+            <div className="flex items-center gap-2 text-sm text-[#4B687A]">
+              <span className="w-4 h-4 border-2 border-[#4B687A] border-t-transparent rounded-full animate-spin" />
+              <span>Analyzing complaint...</span>
             </div>
           </div>
         )}
-        
-        {!loadingPrediction && (predictedTime || predictedDays || predictedExplanation || weatherImpact) && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm font-semibold text-green-800 mb-1">📊 AI Prediction</p>
 
-            {predictedDays  && (
-              <p className="text-sm text-green-700">Predicted Urgency: 
-                 {predictedUrgency && (
-                  <span className="font-bold mr-2"> {predictedUrgency.toUpperCase()}</span>
-                )}
-                <br />
-                Estimated Days To solve the issue:
-                <span className="font-bold"> {predictedDays} days</span>
-              </p>
-            )}
+        {!loadingPrediction &&
+          (predictedTime || predictedDays || predictedExplanation || weatherImpact) && (
+            <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+              <p className="text-sm font-semibold text-[#4B687A]">📊 AI Prediction</p>
 
-            {predictedExplanation && (
-              <p className="text-xs text-gray-700 mt-2"><span className="font-bold">Explanation:</span> {predictedExplanation}</p>
-            )}
+              {predictedDays && (
+                <p className="text-sm text-gray-700">
+                  Predicted Urgency:
+                  {predictedUrgency && (
+                    <span className="font-bold ml-1">{predictedUrgency.toUpperCase()}</span>
+                  )}
+                  <br />
+                  Estimated days to solve the issue:
+                  <span className="font-bold ml-1">{predictedDays} days</span>
+                </p>
+              )}
 
-            {weatherImpact && (
-              <p className="text-xs text-gray-700 mt-1"><span className="font-bold">Weather Impact:</span> {weatherImpact}</p>
-            )}
-          </div>
-        )}
-        
+              {predictedExplanation && (
+                <p className="text-xs text-gray-600">
+                  <span className="font-semibold">Explanation:</span> {predictedExplanation}
+                </p>
+              )}
+
+              {weatherImpact && (
+                <p className="text-xs text-gray-600">
+                  <span className="font-semibold">Weather Impact:</span> {weatherImpact}
+                </p>
+              )}
+            </div>
+          )}
+
         {!loadingPrediction && predictionError && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-700">{predictionError}</p>
+          <div className="mb-4 p-3 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-700">
+            {predictionError}
           </div>
         )}
-        
-        <p className="text-gray-600 mb-4">
-          Select a field worker to assign this complaint:
-        </p>
-        <select
-          value={selectedWorker}
-          onChange={(e) => setSelectedWorker(e.target.value)}
-          className="w-full p-2 border rounded-lg mb-4"
-        >
-          <option value="">Select a field worker</option>
-          {fieldWorkers.map((worker) => (
-            <option key={worker.id} value={worker.id}>
-              {worker.username}
-            </option>
-          ))}
-        </select>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+
+        <div className="space-y-2 mb-5">
+          <p className="text-gray-600 text-sm font-medium">
+            Select a field worker to assign this complaint
+          </p>
+          <select
+            value={selectedWorker}
+            onChange={(e) => setSelectedWorker(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] hover:border-gray-500"
           >
-            Cancel
-          </button>
+            <option value="" disabled>
+              Select a field worker
+            </option>
+            {fieldWorkers.map((worker) => (
+              <option key={worker.id} value={worker.id}>
+                {worker.username}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="w-full">
           <button
+            type="button"
             onClick={() => {
               if (selectedWorker) {
                 onAssign(selectedWorker, predictedTime, predictedDays);
               }
             }}
             disabled={!selectedWorker}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-300"
+            className="w-full px-5 py-2 rounded-lg bg-[#4B687A] text-white font-medium hover:bg-[#3C5260] transition-colors disabled:opacity-50"
           >
             Assign
           </button>

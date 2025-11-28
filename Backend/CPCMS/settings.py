@@ -53,7 +53,6 @@ INSTALLED_APPS = [
 
     # simplejwt blacklist app (persisted in Postgres for lookup if redis server fails)
     'rest_framework_simplejwt.token_blacklist',
-
     'cloudinary_storage',
     'cloudinary',
 ]

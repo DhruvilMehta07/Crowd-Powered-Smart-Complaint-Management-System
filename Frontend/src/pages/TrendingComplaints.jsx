@@ -443,6 +443,14 @@ export default function TrendingComplaints({
               trending.map((item) => (
                 <div
                   key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/complaint/${item.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      navigate(`/complaint/${item.id}`);
+                    }
+                  }}
                   className="text-sm hover:bg-[#4B687A]/10 p-3 rounded-lg transition-all cursor-pointer"
                 >
                   <p className="text-gray-700 clamped-text">{item.text}</p>

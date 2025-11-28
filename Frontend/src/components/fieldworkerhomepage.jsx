@@ -127,7 +127,7 @@ const ComplaintCard = ({ complaint }) => {
     onClick={() => navigate(`/complaint/${complaint.id}`)}
   >
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <div className="rounded-full p-1 text-[#4B687A]">
             <UserIcon className="w-10 h-10" />
           </div>
@@ -192,7 +192,7 @@ const ComplaintCard = ({ complaint }) => {
 
       {showImageModal && selectedImageIndex !== null && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 "
           onClick={() => setShowImageModal(false)}
         >
           <div
@@ -287,14 +287,11 @@ const SubmitResolutionButton = ({ complaintId }) => {
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      close();
     }
-    return () => document.body.classList.remove('modal-open');
-  }, [isOpen]);
+  };
 
   const onFileChange = (e) => {
     const chosen = Array.from(e.target.files).slice(0, 5);
@@ -346,96 +343,100 @@ const SubmitResolutionButton = ({ complaintId }) => {
   };
 
   return (
-    <div>
+    <>
       <button
         onClick={(e) => { e.stopPropagation(); open(); }}
-        className="bg-[#4B687A] text-white px-3 py-1 rounded-md hover:bg-[#3C5260] transition-colors"
+        className="bg-[#4B687A] text-white px-3 py-2 rounded-md hover:bg-[#3C5260] transition-colors"
       >
         Submit Resolution
       </button>
 
       {isOpen && (
         <div
-          className="complaint-modal-portal fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
-          onClick={close}
+          className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
+          onClick={handleBackdropClick}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-gray-200"
+            className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Submit Resolution</h2>
-              <button onClick={close} aria-label="Close" className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
-            </div>
+            <button
+              onClick={close}
+              className="absolute top-4 right-3 w-8 h-8 flex items-center justify-center text-[#4B687A] hover:bg-gray-100 transition-colors text-xl font-bold"
+              aria-label="Close"
+            >
+              ×
+            </button>
 
-            <p className="text-gray-600 mb-6">
-              Describe the work you completed and upload supporting images (up
-              to 5).
-            </p>
+            <h2 className="text-xl font-semibold text-center text-[#4B687A] mb-6">
+              Submit Resolution
+            </h2>
 
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter resolution details"
-              className="w-full border border-gray-300 rounded-lg p-3 h-25 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4B687A] mb-4"
-            />
-
-            <div className="mb-6">
-              <input
-                id={`file-input-${complaintId}`}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={onFileChange}
-                className="hidden"
+            <div className="space-y-4">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the work you completed..."
+                className="w-full border border-gray-300 rounded-lg p-3 h-32 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4B687AD9] resize-none"
               />
 
-              <label
-                htmlFor={`file-input-${complaintId}`}
-                className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-[#4B687A]/10 transition-colors h-30"
-              >
-                <ImageUploadIcon className="w-50 h-50 text-[#4B687A]" />
-                <span className="mt-2 text-sm font-medium text-gray-700">
-                  Click to upload or drag and drop
-                </span>
-                <span className="text-xs text-gray-500">Up to 5 images</span>
-              </label>
+              <div>
+                <input
+                  id={`file-input-${complaintId}`}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onFileChange}
+                  className="hidden"
+                />
 
-              {previews.length > 0 && (
-                <div className="mt-4 grid grid-cols-4 gap-3">
-                  {previews.map((src, idx) => (
-                    <img
-                      key={idx}
-                      src={src}
-                      alt={`preview-${idx}`}
-                      className="h-20 w-20 object-cover rounded-xl border border-gray-200"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                <label
+                  htmlFor={`file-input-${complaintId}`}
+                  className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#4B687A] hover:bg-gray-50 transition-colors"
+                >
+                  <ImageUploadIcon className="w-8 h-8 text-[#4B687A]" />
+                  <span className="mt-2 text-sm font-medium text-gray-700">
+                    Upload images
+                  </span>
+                  <span className="text-xs text-gray-500">Up to 5 images</span>
+                </label>
 
-            <div className="flex gap-4">
-              <button
-                onClick={close}
-                disabled={submitting}
-                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
+                {previews.length > 0 && (
+                  <div className="mt-3 grid grid-cols-5 gap-2">
+                    {previews.map((src, idx) => (
+                      <img
+                        key={idx}
+                        src={src}
+                        alt={`preview-${idx}`}
+                        className="h-16 w-16 object-cover rounded-lg border border-gray-200"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
 
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-gray-600 to-[#4B687A] hover:from-gray-700 hover:to-[#4B687A] text-white font-semibold py-3 rounded-lg transition-all shadow-lg"
-              >
-                {submitting ? 'Submitting...' : 'Submit'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={close}
+                  disabled={submitting}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex-1 bg-[#4B687A] hover:bg-[#3C5260] text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
@@ -544,7 +545,7 @@ const FieldWorkerHomepage = () => {
             )}
 
             {!loading && complaints.length > 0 && (
-              <div className="space-y-6">
+              <div className="space-y-1">
                 {complaints.map((complaint) => (
                   <ComplaintCard key={complaint.id} complaint={complaint} />
                 ))}

@@ -13,7 +13,7 @@ from django.utils.decorators import method_decorator
 
 from django.contrib.auth import logout
 from django.contrib.auth import authenticate, login
-from django.db import IntegrityError
+from django.db import DataError, IntegrityError
 from django.conf import settings
 from django.core.cache import caches
 
@@ -436,18 +436,25 @@ class ProfileAPIView(APIView):
     def put(self, request):
         user = self._get_full_user(request.user)
         serializer = GeneralProfileSerializer(user, data=request.data)
-        if serializer.is_valid():
+        serializer.is_valid(raise_exception=True)
+        try:
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        except DataError:
+            return Response({"error": "Invalid input: one or more fields exceed allowed length."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def patch(self, request):
         user = self._get_full_user(request.user)
         serializer = GeneralProfileSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
+        serializer.is_valid(raise_exception=True)
+        try:
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except DataError:
+            return Response({"error": "Invalid input: one or more fields exceed allowed length."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 otp_cache = caches['otps']
 OTP_TTL_SECONDS = 5 * 60 

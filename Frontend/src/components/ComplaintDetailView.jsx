@@ -77,6 +77,186 @@ const AlertIcon = ({ className = 'w-5 h-5' }) => (
   </svg>
 );
 
+// ReviewResolutionButton component for approval/rejection flow
+function ReviewResolutionButton({ complaint, onRefresh }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resolution, setResolution] = useState(null);
+  const [responding, setResponding] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [escalatedToast, setEscalatedToast] = useState(false);
+
+  const open = async () => {
+    setIsOpen(true);
+    setLoading(true);
+    try {
+      const res = await api.get(`/complaints/${complaint.id}/resolution/`);
+      const pending = Array.isArray(res.data.resolutions)
+        ? res.data.resolutions.find((r) => r.status === 'pending_approval')
+        : null;
+      setResolution(
+        pending || (res.data.resolutions && res.data.resolutions[0]) || null
+      );
+    } catch (err) {
+      console.error('Error fetching resolution', err);
+      alert('Failed to load resolution details.');
+      setIsOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const close = () => {
+    if (!responding) {
+      setIsOpen(false);
+      setResolution(null);
+      setFeedback('');
+    }
+  };
+
+  const handleRespond = async (approved) => {
+    if (!resolution) return;
+    if (!approved && !feedback.trim()) {
+      alert('Please provide feedback when rejecting a resolution.');
+      return;
+    }
+    setResponding(true);
+    try {
+      const payload = { approved };
+      if (!approved) payload.feedback = feedback;
+      const resp = await api.post(
+        `/complaints/${complaint.id}/resolution/${resolution.id}/respond/`,
+        payload
+      );
+      const message = resp.data?.message || 'Response submitted';
+      alert(message);
+
+      if (!approved) {
+        setEscalatedToast(true);
+        setTimeout(() => setEscalatedToast(false), 3000);
+      }
+      close();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error('Error responding to resolution', err);
+      alert('Failed to submit response.');
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-yellow-800">
+            A resolution has been submitted for this complaint.
+          </p>
+          <p className="text-sm text-yellow-700">
+            Please review and confirm if the complaint is resolved.
+          </p>
+        </div>
+        <div>
+          <button
+            onClick={open}
+            className="px-4 py-3 bg-[#4B687A] text-white rounded-lg hover:bg-[#3A4F5E] transition-colors font-semibold"
+          >
+            Review & Respond
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
+          onClick={close}
+        >
+          <div
+            className="bg-white rounded-lg w-full max-w-2xl p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold">Review Resolution</h3>
+              <button
+                onClick={close}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {loading && <div className="py-8 text-center">Loading...</div>}
+
+            {!loading && resolution && (
+              <div>
+                {escalatedToast && (
+                  <div className="mb-3">
+                    <div className="bg-red-100 text-red-800 px-3 py-2 rounded">
+                      Complaint escalated to the government authority for
+                      reassignment.
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-gray-600 mb-3">
+                  Submitted by:{' '}
+                  <span className="font-medium">
+                    {resolution.field_worker?.username || 'Field worker'}
+                  </span>
+                </p>
+                <p className="mb-4 text-gray-800">{resolution.description}</p>
+
+                {resolution.images && resolution.images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {resolution.images.map((img) => (
+                      <img
+                        key={img.id}
+                        src={img.image_url || img.image}
+                        alt="resolution"
+                        className="w-full h-28 object-cover rounded"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="If rejecting, please provide feedback (required)"
+                    className="w-full border rounded p-2 mb-3 h-24"
+                  />
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => handleRespond(false)}
+                      disabled={responding}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                    >
+                      {responding ? 'Submitting...' : 'Reject'}
+                    </button>
+                    <button
+                      onClick={() => handleRespond(true)}
+                      disabled={responding}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      {responding ? 'Submitting...' : 'Approve'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!loading && !resolution && (
+              <div className="py-6 text-center text-gray-600">
+                No resolution details found.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const ComplaintDetailView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -345,6 +525,16 @@ const ComplaintDetailView = () => {
               <p className="text-base text-gray-800 capitalize">{complaint.status || 'Pending'}</p>
             </div>
           </div>
+
+          {/* Pending Resolution Review Section */}
+          {complaint.has_pending_resolution && (
+            <div className="bg-white p-6 rounded-xl shadow-md mb-6 border border-gray-100">
+              <ReviewResolutionButton
+                complaint={complaint}
+                onRefresh={() => window.location.reload()}
+              />
+            </div>
+          )}
 
           {/* Resolution Card */}
           {latestResolution && (
