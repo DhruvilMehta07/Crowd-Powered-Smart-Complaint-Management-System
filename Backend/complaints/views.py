@@ -352,12 +352,16 @@ class PastComplaintsView(APIView):
         if not complaints.exists():
             complaints = st.filter(assigned_to_fieldworker_id=userid)
 
-        # If still none, and user is a government authority with an assigned department, return complaints for that department. 
+        # If still none, and user is a government authority with an assigned department, return complaints for that department.
         if not complaints.exists():
             try:
-                gov_user = Government_Authority.objects.filter(id=userid).first()
-                if gov_user and gov_user.assigned_department:
-                    complaints = st.filter(assigned_to_dept=gov_user.assigned_department)
+                # Use user_type on ParentUser to avoid unnecessary subclass join
+                if getattr(request.user, 'user_type', '') == 'authority':
+                    user_department = getattr(request.user, 'assigned_department', None)
+                    if user_department:
+                        complaints = st.filter(assigned_to_dept=user_department)
+                    else:
+                        complaints = Complaint.objects.none()
                 else:
                     complaints = Complaint.objects.none()
             except Exception:
@@ -371,10 +375,14 @@ class GovernmentHomePageView(APIView):
 
     def get(self, request):
         try:
-            # Get the government authority user with department
-            gov_user = Government_Authority.objects.get(id=request.user.id)
-            user_department = gov_user.assigned_department
-            
+            # Ensure the requester is a government authority and get their department
+            if getattr(request.user, 'user_type', '') != 'authority':
+                return Response(
+                    {"error": "User is not a government authority."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            user_department = getattr(request.user, 'assigned_department', None)
             if not user_department:
                 return Response(
                     {"error": "No department assigned to this user."},
@@ -401,8 +409,14 @@ class FieldWorkerHomePageView(APIView):
 
     def get(self, request):
         try:
-            # Get the field worker user with department
-            fieldworker = Field_Worker.objects.get(id=request.user.id)
+            # Ensure the requester is a field worker
+            if getattr(request.user, 'user_type', '') != 'fieldworker':
+                return Response(
+                    {"error": "User is not a field worker."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            fieldworker = request.user
 
             complaints = base_complaint_queryset(request).filter(
                 status__in=['In Progress','Pending'],
@@ -427,15 +441,15 @@ class AvailableFieldWorkersView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request, complaint_id=None):
-        try:
-            gov_user = Government_Authority.objects.get(id=request.user.id)
-        except Government_Authority.DoesNotExist:
+        # Ensure request.user is a government authority and has a department
+        if getattr(request.user, 'user_type', '') != 'authority':
             return Response(
                 {"error": "User is not a government authority."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if not gov_user.assigned_department:
+        user_department = getattr(request.user, 'assigned_department', None)
+        if not user_department:
             return Response(
                 {"error": "No department assigned to this user."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -444,14 +458,14 @@ class AvailableFieldWorkersView(APIView):
         complaint = None
         if complaint_id is not None:
             complaint = get_object_or_404(Complaint, id=complaint_id)
-            if complaint.assigned_to_dept != gov_user.assigned_department:
+            if complaint.assigned_to_dept != user_department:
                 return Response(
                     {"error": "You can only assign complaints from your department."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
         available_workers = Field_Worker.objects.filter(
-            assigned_department=gov_user.assigned_department,
+            assigned_department=user_department,
             verified=True
         )
 
@@ -464,11 +478,15 @@ class AssignComplaintView(APIView):
     def post(self, request, complaint_id):
         try:
             complaint = get_object_or_404(Complaint, id=complaint_id)
-            
             # check if user is government authority from the same department
-            gov_user = Government_Authority.objects.get(id=request.user.id)
-            
-            if not gov_user.assigned_department or complaint.assigned_to_dept != gov_user.assigned_department:
+            if getattr(request.user, 'user_type', '') != 'authority':
+                return Response(
+                    {"error": "User is not a government authority."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            gov_user = request.user
+            if not getattr(gov_user, 'assigned_department', None) or complaint.assigned_to_dept != gov_user.assigned_department:
                 return Response(
                     {"error": "You can only assign complaints from your department."},
                     status=status.HTTP_403_FORBIDDEN
@@ -630,8 +648,9 @@ class FakeConfidenceView(APIView):
         complaint.refresh_from_db(fields=['fake_confidence'])
         serializer = FakeConfidenceSerializer(fake_entry)
         # If reporter is a field worker and this is a new report, notify gov authorities
+        # Determine reporter type using `user_type` to avoid subclass join
         try:
-            is_field_worker = Field_Worker.objects.filter(pk=request.user.id).exists()
+            is_field_worker = getattr(request.user, 'user_type', '') == 'fieldworker'
         except Exception:
             is_field_worker = False
 
@@ -692,13 +711,14 @@ class SubmitResolutionView(APIView):
     def post(self, request, complaint_id):
         complaint = get_object_or_404(Complaint, id=complaint_id)
 
-        try:
-            field_worker = Field_Worker.objects.get(id=request.user.id)
-        except Field_Worker.DoesNotExist:
+        # Ensure requester is a field worker
+        if getattr(request.user, 'user_type', '') != 'fieldworker':
             return Response(
                 {"error": "Only field workers can submit resolutions."},
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        field_worker = request.user
 
         # Check if field worker is assigned to this complaint
         if complaint.assigned_to_fieldworker != field_worker:
@@ -764,14 +784,13 @@ class ApproveDeleteComplaintView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, complaint_id):
-        try:
-            gov_user = Government_Authority.objects.get(id=request.user.id)
-        except Government_Authority.DoesNotExist:
+        if getattr(request.user, 'user_type', '') != 'authority':
             return Response({"error": "User is not a government authority."}, status=status.HTTP_403_FORBIDDEN)
 
         complaint = get_object_or_404(Complaint, id=complaint_id)
 
-        if not gov_user.assigned_department or complaint.assigned_to_dept != gov_user.assigned_department:
+        user_department = getattr(request.user, 'assigned_department', None)
+        if not user_department or complaint.assigned_to_dept != user_department:
             return Response({"error": "You can only approve deletions for complaints in your department."}, status=status.HTTP_403_FORBIDDEN)
 
         poster = complaint.posted_by

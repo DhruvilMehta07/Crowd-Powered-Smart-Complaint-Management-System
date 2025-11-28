@@ -5,6 +5,16 @@ from django.db import IntegrityError
 
 
 class ParentUser(AbstractUser):
+    USER_TYPE_CHOICES = [
+        ('citizen', 'Citizen'),
+        ('authority', 'Government Authority'),
+        ('fieldworker', 'Field Worker'),
+        ('user', 'User'),
+    ]
+
+    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='user')
+    assigned_department = models.ForeignKey('Department', blank=True, null=True, on_delete=models.CASCADE, default=None)
+
     def __str__(self):
         return self.email
     
@@ -55,7 +65,6 @@ class Government_Authority(ParentUser):
         null=True,
         blank=True
     )
-    assigned_department=models.ForeignKey(Department,blank=True,null=True,on_delete=models.CASCADE)
     verified=models.BooleanField(default=False)
 
 class Field_Worker(ParentUser):
@@ -68,6 +77,5 @@ class Field_Worker(ParentUser):
     )
     # we are going to implement wards in later sprints
     # assigned_area=models.CharField(max_length=200)
-    assigned_department=models.ForeignKey(Department,blank=True,null=True,on_delete=models.CASCADE)
     verified=models.BooleanField(default=False)
  

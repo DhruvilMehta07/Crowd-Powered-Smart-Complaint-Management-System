@@ -16,6 +16,8 @@ class CitizenSerializer(serializers.ModelSerializer):
     # Encrypting Password
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
+        # ensure parent user_type is set
+        validated_data['user_type'] = 'citizen'
         user = Citizen(**validated_data)            # create user without password
         user.set_password(password)                 # hash password properly
         user.save()
@@ -38,26 +40,23 @@ class CitizenProfileSerializer(serializers.ModelSerializer):
 
 
 class GeneralProfileSerializer(serializers.ModelSerializer):
-    """General profile serializer that works for Citizen, Government_Authority and Field_Worker."""
-    
+    """General profile serializer that reads `user_type` from ParentUser
+    and safely returns department/verified/phone if present on concrete subclasses.
+    """
+
+    user_type = serializers.SerializerMethodField()
     assigned_department = serializers.SerializerMethodField()
     verified = serializers.SerializerMethodField()
-    phone_number = serializers.CharField()
+    phone_number = serializers.SerializerMethodField()
+
     class Meta:
         model = ParentUser
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined'
-                  , 'assigned_department', 'verified']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined',
+                  'user_type', 'assigned_department', 'verified']
         read_only_fields = ['id', 'username', 'email', 'date_joined']
 
-    def get_user_type(self):
-        
-        if Citizen.objects.filter(id=self.user.id).exists():
-            return 'citizen'
-        if Government_Authority.objects.filter(id=self.user.id).exists():
-            return 'authority'
-        if Field_Worker.objects.filter(id=self.user.id).exists():
-            return 'fieldworker'
-        return 'user'
+    def get_user_type(self, obj):
+        return getattr(obj, 'user_type', 'user')
 
     def get_assigned_department(self, obj):
         dep = getattr(obj, 'assigned_department', None)
@@ -67,6 +66,9 @@ class GeneralProfileSerializer(serializers.ModelSerializer):
 
     def get_verified(self, obj):
         return getattr(obj, 'verified', None)
+
+    def get_phone_number(self, obj):
+        return getattr(obj, 'phone_number', None)
 
 class GovernmentAuthoritySerializer(serializers.ModelSerializer):
     # serialize department as ID + name
@@ -84,6 +86,7 @@ class GovernmentAuthoritySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
+        validated_data['user_type'] = 'authority'
         user = Government_Authority(**validated_data)   # create user without password
         user.set_password(password)                 # hash password properly
         user.save()
@@ -106,6 +109,7 @@ class FieldWorkerSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')   # remove raw password
+        validated_data['user_type'] = 'fieldworker'
         user = Field_Worker(**validated_data)       # create user without password
         user.set_password(password)                 # hash password properly
         user.save()
