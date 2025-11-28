@@ -1,3 +1,47 @@
+// --- Fake Confidence Approval Component ---
+function FakeConfidenceApproval({ complaint, onAction }) {
+  const handleApprove = async () => {
+    try {
+      await api.post(`/complaints/${complaint.id}/approve-delete/`);
+      onAction('approved', complaint.id);
+    } catch (err) {
+      alert('Failed to approve and delete complaint.');
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      await api.delete(`/complaints/${complaint.id}/fake-confidence/`);
+      onAction('rejected', complaint.id);
+    } catch (err) {
+      alert('Failed to reject fake confidence report.');
+    }
+  };
+
+  if (!complaint.fake_confidence || complaint.fake_confidence < 1) return null;
+
+  return (
+    <div className="bg-yellow-50 border border-yellow-300 p-4 rounded mb-2">
+      <div className="font-bold text-yellow-800 mb-2">
+        Fake Confidence Reported: {complaint.fake_confidence}
+      </div>
+      <div className="flex gap-2">
+        <button
+          className="bg-green-600 text-white px-3 py-1 rounded"
+          onClick={handleApprove}
+        >
+          Approve & Delete
+        </button>
+        <button
+          className="bg-red-600 text-white px-3 py-1 rounded"
+          onClick={handleReject}
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  );
+}
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
@@ -474,11 +518,17 @@ const GovAuthHomepage = () => {
     setError(null);
     try {
       const res = await api.get('/complaints/govhome/');
-
       setComplaints(res.data || []);
     } catch (err) {
       console.error('Error loading gov complaints', err);
-      setError('Failed to load complaints.');
+      // Show backend error message if available
+      if (err.response && err.response.data && err.response.data.detail) {
+        setError(`Failed to load complaints: ${err.response.data.detail}`);
+      } else if (err.response && err.response.data && err.response.data.message) {
+        setError(`Failed to load complaints: ${err.response.data.message}`);
+      } else {
+        setError('Failed to load complaints.');
+      }
     } finally {
       setLoading(false);
     }
@@ -516,7 +566,17 @@ const GovAuthHomepage = () => {
       setFieldWorkers(res.data || []);
     } catch (err) {
       console.error('Error loading field workers', err);
-      setFieldWorkers([]);
+      // Show backend error message if available
+      if (err.response && err.response.data && err.response.data.detail) {
+        setFieldWorkers([]);
+        setError(`Failed to load field workers: ${err.response.data.detail}`);
+      } else if (err.response && err.response.data && err.response.data.message) {
+        setFieldWorkers([]);
+        setError(`Failed to load field workers: ${err.response.data.message}`);
+      } else {
+        setFieldWorkers([]);
+        setError('Failed to load field workers.');
+      }
     }
   }, []);
 
@@ -555,6 +615,12 @@ const GovAuthHomepage = () => {
     fetchGovComplaints();
     fetchFieldWorkers();
   }, [fetchGovComplaints, fetchFieldWorkers]);
+
+  // Handle approve/reject actions for fake confidence
+  const handleFakeConfidenceAction = (action, complaintId) => {
+    // After approve/reject, refresh complaints
+    fetchGovComplaints();
+  };
 
   return (
     <div className="font-inter min-h-screen flex flex-col">
@@ -607,11 +673,13 @@ const GovAuthHomepage = () => {
 
             {!loading &&
               complaints.map((complaint) => (
-                <ComplaintCard
-                  key={complaint.id}
-                  complaint={complaint}
-                  onAssignClick={handleAssignClick}
-                />
+                <React.Fragment key={complaint.id}>
+                  <FakeConfidenceApproval complaint={complaint} onAction={handleFakeConfidenceAction} />
+                  <ComplaintCard
+                    complaint={complaint}
+                    onAssignClick={handleAssignClick}
+                  />
+                </React.Fragment>
               ))}
           </div>
         </div>

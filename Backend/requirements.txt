@@ -1,21 +1,24 @@
-# requirements.txt - AI Analysis Section
-# =============================================
-# LangChain & LLM Components
+Django>=4.0,<5.0
+djangorestframework
+django-cors-headers
+python-dotenv
+django-cloudinary-storage
+djangorestframework-simplejwt
+django-redis
+redis
+gunicorn
+whitenoise
+psycopg2-binary
+dj-database-url
+pytest
+pytest-django
+coverage
+pillow
+requests
+numpy>=1.24.0,<2.0.0
+torch==2.0.1
+torchvision==0.15.2
+ultralytics>=8.0.0
 langchain>=0.1.0
-langchain-community>=0.0.1
-langchain-openai>=0.0.5
-openai>=1.0.0
-ollama>=0.1.0
-
-# Computer Vision & Image Processing
-opencv-python>=4.8.0
-pillow>=10.0.0
-ultralytics>=8.0.0  # For YOLO
-torch>=2.0.0
-torchvision>=0.15.0
-numpy>=1.24.0
-
-# Additional Utilities
-scipy>=1.10.0
-scikit-image>=0.21.0
-requests>=2.31.0
+langchain-core>=0.1.0
+langchain-groq>=0.1.0

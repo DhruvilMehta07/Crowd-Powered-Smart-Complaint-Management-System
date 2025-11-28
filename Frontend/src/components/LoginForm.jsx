@@ -342,14 +342,14 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
         withCredentials: true,
         timeout: 5000
       });
-      setMessage('✅ Backend connection successful! JWT endpoints are working.');
+      setMessage('Backend connection successful! JWT endpoints are working.');
       console.log('Connection test response:', response.data);
     } catch (err) {
       console.error('Connection test failed:', err);
       if (err.response) {
         setError(`Backend responded with ${err.response.status}: ${err.response.data?.detail || 'Check endpoint'}`);
       } else {
-        setError('❌ Cannot connect to backend. Check: 1) Server running on port 7000, 2) Backend CORS configured');
+        setError('Cannot connect to backend. Check: 1) Server running on port 7000, 2) Backend CORS configured');
       }
     } finally {
       setLoading(false);

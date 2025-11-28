@@ -234,35 +234,28 @@ class UserLoginAPIView(APIView):
             username = serializer.validated_data.get('username')
             password = serializer.validated_data.get('password')
             user = authenticate(request, username=username, password=password)
-            
+
             if user is None:
                 return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # Check admin verification for authorities and field workers
-            u1 = Government_Authority.objects.filter(username=username).first()
-            u2 = Field_Worker.objects.filter(username=username).first()
 
-            if (u1 is not None and not u1.verified) or (u2 is not None and not u2.verified):
+            # Use user_type field directly, avoid joins
+            user_type_local = getattr(user, 'user_type', None)
+            if user_type_local == 'authority' and hasattr(user, 'verified') and not user.verified:
                 return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
-            
+            if user_type_local == 'fieldworker' and hasattr(user, 'verified') and not user.verified:
+                return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
+
             # Issue JWT tokens (access + refresh)
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
-            
-            if u1 is not None:
-                user_type_local = 'authority'
-            elif u2 is not None:
-                user_type_local = 'fieldworker'
-            else:
-                user_type_local = 'citizen'
+
             response = Response({
                 "message": "Login successful.",
                 "access": access_token,
                 "user_id": user.id,
                 "username": user.username,
-                'user_type': user_type_local
-                
+                "user_type": user_type_local or 'citizen'
             }, status=status.HTTP_200_OK)
 
             response.set_cookie(
@@ -274,7 +267,7 @@ class UserLoginAPIView(APIView):
                 max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME').total_seconds())
             )
             return response
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserLogoutAPIView(APIView):
@@ -432,13 +425,8 @@ class ProfileAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def _get_full_user(self, user):
-        # Try to return the concrete subclass instance for full profile data
-        for model in (Citizen, Government_Authority, Field_Worker):
-            try:
-                return model.objects.get(pk=user.pk)
-            except model.DoesNotExist:
-                continue
-        return None
+        # With user_type present, no need for joins; return user directly
+        return user
 
     def get(self, request):
         user = self._get_full_user(request.user)
