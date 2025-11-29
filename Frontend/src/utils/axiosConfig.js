@@ -50,7 +50,7 @@ api.interceptors.response.use(
       try
       {
         const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/token/refresh`,
+          `${API_BASE_URL}/users/token/refresh`,
           {},
           {withCredentials: true}
 
