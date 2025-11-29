@@ -3,7 +3,6 @@ FROM python:3.10-slim-bookworm
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PORT=8000
 
 # Set working directory to /app (what Railway expects)
 WORKDIR /app
@@ -49,10 +48,7 @@ RUN pip install --no-cache-dir \
         langchain-groq>=0.1.0
 
 # Copy backend project files
-COPY Backend/ /app/
+CMD python manage.py collectstatic --noinput && python manage.py migrate
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Run migrations before starting Gunicorn
-CMD python manage.py migrate && gunicorn CPCMS.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120
+CMD python man gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
