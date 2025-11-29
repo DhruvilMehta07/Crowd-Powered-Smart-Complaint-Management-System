@@ -13,7 +13,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       // Only report coverage for files that were actually imported/used during tests
       // Set all: false so coverage only includes files touched by the test
-      all: false,
+      
       include: [
         'src/pages/**/*.{js,jsx,ts,tsx}',
         'src/components/**/*.{js,jsx,ts,tsx}',

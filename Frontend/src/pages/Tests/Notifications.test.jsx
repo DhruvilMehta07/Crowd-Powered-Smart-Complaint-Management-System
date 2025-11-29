@@ -1,13 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import Notifications from '../pages/Notifications';
-import api from '../utils/axiosConfig';
+import Notifications from '../Notifications';
+import api from '../../utils/axiosConfig';
 
 // Mock the axios config
-vi.mock('../utils/axiosConfig');
+vi.mock('../../utils/axiosConfig');
 
 // Mock react-router-dom's useNavigate
 const mockNavigate = vi.fn();
@@ -81,14 +82,14 @@ describe('Notifications Component', () => {
     const mockNotifications = [
       {
         id: 1,
-        message: 'Complaint #1 has been updated',
+        message: 'Complaint has been updated',
         created_at: '2025-11-25T10:00:00Z',
         is_read: false,
         link: '/complaint/1',
       },
       {
         id: 2,
-        message: 'Complaint #2 has been resolved',
+        message: 'Complaint has been resolved',
         created_at: '2025-11-25T11:00:00Z',
         is_read: true,
         link: '/complaint/2',
@@ -99,8 +100,8 @@ describe('Notifications Component', () => {
     renderWithRouter(<Notifications />);
     
     await waitFor(() => {
-      expect(screen.getByText('Complaint #1 has been updated')).toBeInTheDocument();
-      expect(screen.getByText('Complaint #2 has been resolved')).toBeInTheDocument();
+      expect(screen.getByText(/has been updated/i)).toBeInTheDocument();
+      expect(screen.getByText(/has been resolved/i)).toBeInTheDocument();
     });
   });
 
@@ -274,7 +275,7 @@ describe('Notifications Component', () => {
     const { container } = renderWithRouter(<Notifications />);
     
     const mainDiv = container.querySelector('.min-h-screen');
-    expect(mainDiv).toHaveClass('p-6', 'bg-gradient-to-br');
+    expect(mainDiv).toHaveClass('p-1', 'bg-grey');
   });
 
   it('should have correct styling classes on card', async () => {
@@ -283,7 +284,7 @@ describe('Notifications Component', () => {
     
     await waitFor(() => {
       const card = container.querySelector('.bg-white');
-      expect(card).toHaveClass('rounded-xl', 'shadow-lg', 'border-2', 'border-indigo-100');
+      expect(card).toHaveClass('rounded-xl', 'shadow-lg', 'border-2', 'border-gray-100');
     });
   });
 

@@ -1420,3 +1420,5 @@ export default function Sidebar() {
     </>
   );
 }
+
+export { RaiseComplaintModal };
