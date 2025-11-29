@@ -3,10 +3,9 @@ FROM python:3.10-slim-bookworm
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PORT=8000
 
-# Set working directory
-WORKDIR /code
+# Set working directory to /app (what Railway expects)
+WORKDIR /app
 
 # Update apt and install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,64 +16,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenjp2-7-dev \
     libtiff5-dev \
     libwebp-dev \
-    tcl8.6-dev \
-    tk8.6-dev \
-    python3-tk \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Install pipenv
-RUN pip install --no-cache-dir pipenv
-
-# Copy Pipfiles first for better caching
-COPY Pipfile Pipfile.lock /code/
-
-# Install dependencies using pipenv
-RUN pipenv install --system --deploy
-
-# Install additional Python packages INCLUDING PRODUCTION DEPENDENCIES
-RUN pip install --no-cache-dir \
-    pillow \
-    requests \
-    djangorestframework \
-    django-cors-headers \
-    python-dotenv \
-    django-cloudinary-storage \
-    djangorestframework-simplejwt \
-    django-redis \
-    redis \
-    # PRODUCTION DEPENDENCIES - ADD THESE
-    gunicorn \
-    whitenoise \
-    psycopg2-binary \
-    dj-database-url \
-    pytest \
-    pytest-django \
-    coverage
-
-# Install ML dependencies
+# Install runtime dependencies
 ENV PIP_DEFAULT_TIMEOUT=120
 
-# Install PyTorch (ARM-compatible - no +cpu suffix)
-RUN pip install --no-cache-dir \
-    "numpy>=1.24.0,<2.0.0" \
-    "torch==2.0.1" \
-    "torchvision==0.15.2" \
-    ultralytics>=8.0.0 \
-    langchain>=0.1.0 \
-    langchain-core>=0.1.0 \
-    langchain-groq>=0.1.0
+COPY Backend/requirements-production.txt /tmp/requirements.txt
 
-# Copy project files
-COPY . /code/
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
+
+# Install PyTorch CPU wheels when available, fall back for local ARM builds
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+        "torch==2.0.1+cpu" \
+        "torchvision==0.15.2+cpu" \
+    || pip install --no-cache-dir \
+        "torch==2.0.1" \
+        "torchvision==0.15.2"
+
+# Install higher-level ML helpers
+RUN pip install --no-cache-dir \
+        ultralytics>=8.0.0 \
+        langchain>=0.1.0 \
+        langchain-core>=0.1.0 \
+        langchain-groq>=0.1.0
+
+# Copy backend project files
+COPY Backend/ /app/
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Use Gunicorn for production instead of runserver
-CMD gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+# Run migrations before starting Gunicorn
+CMD python manage.py migrate && gunicorn CPCMS.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120
