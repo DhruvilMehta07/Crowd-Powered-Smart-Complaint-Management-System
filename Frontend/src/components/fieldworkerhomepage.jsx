@@ -260,11 +260,76 @@ const ComplaintCard = ({ complaint }) => {
             </div>
           )}
         </div>
-        {complaint.status === 'In Progress' && (
-          <SubmitResolutionButton complaintId={complaint.id} />
-        )}
+        <div className="flex items-center gap-2">
+          {complaint.status === 'In Progress' && (
+            <SubmitResolutionButton complaintId={complaint.id} />
+          )}
+          <ReportButton complaintId={complaint.id} />
+        </div>
       </div>
     </div>
+  );
+};
+
+const ReportButton = ({ complaintId }) => {
+  const [isReporting, setIsReporting] = useState(false);
+  const [reported, setReported] = useState(() => {
+    try {
+      const raw = localStorage.getItem('reportedComplaints');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.includes(complaintId) : false;
+    } catch (e) {
+      return false;
+    }
+  });
+  const navigate = useNavigate();
+
+  const handleReport = async (e) => {
+    e.stopPropagation();
+    const token = localStorage.getItem('access_token');
+    const isAuth = token || localStorage.getItem('isAuthenticated') === 'true';
+    if (!isAuth) {
+      alert('Please login to report a complaint.');
+      navigate('/auth');
+      return;
+    }
+
+    if (reported) return;
+
+    try {
+      setIsReporting(true);
+      await api.post(`/complaints/${complaintId}/fake-confidence/`);
+
+      // persist locally
+      try {
+        const raw = localStorage.getItem('reportedComplaints');
+        const parsed = raw ? JSON.parse(raw) : [];
+        const next = Array.isArray(parsed) ? (parsed.includes(complaintId) ? parsed : [...parsed, complaintId]) : [complaintId];
+        localStorage.setItem('reportedComplaints', JSON.stringify(next));
+      } catch (e) {
+        // ignore
+      }
+
+      setReported(true);
+      // optionally reload to reflect backend changes
+      window.location.reload();
+    } catch (err) {
+      console.error('Error reporting complaint:', err);
+      alert('Failed to report complaint. Please try again.');
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleReport}
+      className={`py-2 px-3 rounded-lg text-sm font-medium ${reported ? 'bg-gray-200 text-gray-500' : 'bg-red-600 text-white hover:bg-red-700'}`}
+      disabled={isReporting || reported}
+      title={reported ? 'Already reported' : 'Report this complaint'}
+    >
+      {isReporting ? 'Reporting...' : reported ? 'Reported' : 'Report'}
+    </button>
   );
 };
 

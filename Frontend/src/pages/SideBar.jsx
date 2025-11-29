@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
+import { clearAccessToken } from '../utils/auth';
+import AppLogo from '../assets/vite.svg';
 
 const HomeIcon = ({ className = 'w-6 h-6' }) => (
   <svg
@@ -81,6 +83,25 @@ const UserIcon = ({ className = 'w-6 h-6' }) => (
     <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" />
     <path d="M4 20c0-3.314 2.686-6 6-6h4c3.314 0 6 2.686 6 6v1H4v-1z" />
   </svg>
+);
+
+const LogoLink = ({
+  className = '',
+  onNavigate,
+  titleText = 'Go to homepage',
+  imgClassName = 'h-10 w-auto',
+}) => (
+  <Link
+    to="/"
+    onClick={(event) => {
+      onNavigate?.(event);
+    }}
+    className={`inline-flex items-center ${className}`.trim()}
+    title={titleText}
+    aria-label="Navigate to homepage"
+  >
+    <img src={AppLogo} alt="App logo" className={imgClassName} />
+  </Link>
 );
 
 const DEPARTMENT_SUGGESTION_ENDPOINT =
@@ -1124,10 +1145,36 @@ const RaiseComplaintModal = ({ isOpen, onClose }) => {
   );
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isMobileOpen = false, onClose }) {
   const navigate = useNavigate();
   const [isRaiseModalOpen, setIsRaiseModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+  const [storedUsername, setStoredUsername] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('username') || '';
+  });
+
+  const syncAuthState = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    setIsLoggedIn(localStorage.getItem('isAuthenticated') === 'true');
+    setStoredUsername(localStorage.getItem('username') || '');
+  }, []);
+
+  useEffect(() => {
+    syncAuthState();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', syncAuthState);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', syncAuthState);
+      }
+    };
+  }, [syncAuthState]);
  
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -1160,8 +1207,35 @@ export default function Sidebar() {
       navigate('/auth');
       return;
     }
+    if (isMobileOpen) {
+      onClose?.();
+    }
     setIsRaiseModalOpen(true);
   };
+
+  const handleLoginClick = useCallback(() => {
+    onClose?.();
+    navigate('/auth');
+  }, [navigate, onClose]);
+
+  const handleLogoutClick = useCallback(async () => {
+    try {
+      await api.post('/users/logout');
+    } catch (error) {
+      console.warn('Logout API call failed:', error);
+    } finally {
+      clearAccessToken();
+      localStorage.removeItem('user_id');
+      localStorage.removeItem('username');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('user_type');
+      delete api.defaults.headers.common['Authorization'];
+      setIsLoggedIn(false);
+      setStoredUsername('');
+      onClose?.();
+      navigate('/', { replace: true });
+    }
+  }, [navigate, onClose]);
 
   // fetch unread notification count
   useEffect(() => {
@@ -1218,9 +1292,90 @@ export default function Sidebar() {
     return `${base} text-gray-700 hover:bg-[#EFEFEF] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px]`;
   };
 
-  const CitizenSidebar = () => {
+  const CitizenSidebar = ({ variant = 'desktop', onNavigate }) => {
+    const containerClass =
+      variant === 'mobile'
+        ? 'flex flex-col h-full pt-6 overflow-y-auto'
+        : 'sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15';
+    const logoSpacing = variant === 'mobile' ? 'mb-6' : 'mb-8';
+
+    // Only show logo in desktop sidebar, not in mobile
+    if (variant === 'mobile') {
+      return (
+        <div className={containerClass}>
+          <button
+            onClick={handleOpenRaiseComplaint}
+            className="flex items-center gap-3 bg-[#4B687A] text-white font-semibold py-3 px-4 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 mb-6"
+          >
+            <PlusCircleIcon className="w-6 h-9" />
+            Raise Complaint
+          </button>
+          <nav className="flex-1">
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className={getLinkClass('/')} onClick={onNavigate}>
+                  <HomeIcon className="w-6 h-6" />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/profile" className={getLinkClass('/profile')} onClick={onNavigate}>
+                  <UserIcon className="w-6 h-6" />
+                  Profile
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/notifications"
+                  onClick={(e) => {
+                    handleNotificationsClick();
+                    onNavigate?.(e);
+                  }}
+                  className={getLinkClass('/notifications')}
+                >
+                  <div className="relative">
+                    <BellIcon className="w-6 h-6" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  Notifications
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/past-complaints"
+                  className={getLinkClass('/past-complaints')}
+                  onClick={onNavigate}
+                >
+                  <DocumentTextIcon className="w-6 h-6" />
+                  My Complaints
+                </Link>
+              </li>
+              <li>
+                <Link to="/help" className={getLinkClass('/help')} onClick={onNavigate}>
+                  <QuestionMarkCircleIcon className="w-6 h-6" />
+                  Help
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      );
+    }
+    // Desktop sidebar with logo
     return (
-      <div className="sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15">
+      <div className={containerClass}>
+        <div className={`flex justify-center ${logoSpacing}`} style={{ minHeight: '20px', marginTop: '-60px' }}>
+          <LogoLink
+            className=""
+            onNavigate={onNavigate}
+            titleText="Go to homepage"
+            imgClassName="h-10 w-auto"
+          />
+        </div>
         <button
           onClick={handleOpenRaiseComplaint}
           className="flex items-center gap-3 bg-[#4B687A] text-white font-semibold py-3 px-4 rounded-xl hover:bg-[#3C5260] transition-colors duration-300 mb-6"
@@ -1228,17 +1383,16 @@ export default function Sidebar() {
           <PlusCircleIcon className="w-6 h-9" />
           Raise Complaint
         </button>
-
         <nav className="flex-1">
           <ul className="space-y-2">
             <li>
-              <Link to="/" className={getLinkClass('/')}>
+              <Link to="/" className={getLinkClass('/')} onClick={onNavigate}>
                 <HomeIcon className="w-6 h-6" />
                 Home
               </Link>
             </li>
             <li>
-              <Link to="/profile" className={getLinkClass('/profile')}>
+              <Link to="/profile" className={getLinkClass('/profile')} onClick={onNavigate}>
                 <UserIcon className="w-6 h-6" />
                 Profile
               </Link>
@@ -1246,7 +1400,10 @@ export default function Sidebar() {
             <li>
               <Link
                 to="/notifications"
-                onClick={handleNotificationsClick}
+                onClick={(e) => {
+                  handleNotificationsClick();
+                  onNavigate?.(e);
+                }}
                 className={getLinkClass('/notifications')}
               >
                 <div className="relative">
@@ -1264,13 +1421,14 @@ export default function Sidebar() {
               <Link
                 to="/past-complaints"
                 className={getLinkClass('/past-complaints')}
+                onClick={onNavigate}
               >
                 <DocumentTextIcon className="w-6 h-6" />
-                Past Complaints
+                My Complaints
               </Link>
             </li>
             <li>
-              <Link to="/help" className={getLinkClass('/help')}>
+              <Link to="/help" className={getLinkClass('/help')} onClick={onNavigate}>
                 <QuestionMarkCircleIcon className="w-6 h-6" />
                 Help
               </Link>
@@ -1281,19 +1439,89 @@ export default function Sidebar() {
     );
   };
 
-  const GovAuthSidebar = () => {
+  const GovAuthSidebar = ({ variant = 'desktop', onNavigate }) => {
+    const containerClass =
+      variant === 'mobile'
+        ? 'flex flex-col h-full pt-6 overflow-y-auto'
+        : 'sticky top-10 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-5';
+    const logoSpacing = variant === 'mobile' ? 'mb-6' : 'mb-8';
+
+    if (variant === 'mobile') {
+      return (
+        <div className={containerClass}>
+          <nav className="flex-1">
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className={getLinkClass('/')} onClick={onNavigate}>
+                  <HomeIcon className="w-6 h-6" />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/profile" className={getLinkClass('/profile')} onClick={onNavigate}>
+                  <UserIcon className="w-6 h-6" />
+                  Profile
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/notifications"
+                  onClick={(e) => {
+                    handleNotificationsClick();
+                    onNavigate?.(e);
+                  }}
+                  className={getLinkClass('/notifications')}
+                >
+                  <div className="relative">
+                    <BellIcon className="w-6 h-6" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  Notifications
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/past-complaints"
+                  className={getLinkClass('/past-complaints')}
+                  onClick={onNavigate}
+                >
+                  <DocumentTextIcon className="w-6 h-6" />
+                  My Complaints
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      );
+    }
+
     return (
-      <div className="sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15">
+      <div className={containerClass}>
+        <div
+          className={`flex justify-center ${logoSpacing}`}
+          style={{ minHeight: '20px', marginTop: '-60px' }}
+        >
+          <LogoLink
+            className=""
+            onNavigate={onNavigate}
+            titleText="Go to homepage"
+            imgClassName="h-10 w-auto"
+          />
+        </div>
         <nav className="flex-1">
           <ul className="space-y-2">
             <li>
-              <Link to="/" className={getLinkClass('/')}>
+              <Link to="/" className={getLinkClass('/')} onClick={onNavigate}>
                 <HomeIcon className="w-6 h-6" />
                 Home
               </Link>
             </li>
             <li>
-              <Link to="/profile" className={getLinkClass('/profile')}>
+              <Link to="/profile" className={getLinkClass('/profile')} onClick={onNavigate}>
                 <UserIcon className="w-6 h-6" />
                 Profile
               </Link>
@@ -1301,7 +1529,10 @@ export default function Sidebar() {
             <li>
               <Link
                 to="/notifications"
-                onClick={handleNotificationsClick}
+                onClick={(e) => {
+                  handleNotificationsClick();
+                  onNavigate?.(e);
+                }}
                 className={getLinkClass('/notifications')}
               >
                 <div className="relative">
@@ -1319,9 +1550,10 @@ export default function Sidebar() {
               <Link
                 to="/past-complaints"
                 className={getLinkClass('/past-complaints')}
+                onClick={onNavigate}
               >
                 <DocumentTextIcon className="w-6 h-6" />
-                Past Complaints
+                My Complaints
               </Link>
             </li>
           </ul>
@@ -1330,19 +1562,95 @@ export default function Sidebar() {
     );
   };
 
-  const WorkerSidebar = () => {
+  const WorkerSidebar = ({ variant = 'desktop', onNavigate }) => {
+    const containerClass =
+      variant === 'mobile'
+        ? 'flex flex-col h-full pt-6 overflow-y-auto'
+        : 'sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15';
+    const logoSpacing = variant === 'mobile' ? 'mb-6' : 'mb-8';
+
+    if (variant === 'mobile') {
+      return (
+        <div className={containerClass}>
+          <nav className="flex-1">
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className={getLinkClass('/')} onClick={onNavigate}>
+                  <HomeIcon className="w-6 h-6" />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/profile" className={getLinkClass('/profile')} onClick={onNavigate}>
+                  <UserIcon className="w-6 h-6" />
+                  Profile
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/notifications"
+                  onClick={(e) => {
+                    handleNotificationsClick();
+                    onNavigate?.(e);
+                  }}
+                  className={getLinkClass('/notifications')}
+                >
+                  <div className="relative">
+                    <BellIcon className="w-6 h-6" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  Notifications
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/past-complaints"
+                  className={getLinkClass('/past-complaints')}
+                  onClick={onNavigate}
+                >
+                  <DocumentTextIcon className="w-6 h-6" />
+                  My Complaints
+                </Link>
+              </li>
+              <li>
+                <Link to="/help" className={getLinkClass('/help')} onClick={onNavigate}>
+                  <QuestionMarkCircleIcon className="w-6 h-6" />
+                  Help
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      );
+    }
+
     return (
-    <div className="sticky top-25 mx-auto flex flex-col h-[calc(100vh-6rem)] pt-15">
+      <div className={containerClass}>
+        <div
+          className={`flex justify-center ${logoSpacing}`}
+          style={{ minHeight: '20px', marginTop: '-60px' }}
+        >
+          <LogoLink
+            className=""
+            onNavigate={onNavigate}
+            titleText="Go to homepage"
+            imgClassName="h-10 w-auto"
+          />
+        </div>
         <nav className="flex-1">
           <ul className="space-y-2">
             <li>
-              <Link to="/" className={getLinkClass('/')}>
+              <Link to="/" className={getLinkClass('/')} onClick={onNavigate}>
                 <HomeIcon className="w-6 h-6" />
                 Home
               </Link>
             </li>
             <li>
-              <Link to="/profile" className={getLinkClass('/profile')}>
+              <Link to="/profile" className={getLinkClass('/profile')} onClick={onNavigate}>
                 <UserIcon className="w-6 h-6" />
                 Profile
               </Link>
@@ -1350,7 +1658,10 @@ export default function Sidebar() {
             <li>
               <Link
                 to="/notifications"
-                onClick={handleNotificationsClick}
+                onClick={(e) => {
+                  handleNotificationsClick();
+                  onNavigate?.(e);
+                }}
                 className={getLinkClass('/notifications')}
               >
                 <div className="relative">
@@ -1368,13 +1679,14 @@ export default function Sidebar() {
               <Link
                 to="/past-complaints"
                 className={getLinkClass('/past-complaints')}
+                onClick={onNavigate}
               >
                 <DocumentTextIcon className="w-6 h-6" />
-                Past Complaints
+                My Complaints
               </Link>
             </li>
             <li>
-              <Link to="/help" className={getLinkClass('/help')}>
+              <Link to="/help" className={getLinkClass('/help')} onClick={onNavigate}>
                 <QuestionMarkCircleIcon className="w-6 h-6" />
                 Help
               </Link>
@@ -1385,26 +1697,31 @@ export default function Sidebar() {
     );
   };
 
-  const routing = () => {
-    const ut = localStorage.getItem('user_type');
+  const routing = (variant = 'desktop', onNavigate) => {
+    const ut =
+      typeof window !== 'undefined' ? localStorage.getItem('user_type') : null;
 
     switch (ut) {
       case 'authority':
-        return <GovAuthSidebar />;
+        return <GovAuthSidebar variant={variant} onNavigate={onNavigate} />;
       case 'citizen':
-        return <CitizenSidebar />;
+        return <CitizenSidebar variant={variant} onNavigate={onNavigate} />;
       case 'fieldworker':
-        return <WorkerSidebar />;
+        return <WorkerSidebar variant={variant} onNavigate={onNavigate} />;
 
       default:
-        return <CitizenSidebar />;
+        return <CitizenSidebar variant={variant} onNavigate={onNavigate} />;
     }
   };
+
+  const handleMobileNavigate = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
 
   return (
     <>
       <aside className="bg-white w-80 p-4 hidden md:block border-r-3 border-gray-400 h-screen sticky top-0 overflow-auto">
-        {routing()}
+        {routing('desktop')}
 
         {isRaiseModalOpen &&
           ReactDOM.createPortal(
@@ -1417,6 +1734,77 @@ export default function Sidebar() {
             document.body
           )}
       </aside>
+
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-40 flex md:hidden">
+          <div
+            className="flex-1 bg-black/40"
+            aria-label="Close navigation overlay"
+            role="button"
+            tabIndex={0}
+            onClick={onClose}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                onClose?.();
+              }
+            }}
+          ></div>
+          <div className="w-72 max-w-xs bg-white h-full shadow-2xl p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              {/* Only show logo here, remove from mobile sidebar variant */}
+              <LogoLink
+                onNavigate={handleMobileNavigate}
+                titleText="Go to homepage"
+                imgClassName="h-8 w-auto"
+              />
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-gray-100"
+                aria-label="Close menu"
+                onClick={onClose}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="w-5 h-5"
+                >
+                  <path d="M6 6l12 12M6 18L18 6" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              {storedUsername ? `Hello, ${storedUsername}` : 'Navigation shortcuts'}
+            </p>
+
+            <div className="flex-1 overflow-y-auto pr-1">
+              {routing('mobile', handleMobileNavigate)}
+            </div>
+
+            <div className="mt-6 space-y-3 border-t border-gray-200 pt-4">
+              {isLoggedIn ? (
+                <button
+                  onClick={handleLogoutClick}
+                  className="w-full py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                >
+                  Logout
+                </button>
+              ) : (
+                <button
+                  onClick={handleLoginClick}
+                  className="w-full py-2.5 rounded-lg bg-[#4B687A] text-white font-semibold hover:bg-[#3C5260] transition"
+                >
+                  Login / Sign Up
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+
+export { RaiseComplaintModal };

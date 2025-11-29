@@ -8,16 +8,11 @@ import GovtAuthSignUpForm from './GovtAuthSignUpForm';
 import FieldWorkerSignUpForm from './FieldWorkerSignUpForm';
 import AdminSignUpForm from './AdminSignUpForm';
 import api from '../utils/axiosConfig';
+import AppLogo from '../assets/vite.svg';
 
 // Configure axios defaults for JWT (from your first file)
 axios.defaults.withCredentials = true;
 
-// -----------------------------------------------------------------
-// STYLED LoginForm Component (from your second file)ß
-// I've made one small but important change:
-// Wrapped it in a <form> and set the button type="submit"
-// to work with your existing handleLoginSubmit function.
-// -----------------------------------------------------------------
 const LoginForm = ({ 
   loginFormData, 
   handleLoginChange, 
@@ -124,10 +119,6 @@ const LoginForm = ({
   </form>
 );
 
-// -----------------------------------------------------------------
-// Main Login Component
-// Using JWT logic (from file 1) + STYLED layout (from file 2)
-// -----------------------------------------------------------------
 const Login = ({ activeTab }) => { // activeTab prop might be redundant now but keeping it
   const navigate = useNavigate();
   // State from your styled (second) file
@@ -385,7 +376,10 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
           {/* Left Column - Info (Hidden on mobile) */}
           <div className="hidden lg:flex flex-col justify-center text-white space-y-6 lg:space-y-8">
             <div>
-              <h1 className="text-4xl lg:text-5xl font-bold mb-2 lg:mb-3">Smart Complaints</h1>
+              <div className="flex items-center gap-3">
+                <img src={AppLogo} alt="CrowdSolve" className="h-12 w-auto" />
+                <h1 className="text-4xl lg:text-5xl font-bold mb-2 lg:mb-3">CrowdSolve</h1>
+              </div>
               <p className="text-lg lg:text-xl text-indigo-200 font-semibold">Your Voice, Our Priority</p>
             </div>
 
@@ -427,10 +421,10 @@ const Login = ({ activeTab }) => { // activeTab prop might be redundant now but 
           <div className="w-full">
             {/* Mobile Header */}
             <div className="lg:hidden text-center mb-4 sm:mb-6">
-              <div className="inline-block bg-gradient-to-r from-indigo-500 to-blue-500 p-2.5 sm:p-3 rounded-full mb-2 sm:mb-3 shadow-2xl">
-                <Shield size={28} className="sm:w-8 sm:h-8 text-white" />
+              <div className="inline-block mb-2 sm:mb-3">
+                <img src={AppLogo} alt="CrowdSolve" className="h-10 w-auto inline-block" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Smart Complaints</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">CrowdSolve</h1>
               <p className="text-sm sm:text-base text-indigo-200 font-semibold">Your Voice, Our Priority</p>
             </div>
 
