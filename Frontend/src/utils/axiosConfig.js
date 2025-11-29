@@ -1,9 +1,12 @@
 import axios from 'axios';
 import { getCsrfToken } from './auth';
 
+// Production Railway backend URL
+const API_BASE_URL = "https://crowd-powered-smart-complaint-management-system-production.up.railway.app";
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
