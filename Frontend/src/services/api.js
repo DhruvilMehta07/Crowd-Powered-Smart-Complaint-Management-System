@@ -1,8 +1,11 @@
 import axios from "axios";
 import { getAccessToken, setAccessToken, getCsrfToken } from "../utils/auth";
 
+// Production Railway backend URL
+const API_BASE_URL = "https://crowd-powered-smart-complaint-management-system-production-8c6d.up.railway.app/";
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:7000",
+  baseURL: API_BASE_URL,
   withCredentials: true, 
 });
 
@@ -69,7 +72,7 @@ API.interceptors.response.use(
       try {
         // Call refresh endpoint (reads refresh token from HttpOnly cookie)
         const response = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || "http://localhost:7000"}/users/token/refresh/`,
+          `${API_BASE_URL}/users/token/refresh/`,
           {},
           { withCredentials: true }
         );

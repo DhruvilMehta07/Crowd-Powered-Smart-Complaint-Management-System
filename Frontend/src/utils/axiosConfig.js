@@ -1,9 +1,12 @@
 import axios from 'axios';
 import { getCsrfToken } from './auth';
 
+// Production Railway backend URL
+const API_BASE_URL = "https://crowd-powered-smart-complaint-management-system-production-8c6d.up.railway.app/";
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
@@ -47,7 +50,7 @@ api.interceptors.response.use(
       try
       {
         const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000'}/users/token/refresh`,
+          `${API_BASE_URL}/users/token/refresh`,
           {},
           {withCredentials: true}
 

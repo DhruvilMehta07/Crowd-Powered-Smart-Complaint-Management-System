@@ -1,80 +1,34 @@
-FROM python:3.10-slim-bookworm
+# Use slim Python to keep image small
+FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV PORT=8000
+# 1. Force logs to appear immediately (Crucial for debugging timeouts)
+ENV PYTHONUNBUFFERED=1
 
-# Set working directory
-WORKDIR /code
+# Set work directory
+WORKDIR /app
 
-# Update apt and install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libjpeg-dev \
-    zlib1g-dev \
-    libfreetype6-dev \
-    liblcms2-dev \
-    libopenjp2-7-dev \
-    libtiff5-dev \
-    libwebp-dev \
-    tcl8.6-dev \
-    tk8.6-dev \
-    python3-tk \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install pipenv
-RUN pip install --no-cache-dir pipenv
+# Copy requirements
+COPY Backend/requirements.txt .
 
-# Copy Pipfiles first for better caching
-COPY Pipfile Pipfile.lock /code/
+# Install CPU-only PyTorch first
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# Install dependencies using pipenv
-RUN pipenv install --system --deploy
+# Install remaining Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install additional Python packages INCLUDING PRODUCTION DEPENDENCIES
-RUN pip install --no-cache-dir \
-    pillow \
-    requests \
-    djangorestframework \
-    django-cors-headers \
-    python-dotenv \
-    django-cloudinary-storage \
-    djangorestframework-simplejwt \
-    django-redis \
-    redis \
-    # PRODUCTION DEPENDENCIES - ADD THESE
-    gunicorn \
-    whitenoise \
-    psycopg2-binary \
-    dj-database-url \
-    pytest \
-    pytest-django \
-    coverage
-
-# Install ML dependencies
-ENV PIP_DEFAULT_TIMEOUT=120
-
-# Install PyTorch (ARM-compatible - no +cpu suffix)
-RUN pip install --no-cache-dir \
-    "numpy>=1.24.0,<2.0.0" \
-    "torch==2.0.1" \
-    "torchvision==0.15.2" \
-    ultralytics>=8.0.0 \
-    langchain>=0.1.0 \
-    langchain-core>=0.1.0 \
-    langchain-groq>=0.1.0
-
-# Copy project files
-COPY . /code/
+# Copy backend code
+COPY Backend /app
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Use Gunicorn for production instead of runserver
-CMD gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+# Expose port
+EXPOSE 8080
+
+CMD python manage.py makemigrations &&python manage.py migrate && gunicorn CPCMS.wsgi:application --bind 0.0.0.0:${PORT:-8080} --timeout 120

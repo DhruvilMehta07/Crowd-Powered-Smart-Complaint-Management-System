@@ -1,96 +1,113 @@
-# Crowd-Powered-Smart-Complaint-Management-System
-Users submit complaints (road damage, Wi-Fi issues, noise). The system learns to automatically classify and prioritize complaints based on feedback (urgency, location, frequency) using FL if privacy is a concern.
+# Crowd-Powered Smart Complaint Management System
 
-# IT314: Software Engineering  
-**Instructor:** Prof. Saurabh Tiwari  
+**Subject:** IT314 – Software Engineering  
+**Instructor:** Prof. Saurabh Tiwari 
+**Mentor:** Hetulbhai  
 
-## Group 6 Members  
+**Team Members — Group 6**  
 
-| Name                                 | Student ID   
-|--------------------------------------|-------------
-| Jainil Shailesh Jagtap               | 202301032   
-| Shamit Gandhi                        | 202301041    
-| Mehta Dhruvil Vimalkumar (Leader)    | 202301061    
-| Bhatt Parth Bhaskarbhai              | 202301022   
-| Om Kantilal Santoki                  | 202301019   
-| Neev Vegada                          | 202301031    
-| Tirth Koradiya                       | 202301018   
-| Karan Makasana                       | 202301053  
-| Rasha Parmar                         | 202301012    
-| Samarth Agarwal                      | 202301040
+| Name                          | Student ID   |
+|-------------------------------|--------------|
+| Mehta Dhruvil Vimalkumar (Leader) | 202301061    |
+| Jainil Shailesh Jagtap        | 202301032    |
+| Shamit Gandhi                 | 202301041    |
+| Bhatt Parth Bhaskarbhai       | 202301022    |
+| Om Kantilal Santoki           | 202301019    |
+| Neev Vegada                   | 202301031    |
+| Tirth Koradiya                | 202301018    |
+| Karan Makasana                | 202301053    |
+| Rasha Parmar                  | 202301012    |
+| Samarth Agarwal               | 202301040    |
 
-## The Problem: Outdated Systems, Frustrated Citizens  
-Today, getting a pothole fixed or a broken streetlight repaired is often a slow and frustrating process. Traditional reporting methods like phone calls or outdated web portals lack transparency, leading to complaints being lost, duplicated, or ignored.  
+## Overview
+The Crowd-Powered Smart Complaint Management System modernizes civic issue reporting by enabling quick submissions, AI-powered analysis, and transparent tracking. Citizens submit complaints with an image and description, and the system intelligently processes them to improve prioritization and routing.
 
-This inefficiency results in:  
-- Prolonged public safety hazards  
-- Wasted resources  
-- A growing disconnect between citizens and their local government  
+## What the Project Does
+When a user submits a complaint:  
+- GenAI (LangChain + Groq LLM)  
+  - Performs severity analysis for all complaint types  
+  - Estimates the expected time required for resolution  
+  - Provides a “Suggest Department” feature when the user requests it  
+- Computer Vision (YOLOv8)  
+  - Used only for road-related complaints  
+  - Helps enhance severity analysis by identifying road damage patterns  
 
----
+Citizens can also track complaint status in real time and support local issues through upvotes.
 
-## Our Vision: Community-Powered Solutions  
-We aim to create a **modern platform** that transforms how urban issues are reported and resolved. By leveraging the **power of the community** and **artificial intelligence**, our system ensures that civic problems are identified, prioritized, and fixed faster than ever before.  
+## Problem → Solution Summary
+- Slow, outdated reporting → Simple and fast complaint submission  
+- No urgency prioritization → AI-driven severity analysis & ETA  
+- Users unsure where to report → On-demand department suggestion  
+- Lack of transparency → Live complaint tracking  
 
----
+## Tech Stack
+### Backend
+- Django
+- PostgreSQL  
+- Redis  
 
-## How It Works  
-1. **Report in Seconds**  
-   - Citizens open the app, take a photo of the issue (e.g., garbage overflow, clogged gutter), and select a category.  
-   - The app automatically tags the time and location.  
+### AI
+- YOLOv8 (Ultralytics) — Computer vision for road complaints severity analysis  
+- LangChain — GenAI orchestration  
+- Groq LLM (Groq API) — inference for severity, ETA, and suggest-department  
 
-2. **Use of AI**  
-   - Instantly analyzes the report  
-   - Categorizes the issue, checks for duplicates, and assesses urgency (e.g., a gas leak near a school is high-priority).  
+### Frontend
+- React.js  
+- Tailwind CSS  
 
-3. **Transparent Tracking**  
-   - Complaint is routed to the correct municipal department.  
-   - Citizens receive a **unique tracking ID** and can monitor status from *Received → In Progress → Resolved* in real-time.  
 
-4. **Community Validation**  
-   - Users can upvote existing reports in their area.  
-   - Helps authorities gauge impact and prioritize effectively.  
+## Run Locally
+Replace `<your-...>` placeholders with your actual values.
 
----
+### 1. Clone the repository
+```bash
+git clone https://github.com/<your-username>/Crowd-Powered-Smart-Complaint-Management-System.git
+cd Crowd-Powered-Smart-Complaint-Management-System
+```
 
-## Key Benefits  
+### 2. Backend Setup
+```bash
+# Create and activate virtual environment
+python -m venv venv
 
-### For Citizens  
-- Easy way to improve the community  
-- Transparency with live complaint tracking  
-- Increased accountability from authorities  
+# macOS / Linux
+source venv/bin/activate
 
-### For City Authorities  
-- Centralized dashboard of real-time, AI-prioritized issues  
-- Better resource allocation with reduced administrative overhead  
-- Strengthened accountability in operations  
+# Windows (PowerShell)
+venv\Scripts\Activate.ps1
 
-### For Urban Planners  
-- Data-driven insights into recurring issues  
-- Infrastructure trends for smarter long-term planning  
-- Improved budgeting decisions  
+# Install requirements
+pip install -r backend/requirements.txt
 
----
+# Create .env file in backend/ with the following content (example)
+SECRET_KEY=<your-secret-key>
+DATABASE_URL=postgres://<dbuser>:<dbpass>@localhost:5432/<dbname>
+REDIS_URL=redis://localhost:6379
+YOLO_MODEL_PATH=../models/yolov8n.pt
+GROQ_API_KEY=<your-groq-api-key>
+ALLOWED_HOSTS=localhost,127.0.0.1
 
-## Our Commitment: Privacy & Efficiency  
-- **Privacy First:** We use privacy-preserving technology to analyze trends without compromising personal data.  
-- **Efficiency:** Creates a collaborative, community-driven feedback loop for cleaner, safer, and better-maintained cities.  
+cd backend
+python manage.py migrate
 
----
+# (Optional) Create superuser
+python manage.py createsuperuser
 
-## Future Plan  
+# Run the server
+python manage.py runserver
+```
+### Backend Runs at
+http://localhost:7000/
 
-### Highest Priority Features  
-- Smooth & transparent complaint submission  
-- AI-powered classification & duplicate detection  
-- Efficient routing to the right authority  
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
 
-### Next-Level Enhancements  
-- Privacy-preserving federated learning  
-- Multilingual support  
-- Citizen feedback features  
+# Create .env.local (if required) and add:
+VITE_API_URL=http://localhost:7000/api
 
-### Least Priority Features (Future Add-ons)  
-- Advanced AI chatbots  
-- Automated reports  
-- Gamification for user engagement
+# Run dev server
+npm run dev
+```
+

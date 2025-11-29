@@ -1,292 +1,185 @@
-from users.serializers import UserLoginSerializer,FieldWorkerSerializer
-from users.models import Department,Field_Worker
-
-
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import serializers
+from .models import Citizen, Government_Authority, Field_Worker,ParentUser,Department
 import re
 
-from .models import Complaint,ComplaintImage,Upvote,Fake_Confidence,ResolutionImage,Notification,Resolution
 
-from django.utils import timezone
-from rest_framework import serializers
-
-class ComplaintImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = ComplaintImage
-        fields = ['id', 'image', 'image_url', 'uploaded_at', 'order']
-    
-    def get_image_url(self, obj):
-        # Return the full Cloudinary URL
-        if obj.image:
-            # This will return the full Cloudinary URL
-            return obj.image.url
-        return None
-
-class ResolutionImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ResolutionImage
-        fields = ['id', 'image', 'image_url', 'uploaded_at', 'order']
-        read_only_fields = ['id', 'uploaded_at']
-
-    def get_image_url(self, obj):
-        if obj.image:
-            return obj.image.url
-        return None
-    
-
-class ComplaintSerializer(serializers.ModelSerializer):
-    posted_by = serializers.SerializerMethodField()
-    upvotes_count = serializers.SerializerMethodField()
-    is_upvoted = serializers.SerializerMethodField()
-    thumbnail_url = serializers.SerializerMethodField()
-    assigned_to_dept = serializers.StringRelatedField()
-    location_display = serializers.SerializerMethodField()
-    status = serializers.CharField()
-    assigned_to_fieldworker = serializers.SerializerMethodField()
-    fake_confidence = serializers.FloatField(read_only=True)
-    current_resolution = serializers.SerializerMethodField()
-    has_pending_resolution = serializers.SerializerMethodField()
-    class Meta:
-        model = Complaint
-        fields = ['id','posted_by','content','posted_at','thumbnail_url',
-                  'images_count','upvotes_count','is_upvoted','assigned_to_dept','address','pincode',
-                  'latitude','longitude','location_type','location_display','status',
-                  'assigned_to_fieldworker','fake_confidence','current_resolution','has_pending_resolution', 'is_anonymous']
-        read_only_fields = ['posted_by', 'posted_at','location_display','fake_confidence']
-
-    def get_upvotes_count(self, obj):
-        annotated = getattr(obj, 'computed_upvotes_count', None)
-        if annotated is not None:
-            return int(annotated)
-        return getattr(obj, 'upvotes_count', 0)
-
-    def get_is_upvoted(self, obj):
-        annotated_value = getattr(obj, 'is_upvoted', None)
-        if annotated_value is not None:
-            return bool(annotated_value)
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.upvotes.filter(id=request.user.id).exists()
-        return False
-    
-    def get_thumbnail_url(self, obj):
+def _get_typed_user_instance(user):
+    related_map = {
+        'citizen': 'citizen',
+        'authority': 'government_authority',
+        'fieldworker': 'field_worker'
+    }
+    user_type = getattr(user, 'user_type', None)
+    related_attr = related_map.get(user_type)
+    if related_attr:
         try:
-            first_image = next(iter(obj.images.all()))
-        except StopIteration:
-            first_image = None
-        if first_image and getattr(first_image, 'image', None):
-            return first_image.image.url
-        return None
-    
-    def get_location_display(self,obj):
-        return obj.get_location_display()
-    
-    def get_assigned_to_fieldworker(self, obj):
-        worker = getattr(obj, 'assigned_to_fieldworker', None)
-        if worker:
-            return worker.username
-        return None
-
-    def get_posted_by(self, obj):
-        # Hide poster identity when complaint was submitted anonymously
-        if getattr(obj, 'is_anonymous', False):
-            return None
-        request = self.context.get('request')
-        if obj.posted_by:
-            return UserLoginSerializer(obj.posted_by, context=self.context).data
-        return None
-    
-    def get_current_resolution(self, obj):
-        if obj.current_resolution:
-            return {
-                'id': obj.current_resolution.id,
-                'status': obj.current_resolution.status,
-                'submitted_at': obj.current_resolution.submitted_at
-            }
-        return None
-    
-    def get_has_pending_resolution(self, obj):
-        return obj.resolutions.filter(status='pending_approval').exists()
+            related = getattr(user, related_attr)
+            if related:
+                return related
+        except (AttributeError, ObjectDoesNotExist):
+            pass
+    return user
 
 
-class ComplaintCreateSerializer(serializers.ModelSerializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
-        write_only=True,
-        required=False,
-        max_length=4
-    )
-    assigned_to_dept = serializers.PrimaryKeyRelatedField(
-        queryset=Department.objects.all(),
-        required=False,
-        allow_null=True
-    )
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name']
 
-    latitude = serializers.DecimalField(max_digits=11, decimal_places=8, required=False, allow_null=True)
-    longitude = serializers.DecimalField(max_digits=11, decimal_places=8, required=False, allow_null=True)
-    location_type = serializers.ChoiceField(choices=Complaint.Location_Choice, default='manual')
-    is_anonymous = serializers.BooleanField(required=False, default=False)
+
+class CitizenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Citizen
+        fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
+    
+    def validate_first_name(self, value):
+        if not re.match(r'^[A-Za-z]+$', value):
+            raise serializers.ValidationError("First name must contain only alphabets (letters) with no spaces, numbers, or special characters.")
+        return value
+    
+    def validate_last_name(self, value):
+        if not re.match(r'^[A-Za-z]+$', value):
+            raise serializers.ValidationError("Last name must contain only alphabets (letters) with no spaces, numbers, or special characters.")
+        return value
+    
+    # Encrypting Password
+    def create(self, validated_data):
+        password = validated_data.pop('password')   # remove raw password
+        # ensure parent user_type is set
+        validated_data['user_type'] = 'citizen'
+        user = Citizen(**validated_data)            # create user without password
+        user.set_password(password)                 # hash password properly
+        user.save()
+        return user
+    
+    def validate_password(self, value):
+        if len(value) < 6:
+            raise serializers.ValidationError("Password must be at least 6 characters long.")
+        return value
+    
+class CitizenProfileSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField()
+    class Meta:
+        model = Citizen
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined']
+        read_only_fields = ['id', 'username', 'email', 'date_joined','first_name','last_name']
+        extra_kwargs = {'password': {'write_only': True}}
+    def get_phone_number(self, obj):
+        return getattr(obj, 'phone_number', None)
+
+
+class GeneralProfileSerializer(serializers.ModelSerializer):
+    """General profile serializer that reads `user_type` from ParentUser
+    and safely returns department/verified/phone if present on concrete subclasses.
+    """
+
+    user_type = serializers.SerializerMethodField()
+    assigned_department = serializers.SerializerMethodField()
+    verified = serializers.SerializerMethodField()
+    phone_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
-        model = Complaint
-        fields = ['id', 'content', 'images', 'posted_at', 'posted_by', 'assigned_to_dept','address',
-                  'pincode','latitude','longitude','location_type','status','assigned_to_fieldworker','is_anonymous',
-                  ]
-        read_only_fields = ['posted_by', 'posted_at']
+        model = ParentUser
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'date_joined',
+                  'user_type', 'assigned_department', 'verified']
+        read_only_fields = ['id', 'username', 'email', 'date_joined']
 
-    def validate(self, data):
-        #validate that either GPS coordinates or address is provided
-        address = data.get('address')
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        location_type = data.get('location_type', 'manual')
+    def get_user_type(self, obj=None):
+        """Allow direct calls without explicitly passing obj in tests."""
+        obj = obj or getattr(self, 'instance', None)
+        return getattr(obj, 'user_type', 'user') if obj else 'user'
 
-        if location_type == 'gps':
-            if not latitude or not longitude:
-                raise serializers.ValidationError(
-                    "GPS coordinates are required when location source is GPS."
-                )
-        else:  # manual
-            if not address:
-                raise serializers.ValidationError(
-                    "Address is required when location source is manual."
-                )
+    def get_assigned_department(self, obj):
+        dep = getattr(obj, 'assigned_department', None)
+        if dep:
+            return DepartmentSerializer(dep).data
+        return None
 
-        # validate pincode format if provided
-        pincode = data.get('pincode')
-        if pincode and not re.match(r'^[1-9][0-9]{5}$', pincode):
-            raise serializers.ValidationError(
-                {"pincode": "Pincode must be 6 digits starting with 1-9"}
-            )
+    def get_verified(self, obj):
+        return getattr(obj, 'verified', None)
 
-        return data
+    def update(self, instance, validated_data):
+        phone_number = validated_data.pop('phone_number', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if phone_number is not None:
+            typed_instance = instance if hasattr(instance, 'phone_number') else _get_typed_user_instance(instance)
+            if hasattr(typed_instance, 'phone_number'):
+                typed_instance.phone_number = phone_number
+                typed_instance.save(update_fields=['phone_number'])
+        return instance
+
+class GovernmentAuthoritySerializer(serializers.ModelSerializer):
+    # serialize department as ID + name
+    first_name = serializers.SerializerMethodField()
+    assigned_department = DepartmentSerializer(read_only=True)
+    assigned_department_id = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        source="assigned_department",
+        write_only=True
+    )
+
+    class Meta:
+        model = Government_Authority
+        fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate_first_name(self, value):
+        if not re.match(r'^[A-Za-z]+$', value):
+            raise serializers.ValidationError("First name must contain only alphabets (letters) with no spaces, numbers, or special characters.")
+        return value
     
-    def validate_images(self, value):
-        if len(value) > 4:
-            raise serializers.ValidationError("A maximum of 4 images are allowed.")
+    def validate_last_name(self, value):
+        if not re.match(r'^[A-Za-z]+$', value):
+            raise serializers.ValidationError("Last name must contain only alphabets (letters) with no spaces, numbers, or special characters.")
         return value
 
     def create(self, validated_data):
-        images = validated_data.pop('images', [])
-        complaint = Complaint.objects.create(
-            **validated_data
-        )
-        for i,image_data in enumerate(images):
-            ComplaintImage.objects.create(complaint=complaint, image=image_data, order=i)
-        return complaint
+        password = validated_data.pop('password')   # remove raw password
+        validated_data['user_type'] = 'authority'
+        user = Government_Authority(**validated_data)   # create user without password
+        user.set_password(password)                 # hash password properly
+        user.save()
+        return user
 
-class UpvoteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Upvote
-        fields = ['id', 'user', 'complaint', 'upvoted_at']
-        read_only_fields = ['user', 'upvoted_at']
-
-
-class FakeConfidenceSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
-    weight = serializers.FloatField(read_only=True)
-
-    class Meta:
-        model = Fake_Confidence
-        fields = ['id', 'complaint', 'user', 'weight', 'created_at']
-        read_only_fields = ['id', 'complaint', 'user', 'weight', 'created_at']
-
-class ComplaintAssignSerializer(serializers.ModelSerializer):
-    assigned_to_fieldworker = serializers.PrimaryKeyRelatedField(
-        queryset=Field_Worker.objects.all(),
-        required=False,
-        allow_null=True
-    )
-    
-    class Meta:
-        model = Complaint
-        fields = ['id', 'assigned_to_fieldworker', 'status', ]
-       
 
 class FieldWorkerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Field_Worker
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
-
-
-class ResolutionSerializer(serializers.ModelSerializer):
-    field_worker = FieldWorkerSerializer(read_only=True)
-    images = ResolutionImageSerializer(many=True, read_only=True)
-    days_until_auto_approve = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Resolution
-        fields = [
-            'id', 'complaint', 'field_worker', 'description', 'submitted_at',
-            'status', 'citizen_feedback', 'citizen_responded_at', 'images',
-            'days_until_auto_approve'
-        ]
-        read_only_fields = ['id', 'submitted_at', 'field_worker', 'status', 'citizen_responded_at']
-
-    def get_days_until_auto_approve(self, obj):
-        if obj.status == 'pending_approval' and obj.auto_approve_at:
-            from django.utils import timezone
-            now = timezone.now()
-            if obj.auto_approve_at > now:
-                delta = obj.auto_approve_at - now
-                return max(0, delta.days)
-        return 0
-
-class ResolutionCreateSerializer(serializers.ModelSerializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
-        write_only=True,
-        required=False,
-        max_length=5
+    # serialize department as ID + name
+    assigned_department = DepartmentSerializer(read_only=True)
+    assigned_department_id = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        source="assigned_department",
+        write_only=True
     )
     
     class Meta:
-        model = Resolution
-        fields = ['id', 'description', 'images']
-        read_only_fields = ['id']
+        model = Field_Worker
+        fields = '__all__'
+        extra_kwargs = {'password': {'write_only': True}}
 
-    def validate_images(self, value):
-        if len(value) > 5:
-            raise serializers.ValidationError("A maximum of 5 images are allowed.")
+    def validate_first_name(self, value):
+        if not re.match(r'^[A-Za-z]+$', value):
+            raise serializers.ValidationError("First name must contain only alphabets (letters) with no spaces, numbers, or special characters.")
+        return value
+    
+    def validate_last_name(self, value):
+        if not re.match(r'^[A-Za-z]+$', value):
+            raise serializers.ValidationError("Last name must contain only alphabets (letters) with no spaces, numbers, or special characters.")
         return value
 
     def create(self, validated_data):
-        images = validated_data.pop('images', [])
-        complaint = self.context['complaint']
-        field_worker = self.context['field_worker']
-        
-        # Create resolution
-        resolution = Resolution.objects.create(
-            complaint=complaint,
-            field_worker=field_worker,
-            description=validated_data['description'],
-            auto_approve_at=timezone.now() + timezone.timedelta(days=3)  # 3 days for auto-approval
-        )
-        
-        # Create resolution images
-        for i, image_data in enumerate(images):
-            ResolutionImage.objects.create(
-                resolution=resolution,
-                image=image_data,
-                order=i
-            )
-        
-        return resolution
+        password = validated_data.pop('password')   # remove raw password
+        validated_data['user_type'] = 'fieldworker'
+        user = Field_Worker(**validated_data)       # create user without password
+        user.set_password(password)                 # hash password properly
+        user.save()
+        return user
 
-class CitizenResolutionResponseSerializer(serializers.Serializer):
-    approved = serializers.BooleanField(required=True)
-    feedback = serializers.CharField(required=False, allow_blank=True, max_length=500)
-    
-    def validate(self, data):
-        approved = data.get('approved')
-        feedback = data.get('feedback', '')
-        
-        if not approved and not feedback:
-            raise serializers.ValidationError({
-                "feedback": "Feedback is required when rejecting a resolution."
-            })
-        
-        return data
+
+class UserLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
