@@ -31,8 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install pipenv
 RUN pip install --no-cache-dir pipenv
 
-# Copy Pipfiles from Backend directory
-COPY Backend/Pipfile Backend/Pipfile.lock /app/
+# Copy Pipfiles (build context will be Backend/)
+COPY Pipfile Pipfile.lock /app/
 
 # Install dependencies using pipenv
 RUN pipenv install --system --deploy
@@ -68,8 +68,8 @@ RUN pip install --no-cache-dir \
     langchain-core>=0.1.0 \
     langchain-groq>=0.1.0
 
-# Copy ALL project files from Backend directory
-COPY Backend/ /app/
+# Copy backend project files
+COPY . /app/
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
