@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV PORT=8000
 
-# Set working directory
-WORKDIR /code
+# Set working directory to /app (what Railway expects)
+WORKDIR /app
 
 # Update apt and install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,13 +31,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install pipenv
 RUN pip install --no-cache-dir pipenv
 
-# Copy Pipfiles first for better caching
-COPY Pipfile Pipfile.lock /code/
+# Copy Pipfiles from Backend directory
+COPY Backend/Pipfile Backend/Pipfile.lock /app/
 
 # Install dependencies using pipenv
 RUN pipenv install --system --deploy
 
-# Install additional Python packages INCLUDING PRODUCTION DEPENDENCIES
+# Install additional Python packages
 RUN pip install --no-cache-dir \
     pillow \
     requests \
@@ -48,7 +48,6 @@ RUN pip install --no-cache-dir \
     djangorestframework-simplejwt \
     django-redis \
     redis \
-    # PRODUCTION DEPENDENCIES - ADD THESE
     gunicorn \
     whitenoise \
     psycopg2-binary \
@@ -60,7 +59,6 @@ RUN pip install --no-cache-dir \
 # Install ML dependencies
 ENV PIP_DEFAULT_TIMEOUT=120
 
-# Install PyTorch (ARM-compatible - no +cpu suffix)
 RUN pip install --no-cache-dir \
     "numpy>=1.24.0,<2.0.0" \
     "torch==2.0.1" \
@@ -70,11 +68,11 @@ RUN pip install --no-cache-dir \
     langchain-core>=0.1.0 \
     langchain-groq>=0.1.0
 
-# Copy project files
-COPY . /code/
+# Copy ALL project files from Backend directory
+COPY Backend/ /app/
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Use Gunicorn for production instead of runserver
+# Use Gunicorn for production
 CMD gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120

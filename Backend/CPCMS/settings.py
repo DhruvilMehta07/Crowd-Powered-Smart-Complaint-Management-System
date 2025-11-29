@@ -210,16 +210,22 @@ CORS_ALLOW_CREDENTIALS = True
 # CORS and CSRF settings for production
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:7000')
+VERCEL_FRONTEND_DOMAIN = os.getenv('VERCEL_FRONTEND_DOMAIN', 'crowd-powered-smart-complaint-management-system.vercel.app')
 
+# Allowlist explicit origins plus regex-based fallbacks for preview deployments
 CORS_ALLOWED_ORIGINS = [
     FRONTEND_URL,
     BACKEND_URL,
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:7000",
-    "https://*.railway.app",
-    "https://crowd-powered-smart-complaint-management-system-l766yeaz4.vercel.app",
-    "https://*.vercel.app",
+    f"https://{VERCEL_FRONTEND_DOMAIN}",
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.+\.vercel\.app$",
+    r"^https:\/\/.+\.railway\.app$",
+    r"^https:\/\/.+\.up\.railway\.app$",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -228,9 +234,13 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:7000",
-    "https://*.railway.app",
-    "https://crowd-powered-smart-complaint-management-system-l766yeaz4.vercel.app",
-    "https://*.vercel.app",
+    f"https://{VERCEL_FRONTEND_DOMAIN}",
+]
+
+CSRF_TRUSTED_ORIGIN_REGEXES = [
+    r"^https:\/\/.+\.vercel\.app$",
+    r"^https:\/\/.+\.railway\.app$",
+    r"^https:\/\/.+\.up\.railway\.app$",
 ]
 
 CORS_ALLOW_HEADERS = [
