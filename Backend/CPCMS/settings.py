@@ -218,6 +218,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:7000",
     "https://*.railway.app",
+    "https://crowd-powered-smart-complaint-management-system-l766yeaz4.vercel.app",
+    "https://*.vercel.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -227,6 +229,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:7000",
     "https://*.railway.app",
+    "https://crowd-powered-smart-complaint-management-system-l766yeaz4.vercel.app",
+    "https://*.vercel.app",
 ]
 
 CORS_ALLOW_HEADERS = [
