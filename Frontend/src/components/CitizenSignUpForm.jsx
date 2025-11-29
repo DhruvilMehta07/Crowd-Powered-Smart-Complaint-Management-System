@@ -25,7 +25,17 @@ const CitizenSignUpForm = () => {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Validate first_name and last_name - only alphabets and spaces
+    if (name === 'first_name' || name === 'last_name') {
+      const alphabetPattern = /^[A-Za-z\s]*$/;
+      if (!alphabetPattern.test(value)) {
+        return; // Don't update if invalid characters
+      }
+    }
+    
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSendOtp = async (e) => {
@@ -33,7 +43,7 @@ const CitizenSignUpForm = () => {
     setMessage('');
     setError('');
     
-    if (formData.password !== formData.reenterPassword) {
+    if (formData.password != formData.reenterPassword) {
       setError("Passwords do not match");
       return;
     }
@@ -241,9 +251,11 @@ const CitizenSignUpForm = () => {
           <input
             type="text"
             name="first_name"
-            placeholder="Enter your First Name"
+            placeholder="Enter your First Name (alphabets only)"
             value={formData.first_name}
             onChange={handleChange}
+            pattern="[A-Za-z\s]+"
+            title="First name must contain only alphabets and spaces"
             required
             disabled={loading}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
@@ -254,9 +266,11 @@ const CitizenSignUpForm = () => {
           <input
             type="text"
             name="last_name"
-            placeholder="Enter your Last Name"
+            placeholder="Enter your Last Name (alphabets only)"
             value={formData.last_name}
             onChange={handleChange}
+            pattern="[A-Za-z\s]+"
+            title="Last name must contain only alphabets and spaces"
             required
             disabled={loading}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all"

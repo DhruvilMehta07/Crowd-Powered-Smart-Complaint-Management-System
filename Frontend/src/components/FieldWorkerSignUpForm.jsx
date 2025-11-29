@@ -50,6 +50,14 @@ const FieldWorkerSignUpForm = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
+        // Validate first_name and last_name - only alphabets and spaces
+        if (name === 'first_name' || name === 'last_name') {
+            const alphabetPattern = /^[A-Za-z\s]*$/;
+            if (!alphabetPattern.test(value)) {
+                return; // Don't update if invalid characters
+            }
+        }
+
         if (name === 'assigned_department') {
             if (value === 'other') {
                 setIsOtherSelected(true);
@@ -69,7 +77,7 @@ const FieldWorkerSignUpForm = () => {
         setError('');
         setLoading(true);
 
-        if (formData.password !== formData.reenterPassword) {
+        if (formData.password != formData.reenterPassword) {
             setError('Passwords do not match');
             setLoading(false);
             return;
@@ -253,9 +261,11 @@ const FieldWorkerSignUpForm = () => {
                     <input
                         type="text"
                         name="first_name"
-                        placeholder="Enter your First Name"
+                        placeholder="Enter your First Name (alphabets only)"
                         value={formData.first_name}
                         onChange={handleChange}
+                        pattern="[A-Za-z\s]+"
+                        title="First name must contain only alphabets and spaces"
                         required
                         disabled={loading}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
@@ -266,9 +276,11 @@ const FieldWorkerSignUpForm = () => {
                     <input
                         type="text"
                         name="last_name"
-                        placeholder="Enter your Last Name"
+                        placeholder="Enter your Last Name (alphabets only)"
                         value={formData.last_name}
                         onChange={handleChange}
+                        pattern="[A-Za-z\s]+"
+                        title="Last name must contain only alphabets and spaces"
                         required
                         disabled={loading}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B687A] focus:border-[#4B687A] outline-none transition-all disabled:opacity-50"
