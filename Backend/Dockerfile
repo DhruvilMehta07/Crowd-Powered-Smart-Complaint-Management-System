@@ -17,56 +17,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenjp2-7-dev \
     libtiff5-dev \
     libwebp-dev \
-    tcl8.6-dev \
-    tk8.6-dev \
-    python3-tk \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Install pipenv
-RUN pip install --no-cache-dir pipenv
-
-# Copy Backend Pipfiles (context is repo root)
-COPY Backend/Pipfile Backend/Pipfile.lock /app/
-
-# Install dependencies using pipenv
-RUN pipenv install --system --deploy
-
-# Install additional Python packages
-RUN pip install --no-cache-dir \
-    pillow \
-    requests \
-    djangorestframework \
-    django-cors-headers \
-    python-dotenv \
-    django-cloudinary-storage \
-    djangorestframework-simplejwt \
-    django-redis \
-    redis \
-    gunicorn \
-    whitenoise \
-    psycopg2-binary \
-    dj-database-url \
-    pytest \
-    pytest-django \
-    coverage
-
-# Install ML dependencies
+# Install runtime dependencies
 ENV PIP_DEFAULT_TIMEOUT=120
 
+COPY Backend/requirements-production.txt /tmp/requirements.txt
+
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
+
+# Install PyTorch CPU wheels when available, fall back for local ARM builds
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+        "torch==2.0.1+cpu" \
+        "torchvision==0.15.2+cpu" \
+    || pip install --no-cache-dir \
+        "torch==2.0.1" \
+        "torchvision==0.15.2"
+
+# Install higher-level ML helpers
 RUN pip install --no-cache-dir \
-    "numpy>=1.24.0,<2.0.0" \
-    "torch==2.0.1" \
-    "torchvision==0.15.2" \
-    ultralytics>=8.0.0 \
-    langchain>=0.1.0 \
-    langchain-core>=0.1.0 \
-    langchain-groq>=0.1.0
+        ultralytics>=8.0.0 \
+        langchain>=0.1.0 \
+        langchain-core>=0.1.0 \
+        langchain-groq>=0.1.0
 
 # Copy backend project files
 COPY Backend/ /app/
