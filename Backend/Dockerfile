@@ -74,5 +74,5 @@ COPY Backend/ /app/
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Use Gunicorn for production
-CMD gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+# Run migrations before starting Gunicorn
+CMD ["sh", "-c", "python manage.py migrate && gunicorn CPCMS.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"]

@@ -1,0 +1,11 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Backend/Dockerfile"
+context = "."
+
+[deploy]
+# Docker CMD handles migrations + Gunicorn, restart the container if it crashes.
+restartPolicyType = "on_failure"
+
+[env]
+DEBUG = "False"
