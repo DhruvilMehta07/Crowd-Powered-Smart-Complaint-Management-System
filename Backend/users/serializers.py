@@ -1,5 +1,24 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from .models import Citizen, Government_Authority, Field_Worker,ParentUser,Department
+
+
+def _get_typed_user_instance(user):
+    related_map = {
+        'citizen': 'citizen',
+        'authority': 'government_authority',
+        'fieldworker': 'field_worker'
+    }
+    user_type = getattr(user, 'user_type', None)
+    related_attr = related_map.get(user_type)
+    if related_attr:
+        try:
+            related = getattr(user, related_attr)
+            if related:
+                return related
+        except (AttributeError, ObjectDoesNotExist):
+            pass
+    return user
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -47,7 +66,7 @@ class GeneralProfileSerializer(serializers.ModelSerializer):
     user_type = serializers.SerializerMethodField()
     assigned_department = serializers.SerializerMethodField()
     verified = serializers.SerializerMethodField()
-    phone_number = serializers.SerializerMethodField()
+    phone_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = ParentUser
@@ -55,8 +74,10 @@ class GeneralProfileSerializer(serializers.ModelSerializer):
                   'user_type', 'assigned_department', 'verified']
         read_only_fields = ['id', 'username', 'email', 'date_joined']
 
-    def get_user_type(self, obj):
-        return getattr(obj, 'user_type', 'user')
+    def get_user_type(self, obj=None):
+        """Allow direct calls without explicitly passing obj in tests."""
+        obj = obj or getattr(self, 'instance', None)
+        return getattr(obj, 'user_type', 'user') if obj else 'user'
 
     def get_assigned_department(self, obj):
         dep = getattr(obj, 'assigned_department', None)
@@ -67,8 +88,18 @@ class GeneralProfileSerializer(serializers.ModelSerializer):
     def get_verified(self, obj):
         return getattr(obj, 'verified', None)
 
-    def get_phone_number(self, obj):
-        return getattr(obj, 'phone_number', None)
+    def update(self, instance, validated_data):
+        phone_number = validated_data.pop('phone_number', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if phone_number is not None:
+            typed_instance = instance if hasattr(instance, 'phone_number') else _get_typed_user_instance(instance)
+            if hasattr(typed_instance, 'phone_number'):
+                typed_instance.phone_number = phone_number
+                typed_instance.save(update_fields=['phone_number'])
+        return instance
 
 class GovernmentAuthoritySerializer(serializers.ModelSerializer):
     # serialize department as ID + name

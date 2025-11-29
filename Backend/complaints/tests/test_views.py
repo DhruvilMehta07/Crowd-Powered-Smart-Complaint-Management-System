@@ -156,20 +156,18 @@ class TestUpvoteComplaintView:
         assert test_complaint.upvotes_count == 0
         assert Upvote.objects.count() == 0
 
-    class TestComplaintDeleteView:
-        
-        def test_delete_by_owner(self, client, citizen_user, test_complaint):
-            assert test_complaint.posted_by_id == citizen_user.id
 
-            # Authenticate the actual Django auth user (not the profile)
-            # If Citizen has a OneToOneField to User named `user`
-            client.force_authenticate(user=citizen_user)
-            
+class TestComplaintDeleteView:
+    def test_delete_by_owner(self, client, citizen_user, test_complaint):
+        client.force_authenticate(user=citizen_user)
+        url = reverse('complaints:complaint-delete', kwargs={'complaint_id': test_complaint.id})
 
-            url = reverse('complaints:complaint-delete', kwargs={'complaint_id': test_complaint.id})
-            res = client.delete(url)
+        res = client.delete(url)
 
-            assert res.status_code != 500
+        assert res.status_code == 200
+        assert res.json()['message'] == "Complaint deleted successfully."
+        assert Complaint.objects.filter(id=test_complaint.id).exists() is False
+        assert Complaint.objects.count() == 0
 
     def test_delete_by_other_user(self, client, other_citizen_user, test_complaint):
         client.force_authenticate(user=other_citizen_user )
@@ -349,6 +347,21 @@ class TestAssignComplaintView:
         
         assert res.status_code == 404 # Field worker not found in their dept
         assert "Field worker not found" in res.json()['error']
+
+    def test_assign_handles_missing_gov_profile(self, client, gov_user, field_worker_user, test_complaint, monkeypatch):
+        """Force Field_Worker lookup to raise Government_Authority.DoesNotExist to cover fallback."""
+        client.force_authenticate(user=gov_user)
+        url = reverse('complaints:complaint-assign', kwargs={'complaint_id': test_complaint.id})
+
+        def _raise_missing(*args, **kwargs):
+            raise Government_Authority.DoesNotExist()
+
+        monkeypatch.setattr(Field_Worker.objects, 'get', _raise_missing)
+
+        response = client.post(url, {'fieldworker_id': field_worker_user.id}, content_type='application/json')
+
+        assert response.status_code == 403
+        assert "not a government authority" in response.json()['error']
 
 class TestSubmitResolutionView:
     def test_submit_resolution_success(self, client, field_worker_user, gov_user, assigned_complaint, mock_cloudinary_upload):
@@ -624,6 +637,23 @@ class TestAvailableFieldWorkersView:
         assert res.status_code == 400
         assert "No department assigned" in res.json()['error']
 
+    def test_available_workers_excludes_unverified(self, client, gov_user, field_worker_user, department):
+        Field_Worker.objects.create_user(
+            username="fw_temp",
+            password="pw",
+            assigned_department=department,
+            verified=False
+        )
+
+        client.force_authenticate(user=gov_user)
+        url = reverse('complaints:available-workers')
+        res = client.get(url)
+
+        assert res.status_code == 200
+        usernames = {fw['username'] for fw in res.json()}
+        assert field_worker_user.username in usernames
+        assert "fw_temp" not in usernames
+
 class TestAssignComplaintViewEdgeCases:
     def test_assign_no_fieldworker_id(self, client, gov_user, test_complaint):
         client.force_authenticate(user=gov_user)
@@ -679,6 +709,46 @@ class TestFakeConfidenceViewMore:
         res = client.post(url)
         assert res.status_code == 200
         assert "Fake confidence already recorded" in res.json()['message']
+
+    def test_fieldworker_fake_confidence_notifies_gov(self, client, field_worker_user, gov_user, test_complaint):
+        test_complaint.assigned_to_dept = field_worker_user.assigned_department
+        test_complaint.save()
+
+        client.force_authenticate(user=field_worker_user)
+        url = reverse('complaints:complaint-fake-confidence', kwargs={'complaint_id': test_complaint.id})
+        res = client.post(url)
+
+        assert res.status_code == 201
+        assert Notification.objects.filter(
+            user=gov_user,
+            message__contains=f"Field worker {field_worker_user.username}"
+        ).exists()
+
+    def test_fieldworker_notification_failure_is_ignored(self, client, field_worker_user, test_complaint, monkeypatch):
+        test_complaint.assigned_to_dept = field_worker_user.assigned_department
+        test_complaint.save()
+
+        def _raise(*args, **kwargs):
+            raise Exception("boom")
+
+        monkeypatch.setattr(Notification.objects, 'create', _raise)
+
+        client.force_authenticate(user=field_worker_user)
+        url = reverse('complaints:complaint-fake-confidence', kwargs={'complaint_id': test_complaint.id})
+        res = client.post(url)
+
+        assert res.status_code == 201
+        assert "Fake confidence recorded" in res.json()['message']
+
+    def test_fake_confidence_delete_success(self, client, citizen_user, test_complaint):
+        Fake_Confidence.objects.create(complaint=test_complaint, user=citizen_user)
+
+        client.force_authenticate(user=citizen_user)
+        url = reverse('complaints:complaint-fake-confidence', kwargs={'complaint_id': test_complaint.id})
+        res = client.delete(url)
+
+        assert res.status_code == 200
+        assert res.json()['message'] == "Fake confidence removed."
 
 class TestSubmitResolutionViewMoreEdgeCases:
     def test_submit_resolution_not_field_worker(self, client, citizen_user, test_complaint):
@@ -1045,6 +1115,43 @@ class TestComplaintDetailAutoApprove:
         # Should still return complaint details
         assert response.status_code == 200
         assert 'complaint' in response.json()
+
+
+class TestComplaintDetailView:
+    def test_detail_includes_assigned_field_worker(self, client, assigned_complaint):
+        url = reverse('complaints:complaint-detail', kwargs={'complaint_id': assigned_complaint.id})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert response.json()['assigned_field_worker'] == assigned_complaint.assigned_to_fieldworker.username
+
+    def test_detail_returns_latest_resolution_snapshot(self, client, assigned_complaint, field_worker_user, monkeypatch):
+        from complaints import views
+
+        # Ensure auto-approve doesn't interfere with deterministic assertions
+        monkeypatch.setattr(views, 'auto_approve_due_resolutions', lambda: None)
+
+        assigned_complaint.status = 'Completed'
+        assigned_complaint.save()
+
+        resolution = Resolution.objects.create(
+            complaint=assigned_complaint,
+            field_worker=field_worker_user,
+            description='Patched pothole',
+            status='approved',
+            citizen_feedback='Looks good'
+        )
+
+        url = reverse('complaints:complaint-detail', kwargs={'complaint_id': assigned_complaint.id})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload['solved_status'] == 'solved'
+        latest = payload['latest_approved_resolution']
+        assert latest['id'] == resolution.id
+        assert latest['field_worker'] == field_worker_user.username
+        assert latest['citizen_feedback'] == 'Looks good'
 
 
 # Test notification exception handling in ComplaintCreateView

@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from notifications.models import Notification
 from complaints.models import Complaint
 from users.models import Citizen, Department
-from .. import views as notifications_views
+from notifications import views as notifications_views
 
 User = get_user_model()
 

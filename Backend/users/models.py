@@ -36,6 +36,12 @@ class Citizen(ParentUser):
         null=True,
         blank=True
     )
+    
+    def save(self, *args, **kwargs):
+        if not self.user_type or self.user_type == 'user':
+            self.user_type = 'citizen'
+        _ensure_phone_unique(self)
+        super().save(*args, **kwargs)
 class Department(models.Model):
     name = models.CharField(max_length=200, unique=True)
 
@@ -66,6 +72,12 @@ class Government_Authority(ParentUser):
         blank=True
     )
     verified=models.BooleanField(default=False)
+    
+    def save(self, *args, **kwargs):
+        if not self.user_type or self.user_type == 'user':
+            self.user_type = 'authority'
+        _ensure_phone_unique(self)
+        super().save(*args, **kwargs)
 
 class Field_Worker(ParentUser):
     phone_number = models.CharField(
@@ -78,4 +90,23 @@ class Field_Worker(ParentUser):
     # we are going to implement wards in later sprints
     # assigned_area=models.CharField(max_length=200)
     verified=models.BooleanField(default=False)
+    
+    def save(self, *args, **kwargs):
+        if not self.user_type or self.user_type == 'user':
+            self.user_type = 'fieldworker'
+        _ensure_phone_unique(self)
+        super().save(*args, **kwargs)
+
+
+def _ensure_phone_unique(instance):
+    phone = getattr(instance, 'phone_number', None)
+    if not phone:
+        return
+    models_to_check = [Citizen, Government_Authority, Field_Worker]
+    for model in models_to_check:
+        qs = model.objects.filter(phone_number=phone)
+        if isinstance(instance, model) and instance.pk:
+            qs = qs.exclude(pk=instance.pk)
+        if qs.exists():
+            raise IntegrityError("Phone number must be unique across all user types.")
  

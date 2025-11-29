@@ -17,6 +17,9 @@ django-cloudinary-storage = "*"
 pytest = "*"
 pytest-django = "*"
 coverage = "*"
+langchain = "*"
+langchain-core = "*"
+langchain-groq = "*"
 
 [dev-packages]
 pytest = "*"

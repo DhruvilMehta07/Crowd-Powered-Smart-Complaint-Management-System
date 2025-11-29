@@ -16,6 +16,7 @@ from django.contrib.auth import authenticate, login
 from django.db import DataError, IntegrityError
 from django.conf import settings
 from django.core.cache import caches
+from django.core.exceptions import ObjectDoesNotExist
 
 import re,requests,json
 
@@ -31,6 +32,25 @@ from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 otp_storage = {}
 # Setting up redis cache
 redis_cache = caches['default']
+
+
+def get_typed_user(user):
+    """Return the concrete subclass instance for the given ParentUser."""
+    related_map = {
+        'citizen': 'citizen',
+        'authority': 'government_authority',
+        'fieldworker': 'field_worker',
+    }
+    user_type = getattr(user, 'user_type', None)
+    related_attr = related_map.get(user_type)
+    if related_attr:
+        try:
+            related = getattr(user, related_attr)
+            if related:
+                return related
+        except (AttributeError, ObjectDoesNotExist):
+            pass
+    return user
 
 email_exists_error="User with this email already exists."
 otp_sent_message="OTP sent to email. Verify to complete registration."
@@ -238,12 +258,13 @@ class UserLoginAPIView(APIView):
             if user is None:
                 return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
-            # Use user_type field directly, avoid joins
-            user_type_local = getattr(user, 'user_type', None)
-            if user_type_local == 'authority' and hasattr(user, 'verified') and not user.verified:
-                return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
-            if user_type_local == 'fieldworker' and hasattr(user, 'verified') and not user.verified:
-                return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
+            typed_user = get_typed_user(user)
+            user_type_local = getattr(typed_user, 'user_type', getattr(user, 'user_type', None))
+
+            if user_type_local in ('authority', 'fieldworker'):
+                verified_flag = getattr(typed_user, 'verified', False)
+                if not verified_flag:
+                    return Response({"error": "Account pending admin verification."}, status=status.HTTP_401_UNAUTHORIZED)
 
             # Issue JWT tokens (access + refresh)
             refresh = RefreshToken.for_user(user)
@@ -425,8 +446,7 @@ class ProfileAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def _get_full_user(self, user):
-        # With user_type present, no need for joins; return user directly
-        return user
+        return get_typed_user(user)
 
     def get(self, request):
         user = self._get_full_user(request.user)
